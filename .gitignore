@@ -68,3 +68,12 @@ Derived/
 
 ### Tuist managed dependencies ###
 Tuist/.build
+
+# Local configs
+*.xcconfig
+
+# Signing / Local configs
+# Projects/App/Configs/*.xcconfig
+
+# 프로젝트 전체 xcconfig 무시
+# **/*.xcconfig

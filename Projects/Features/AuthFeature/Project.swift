@@ -6,37 +6,38 @@ let project = Project(
     
         // MARK: - Feature Framework
         .target(
-            name: "Auth",
+            name: "AuthFeature",
             destinations: .iOS,
             product: .framework,
-            bundleId: "com.indextrown.Haruhancut.auth",
+            bundleId: "com.indextrown.Haruhancut.authfeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "AuthInterface"),
-                // .project(target: "DSKit", path: "../../UI/DSKit")
+                .target(name: "AuthFeatureInterface"),
+                .project(target: "DSKit", path: "../../UI/DSKit")
+                
             ]
         ),
         
-        // MARK: - Interface Framework
+        // MARK: - FeatureInterface Framework
         .target(
-            name: "AuthInterface",
+            name: "AuthFeatureInterface",
             destinations: .iOS,
             product: .framework,
-            bundleId: "com.indextrown.Haruhancut.auth.interface",
+            bundleId: "com.indextrown.Haruhancut.authfeature.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],
             resources: [],
             dependencies: []
         ),
         
-        // MARK: - Demo App
+        // MARK: - FeatureDemo App
         .target(
-            name: "AuthDemo",
+            name: "AuthFeatureDemo",
             destinations: .iOS,
             product: .app,
-            bundleId: "com.indextrown.Haruhancut.auth.demo",
+            bundleId: "com.indextrown.Haruhancut.authfeature.demo",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
                 // Storyboard 미사용
@@ -58,9 +59,8 @@ let project = Project(
             sources: ["Demo/**"],
             resources: [],
             dependencies: [
-                .target(name: "Auth"),
-                .target(name: "AuthTesting")
-                // .project(target: "DSKit", path: "../../UI/DSKit")
+                .target(name: "AuthFeature"),
+                .target(name: "AuthFeatureTesting")
             ],
             settings: .settings(
                 configurations: [
@@ -76,32 +76,32 @@ let project = Project(
             )
         ),
 
-        // MARK: - Tests
+        // MARK: - Feature Tests
         .target(
             name: "AuthTests",
             destinations: .iOS,
             product: .unitTests,
-            bundleId: "com.indextrown.Haruhancut.auth.tests",
+            bundleId: "com.indextrown.Haruhancut.authfeature.tests",
             deploymentTargets: .iOS("17.0"),
             sources: ["Tests/Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "Auth"),
-                .target(name: "AuthTesting")
+                .target(name: "AuthFeature"),
+                .target(name: "AuthFeatureTesting")
             ]
         ),
 
-        // MARK: - Testing
+        // MARK: - Feature Testing
         .target(
-            name: "AuthTesting",
+            name: "AuthFeatureTesting",
             destinations: .iOS,
             product: .framework,
-            bundleId: "com.indextrown.Haruhancut.auth.testing",
+            bundleId: "com.indextrown.Haruhancut.authfeature.testing",
             deploymentTargets: .iOS("17.0"),
             sources: ["Testing/Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "AuthInterface")
+                .target(name: "AuthFeatureInterface")
             ]
         ),
     ]

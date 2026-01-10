@@ -8,3 +8,7 @@ feature:
 # ex) make ui name=모듈명
 ui:
 	@tuist scaffold ui --name ${name}
+
+# ex) make domain name=모듈명
+domain:
+	@tuist scaffold domain --name ${name}

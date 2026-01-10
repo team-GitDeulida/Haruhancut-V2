@@ -34,8 +34,8 @@ let project = Project(
             resources: ["Resources/**"],
             dependencies: [
                 // Feature 의존성은 나중에 추가
-                .project(target: "Auth", path: "../Features/Auth"),
-                // .project(target: "DSKit", path: "../UI/DSKit")
+                .project(target: "AuthFeature", path: "../Features/AuthFeature"),
+                .project(target: "DSKit", path: "../UI/DSKit")
             ],
             settings: .settings(
                 configurations: [

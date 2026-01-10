@@ -17,6 +17,16 @@ let templateUI = Template(
             templatePath: "stencil/Empty.stencil"
         ),
 
+        // MARK: - Resources
+        .file(
+            path: "Projects/UI/\(nameAttributeUI)/Resources/Assets.xcassets/Contents.json",
+            templatePath: "stencil/xcassets/Contents.json"
+        ),
+        .file(
+            path: "Projects/UI/\(nameAttributeUI)/Resources/Colors.xcassets/Contents.json",
+            templatePath: "stencil/xcassets/Contents.json"
+        ),
+
         // MARK: - Tests
         .file(
             path: "Projects/UI/\(nameAttributeUI)/Tests/Sources/Empty.swift",

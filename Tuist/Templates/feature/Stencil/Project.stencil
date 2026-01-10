@@ -6,34 +6,36 @@ let project = Project(
     
         // MARK: - Feature Framework
         .target(
-            name: "{{ name }}",
+            name: "{{ name }}Feature",
             destinations: .iOS,
             product: .framework,
-            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}",
+            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}feature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: [],
-            dependencies: []
+            dependencies: [
+                .target(name: "{{ name }}FeatureInterface")
+            ]
         ),
         
-        // MARK: - Interface Framework
+        // MARK: - FeatureInterface Framework
         .target(
-            name: "{{ name }}Interface",
+            name: "{{ name }}FeatureInterface",
             destinations: .iOS,
             product: .framework,
-            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}.interface",
+            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}feature.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],
             resources: [],
             dependencies: []
         ),
         
-        // MARK: - Demo App
+        // MARK: - FeatureDemo App
         .target(
-            name: "{{ name }}Demo",
+            name: "{{ name }}FeatureDemo",
             destinations: .iOS,
             product: .app,
-            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}.demo",
+            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}feature.demo",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
                 // Storyboard 미사용
@@ -55,7 +57,8 @@ let project = Project(
             sources: ["Demo/**"],
             resources: [],
             dependencies: [
-                .target(name: "{{ name }}")
+                .target(name: "{{ name }}Feature"),
+                .target(name: "{{ name }}FeatureTesting")
             ],
             settings: .settings(
                 configurations: [
@@ -71,32 +74,32 @@ let project = Project(
             )
         ),
 
-        // MARK: - Tests
+        // MARK: - Feature Tests
         .target(
             name: "{{ name }}Tests",
             destinations: .iOS,
             product: .unitTests,
-            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}.tests",
+            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}feature.tests",
             deploymentTargets: .iOS("17.0"),
             sources: ["Tests/Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "{{ name }}"),
-                .target(name: "{{ name }}Testing")
+                .target(name: "{{ name }}Feature"),
+                .target(name: "{{ name }}FeatureTesting")
             ]
         ),
 
-        // MARK: - Testing
+        // MARK: - Feature Testing
         .target(
-            name: "{{ name }}Testing",
+            name: "{{ name }}FeatureTesting",
             destinations: .iOS,
             product: .framework,
-            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}.testing",
+            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}feature.testing",
             deploymentTargets: .iOS("17.0"),
             sources: ["Testing/Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "{{ name }}Interface")
+                .target(name: "{{ name }}FeatureInterface")
             ]
         ),
     ]
