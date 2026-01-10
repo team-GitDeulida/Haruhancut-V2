@@ -7,10 +7,13 @@ let project = Project(
             name: "App",
             destinations: .iOS,
             product: .app,
-            productName: "하루한컷",
+            productName: "Haruhancut",
             bundleId: "com.indextrown.Haruhancut",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
+                // 앱 이름 설정
+                "CFBundleDisplayName": "하루한컷",
+
                 // Storyboard 미사용
                 "UILaunchScreen": [:],
 
@@ -31,7 +34,8 @@ let project = Project(
             resources: ["Resources/**"],
             dependencies: [
                 // Feature 의존성은 나중에 추가
-                .project(target: "DSKit", path: "../UI/DSKit")
+                .project(target: "Auth", path: "../Features/Auth"),
+                // .project(target: "DSKit", path: "../UI/DSKit")
             ],
             settings: .settings(
                 configurations: [

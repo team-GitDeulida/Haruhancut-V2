@@ -14,7 +14,8 @@ let project = Project(
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
-                .project(target: "DSKit", path: "../../UI/DSKit")
+                .target(name: "AuthInterface"),
+                // .project(target: "DSKit", path: "../../UI/DSKit")
             ]
         ),
         
@@ -58,7 +59,8 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "Auth"),
-                .project(target: "DSKit", path: "../../UI/DSKit")
+                .target(name: "AuthTesting")
+                // .project(target: "DSKit", path: "../../UI/DSKit")
             ],
             settings: .settings(
                 configurations: [
