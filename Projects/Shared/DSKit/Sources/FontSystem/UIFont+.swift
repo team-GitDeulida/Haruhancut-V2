@@ -7,7 +7,7 @@
 
 import UIKit
 
-extension UIFont {
+public extension UIFont {
     enum HCFont: String {
         case black = "Pretendard-Black"
         case bold = "Pretendard-Bold"
@@ -18,5 +18,26 @@ extension UIFont {
         case regular = "Pretendard-Regular"
         case semiBold = "Pretendard-SemiBold"
         case thin = "Pretendard-Thin"
+    }
+}
+
+public extension UIFont {
+    static func hcFont(_ font: HCFont, size: CGFloat) -> UIFont {
+        return UIFont(name: font.rawValue, size: size)!
+    }
+}
+
+public extension UIFont {
+    static var logoFont: UIFont {
+        hcFont(.bold, size: 24)
+    }
+    static var titleFont: UIFont {
+        hcFont(.bold, size: 20)
+    }
+    static var bodyFont: UIFont {
+        hcFont(.regular, size: 15)
+    }
+    static var captionFont: UIFont {
+        hcFont(.medium, size: 12)
     }
 }
