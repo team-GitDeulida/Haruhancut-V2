@@ -36,6 +36,7 @@ let project = Project(
                 // Feature 의존성은 나중에 추가
                 .project(target: "AuthFeature", path: "../Features/AuthFeature"),
                 .project(target: "OnboardingFeature", path: "../Features/OnboardingFeature"),
+                .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
                 // .project(target: "DSKit", path: "../UI/DSKit")
             ],
             settings: .settings(

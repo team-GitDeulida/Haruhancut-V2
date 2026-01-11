@@ -12,3 +12,8 @@ ui:
 # ex) make domain name=모듈명
 domain:
 	@tuist scaffold domain --name ${name}
+
+# ex) make module name=DesignSystem
+# ex) make module name=Network dir=Shared
+module:
+	@tuist scaffold module --name $(name) $(if $(dir),--dir $(dir),)

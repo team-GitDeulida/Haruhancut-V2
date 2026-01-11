@@ -13,7 +13,9 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: ["Resources/**"],
-            dependencies: [],
+            dependencies: [
+                .project(target: "Core", path: "../../Core")
+            ],
             settings: .settings(
                 configurations: [
                     .debug(

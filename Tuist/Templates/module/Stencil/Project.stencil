@@ -1,0 +1,49 @@
+import ProjectDescription
+
+let project = Project(
+    name: "{{ name }}",
+    targets: [
+    
+        // MARK: - {{ name }} / Domain Framework
+        .target(
+            name: "{{ name }}",
+            destinations: .iOS,
+            product: .staticFramework, // 필요하면 .staticFramework 로 변경 가능
+            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}",
+            deploymentTargets: .iOS("17.0"),
+            sources: ["Sources/**"],
+            resources: [],
+            dependencies: []
+        ),
+
+        // MARK: - Unit Tests
+        .target(
+            name: "{{ name }}Tests",
+            destinations: .iOS,
+            product: .unitTests,
+            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}.tests",
+            deploymentTargets: .iOS("17.0"),
+            sources: ["Tests/Sources/**"],
+            resources: [],
+            dependencies: [
+                .target(name: "{{ name }}"),
+                .target(name: "{{ name }}Testing")
+            ]
+        ),
+
+        // MARK: - Testing
+        .target(
+            name: "{{ name }}Testing",
+            destinations: .iOS,
+            product: .framework,
+            bundleId: "com.indextrown.Haruhancut.{{ name | lowercase }}.testing",
+            deploymentTargets: .iOS("17.0"),
+            sources: ["Testing/Sources/**"],
+            resources: [],
+            dependencies: [
+                .target(name: "{{ name }}"),
+            ]
+        ),
+    ]
+)
+

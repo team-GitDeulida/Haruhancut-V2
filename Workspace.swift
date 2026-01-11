@@ -5,7 +5,8 @@ let workspace = Workspace(
     projects: [
         "Projects/App",
         "Projects/Features/*",
-        "Projects/UI/*" ,
-        "Projects/Domain/*" 
+        "Projects/Domain" ,
+        "Projects/Core" ,
+        "Projects/Shared/*"
     ]
 )
