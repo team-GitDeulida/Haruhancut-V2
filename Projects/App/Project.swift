@@ -38,6 +38,8 @@ let project = Project(
                 .project(target: "OnboardingFeature", path: "../Features/OnboardingFeature"),
                 .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
                 // .project(target: "DSKit", path: "../UI/DSKit")
+                .project(target: "Core", path: "../Core"),
+                .project(target: "Data", path: "../Data")
             ],
             settings: .settings(
                 configurations: [
