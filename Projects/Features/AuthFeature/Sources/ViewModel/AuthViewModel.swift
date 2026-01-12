@@ -8,13 +8,16 @@
 import UIKit
 import AuthFeatureInterface
 import Domain
+import ThirdPartyLibs
 
 final class AuthViewModel: AuthViewModelType {
+    var disposeBag = DisposeBag()
+    
     var onAuthCompleted: (() -> Void)?
     
     private let useCase: AuthUsecaseProtocol
     
     init(useCase: AuthUsecaseProtocol) {
-         self.useCase = useCase
-     }
+        self.useCase = useCase
+    }
 }

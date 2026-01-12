@@ -13,7 +13,9 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: [],
-            dependencies: []
+            dependencies: [
+                .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs")
+            ]
         ),
 
         // MARK: - Unit Tests
