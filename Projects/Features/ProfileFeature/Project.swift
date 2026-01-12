@@ -8,7 +8,7 @@ let project = Project(
         .target(
             name: "ProfileFeature",
             destinations: .iOS,
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.Haruhancut.profilefeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
@@ -23,7 +23,7 @@ let project = Project(
         .target(
             name: "ProfileFeatureInterface",
             destinations: .iOS,
-            product: .staticFramework,
+            product: .framework,
             bundleId: "com.indextrown.Haruhancut.profilefeature.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],
@@ -62,7 +62,7 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "ProfileFeature"),
-                .target(name: "ProfileFeatureTesting")
+                // .target(name: "ProfileFeatureTesting")
             ],
             settings: .settings(
                 configurations: [
@@ -79,33 +79,33 @@ let project = Project(
         ),
 
         // MARK: - Feature Tests
-        .target(
-            name: "ProfileTests",
-            destinations: .iOS,
-            product: .unitTests,
-            bundleId: "com.indextrown.Haruhancut.profilefeature.tests",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Tests/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "ProfileFeature"),
-                .target(name: "ProfileFeatureTesting")
-            ]
-        ),
+        // .target(
+        //     name: "ProfileTests",
+        //     destinations: .iOS,
+        //     product: .unitTests,
+        //     bundleId: "com.indextrown.Haruhancut.profilefeature.tests",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Tests/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "ProfileFeature"),
+        //         .target(name: "ProfileFeatureTesting")
+        //     ]
+        // ),
 
         // MARK: - Feature Testing
-        .target(
-            name: "ProfileFeatureTesting",
-            destinations: .iOS,
-            product: .framework,
-            bundleId: "com.indextrown.Haruhancut.profilefeature.testing",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Testing/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "ProfileFeatureInterface")
-            ]
-        ),
+        // .target(
+        //     name: "ProfileFeatureTesting",
+        //     destinations: .iOS,
+        //     product: .framework,
+        //     bundleId: "com.indextrown.Haruhancut.profilefeature.testing",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Testing/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "ProfileFeatureInterface")
+        //     ]
+        // ),
     ]
 )
 

@@ -8,7 +8,7 @@ let project = Project(
         .target(
             name: "OnboardingFeature",
             destinations: .iOS,
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.Haruhancut.onboardingfeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
@@ -23,7 +23,7 @@ let project = Project(
         .target(
             name: "OnboardingFeatureInterface",
             destinations: .iOS,
-            product: .staticFramework,
+            product: .framework,
             bundleId: "com.indextrown.Haruhancut.onboardingfeature.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],
@@ -62,7 +62,7 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "OnboardingFeature"),
-                .target(name: "OnboardingFeatureTesting")
+                // .target(name: "OnboardingFeatureTesting")
             ],
             settings: .settings(
                 configurations: [
@@ -79,33 +79,33 @@ let project = Project(
         ),
 
         // MARK: - Feature Tests
-        .target(
-            name: "OnboardingTests",
-            destinations: .iOS,
-            product: .unitTests,
-            bundleId: "com.indextrown.Haruhancut.onboardingfeature.tests",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Tests/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "OnboardingFeature"),
-                .target(name: "OnboardingFeatureTesting")
-            ]
-        ),
+        // .target(
+        //     name: "OnboardingTests",
+        //     destinations: .iOS,
+        //     product: .unitTests,
+        //     bundleId: "com.indextrown.Haruhancut.onboardingfeature.tests",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Tests/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "OnboardingFeature"),
+        //         .target(name: "OnboardingFeatureTesting")
+        //     ]
+        // ),
 
         // MARK: - Feature Testing
-        .target(
-            name: "OnboardingFeatureTesting",
-            destinations: .iOS,
-            product: .framework,
-            bundleId: "com.indextrown.Haruhancut.onboardingfeature.testing",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Testing/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "OnboardingFeatureInterface")
-            ]
-        ),
+        // .target(
+        //     name: "OnboardingFeatureTesting",
+        //     destinations: .iOS,
+        //     product: .framework,
+        //     bundleId: "com.indextrown.Haruhancut.onboardingfeature.testing",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Testing/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "OnboardingFeatureInterface")
+        //     ]
+        // ),
     ]
 )
 

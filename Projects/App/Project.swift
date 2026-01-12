@@ -33,13 +33,16 @@ let project = Project(
             sources: ["Sources/**"],
             resources: ["Resources/**"],
             dependencies: [
-                // Feature 의존성은 나중에 추가
-                .project(target: "AuthFeature", path: "../Features/AuthFeature"),
-                .project(target: "OnboardingFeature", path: "../Features/OnboardingFeature"),
-                .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
-                // .project(target: "DSKit", path: "../UI/DSKit")
-                .project(target: "Core", path: "../Core"),
-                .project(target: "Data", path: "../Data")
+                // // Feature 의존성은 나중에 추가
+                // .project(target: "AuthFeature", path: "../Features/AuthFeature"),
+                // .project(target: "OnboardingFeature", path: "../Features/OnboardingFeature"),
+                // .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
+                // // .project(target: "DSKit", path: "../UI/DSKit")
+                // .project(target: "Core", path: "../Core"),
+                // .project(target: "Data", path: "../Data"),
+
+                .project(target: "Coordinator", path: "../Coordinator"),
+                .project(target: "Data", path: "../Data"),
             ],
             settings: .settings(
                 configurations: [

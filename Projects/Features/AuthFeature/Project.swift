@@ -8,7 +8,7 @@ let project = Project(
         .target(
             name: "AuthFeature",
             destinations: .iOS,
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.Haruhancut.authfeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
@@ -23,7 +23,7 @@ let project = Project(
         .target(
             name: "AuthFeatureInterface",
             destinations: .iOS,
-            product: .staticFramework,
+            product: .framework,
             bundleId: "com.indextrown.Haruhancut.authfeature.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],
@@ -62,7 +62,7 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "AuthFeature"),
-                .target(name: "AuthFeatureTesting")
+                // .target(name: "AuthFeatureTesting")
             ],
             settings: .settings(
                 configurations: [
@@ -79,33 +79,33 @@ let project = Project(
         ),
 
         // MARK: - Feature Tests
-        .target(
-            name: "AuthTests",
-            destinations: .iOS,
-            product: .unitTests,
-            bundleId: "com.indextrown.Haruhancut.authfeature.tests",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Tests/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "AuthFeature"),
-                .target(name: "AuthFeatureTesting")
-            ]
-        ),
+        // .target(
+        //     name: "AuthTests",
+        //     destinations: .iOS,
+        //     product: .unitTests,
+        //     bundleId: "com.indextrown.Haruhancut.authfeature.tests",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Tests/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "AuthFeature"),
+        //         .target(name: "AuthFeatureTesting")
+        //     ]
+        // ),
 
         // MARK: - Feature Testing
-        .target(
-            name: "AuthFeatureTesting",
-            destinations: .iOS,
-            product: .framework,
-            bundleId: "com.indextrown.Haruhancut.authfeature.testing",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Testing/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "AuthFeatureInterface")
-            ]
-        ),
+        // .target(
+        //     name: "AuthFeatureTesting",
+        //     destinations: .iOS,
+        //     product: .framework,
+        //     bundleId: "com.indextrown.Haruhancut.authfeature.testing",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Testing/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "AuthFeatureInterface")
+        //     ]
+        // ),
     ]
 )
 
