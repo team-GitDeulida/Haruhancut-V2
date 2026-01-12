@@ -52,6 +52,7 @@ let project = Project(
             bundleId: "com.indextrown.Haruhancut.ui.dskit.demo",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
+                // Basic Info
                 "UILaunchScreen": [:],
                 "UIApplicationSceneManifest": [
                     "UIApplicationSupportsMultipleScenes": true,
@@ -63,10 +64,27 @@ let project = Project(
                             ]
                         ]
                     ]
-                ]
+                ],
+
+                // 폰트 추가
+                "UIAppFonts": .array([
+                    .string("NanumMyeongjo-Regular.ttf"),
+                    .string("RacingSansOne-Regular.ttf"),
+                    .string("Pretendard-Black.otf"),
+                    .string("Pretendard-Bold.otf"),
+                    .string("Pretendard-ExtraBold.otf"),
+                    .string("Pretendard-ExtraLight.otf"),
+                    .string("Pretendard-Light.otf"),
+                    .string("Pretendard-Medium.otf"),
+                    .string("Pretendard-Regular.otf"),
+                    .string("Pretendard-SemiBold.otf"),
+                    .string("Pretendard-Thin.otf")
+                ]),
             ]),
             sources: ["Demo/**"],
-            resources: [],
+            resources: [
+                "../../Shared/Resources/Fonts/**"
+            ],
             dependencies: [
                 .target(name: "DSKit")
             ],

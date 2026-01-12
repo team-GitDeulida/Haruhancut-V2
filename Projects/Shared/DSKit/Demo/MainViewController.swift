@@ -14,7 +14,7 @@ final class MainViewController: UIViewController {
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
         label.font = .titleFont
-        label.textColor = .label
+        label.textColor = .black
         label.textAlignment = .center
         label.numberOfLines = 0
         label.text = "title size 20"
@@ -24,7 +24,7 @@ final class MainViewController: UIViewController {
     private lazy var bodyLabel: UILabel = {
         let label = UILabel()
         label.font = .bodyFont
-        label.textColor = .secondaryLabel
+        label.textColor = .black
         label.textAlignment = .center
         label.numberOfLines = 0
         label.text = "body size 15"
@@ -34,7 +34,7 @@ final class MainViewController: UIViewController {
     private lazy var captionLabel: UILabel = {
         let label = UILabel()
         label.font = .captionFont
-        label.textColor = .label
+        label.textColor = .black
         label.textAlignment = .center
         label.numberOfLines = 0
         label.text = "caption size 12"
@@ -42,7 +42,13 @@ final class MainViewController: UIViewController {
     }()
     
     private lazy var hStackView: UIStackView = {
-        let stackView = UIStackView(arrangedSubviews: [titleLabel, bodyLabel, captionLabel])
+        let stackView = UIStackView(arrangedSubviews: [
+            titleLabel,
+            bodyLabel,
+            captionLabel,
+            SocialLoginButton(type: .kakao, title: "카카오로 계속하기"),
+            SocialLoginButton(type: .apple, title: "애플로 계속하기")
+        ])
         stackView.axis = .vertical
         stackView.alignment = .center
         stackView.spacing = 10
@@ -65,7 +71,7 @@ final class MainViewController: UIViewController {
         let label = UILabel()
         label.text = name
         label.font = .bodyFont
-        label.textColor = .label
+        label.textColor = .black
 
         let stack = UIStackView(arrangedSubviews: [colorView, label])
         stack.axis = .horizontal
@@ -75,14 +81,74 @@ final class MainViewController: UIViewController {
         return stack
     }
     
+    private lazy var leftColorColumn: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [
+            makeColorRow(color: .kakao, name: "kakao"),
+            makeColorRow(color: .kakaoTapped, name: "kakaoTapped"),
+            makeColorRow(color: .apple, name: "apple"),
+            makeColorRow(color: .appleTapped, name: "appleTapped"),
+
+            makeColorRow(color: .background, name: "background"),
+            makeColorRow(color: .mainBlack, name: "mainBlack"),
+            makeColorRow(color: .mainWhite, name: "mainWhite"),
+            makeColorRow(color: .buttonTapped, name: "buttonTapped"),
+            makeColorRow(color: .hcColor, name: "hcColor"),
+        ])
+        stack.axis = .vertical
+        stack.spacing = 12
+        stack.alignment = .leading
+        return stack
+    }()
+
+    private lazy var rightColorColumn: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [
+            makeColorRow(color: .gray000, name: "gray000"),
+            makeColorRow(color: .gray100, name: "gray100"),
+            makeColorRow(color: .gray200, name: "gray200"),
+            makeColorRow(color: .gray300, name: "gray300"),
+            makeColorRow(color: .gray500, name: "gray500"),
+            makeColorRow(color: .gray700, name: "gray700"),
+            makeColorRow(color: .gray900, name: "gray900"),
+        ])
+        stack.axis = .vertical
+        stack.spacing = 12
+        stack.alignment = .leading
+        return stack
+    }()
+
+    private lazy var colorGridStackView: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [
+            leftColorColumn,
+            rightColorColumn
+        ])
+        stack.axis = .horizontal
+        stack.spacing = 32
+        stack.alignment = .top
+        return stack
+    }()
+    
     private lazy var colorStackView: UIStackView = {
         let stack = UIStackView(arrangedSubviews: [
             makeColorRow(color: .kakao, name: "kakao"),
+            makeColorRow(color: .kakaoTapped, name: "kakaoTapped"),
             makeColorRow(color: .apple, name: "apple"),
+            makeColorRow(color: .appleTapped, name: "appleTapped"),
+            
+            makeColorRow(color: .background, name: "background"),
             makeColorRow(color: .mainBlack, name: "mainBlack"),
+            makeColorRow(color: .mainWhite, name: "mainWhite"),
+            makeColorRow(color: .buttonTapped, name: "buttonTapped"),
+            makeColorRow(color: .hcColor, name: "hcColor"),
+            
+            makeColorRow(color: .gray000, name: "gray000"),
+            makeColorRow(color: .gray100, name: "gray100"),
+            makeColorRow(color: .gray200, name: "gray200"),
             makeColorRow(color: .gray300, name: "gray300"),
+            makeColorRow(color: .gray500, name: "gray500"),
+            makeColorRow(color: .gray700, name: "gray700"),
             makeColorRow(color: .gray900, name: "gray900"),
         ])
+        
         stack.axis = .vertical
         stack.spacing = 12
         return stack
@@ -91,7 +157,7 @@ final class MainViewController: UIViewController {
     private lazy var rootStackView: UIStackView = {
         let stack = UIStackView(arrangedSubviews: [
             hStackView,
-            colorStackView
+            colorGridStackView
         ])
         stack.axis = .vertical
         stack.spacing = 32
@@ -107,11 +173,10 @@ final class MainViewController: UIViewController {
 
     // MARK: - UI Setup
     private func setupUI() {
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .gray000
         view.addSubview(rootStackView)
         rootStackView.translatesAutoresizingMaskIntoConstraints = false
     }
-
     
     // MARK: - Constraints
     private func setupConstraints() {
