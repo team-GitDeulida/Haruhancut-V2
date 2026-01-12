@@ -15,7 +15,7 @@ public final class DIContainer {
     private var dependencies: [String: Any] = [:]
     
     // 메서드로 의존성을 등록
-    func register<T>(_ type: T.Type, dependency: T) {
+    public func register<T>(_ type: T.Type, dependency: T) {
         let key = String(describing: type)
         dependencies[key] = dependency
     }

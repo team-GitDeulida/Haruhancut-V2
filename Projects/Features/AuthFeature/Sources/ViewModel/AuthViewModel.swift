@@ -7,18 +7,14 @@
 
 import UIKit
 import AuthFeatureInterface
+import Domain
 
 final class AuthViewModel: AuthViewModelType {
     var onAuthCompleted: (() -> Void)?
     
-    private let useCase: AuthUseCase
+    private let useCase: AuthUsecaseProtocol
     
-    init(useCase: AuthUseCase) {
+    init(useCase: AuthUsecaseProtocol) {
          self.useCase = useCase
      }
 }
-
-
-
-
-

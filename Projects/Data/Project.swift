@@ -13,7 +13,9 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: [],
-            dependencies: []
+            dependencies: [
+                .project(target: "Domain", path: "../Domain")
+            ]
         ),
 
         // MARK: - Unit Tests
@@ -26,22 +28,7 @@ let project = Project(
             sources: ["Tests/Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "Data"),
-                .target(name: "DataTesting")
-            ]
-        ),
-
-        // MARK: - Testing
-        .target(
-            name: "DataTesting",
-            destinations: .iOS,
-            product: .framework,
-            bundleId: "com.indextrown.Haruhancut.data.testing",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Testing/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "Data"),
+                .target(name: "Data")
             ]
         ),
     ]

@@ -10,6 +10,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.indextrown.Haruhancut.domain",
+            deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: [],
             dependencies: [

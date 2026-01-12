@@ -7,27 +7,26 @@
 
 import UIKit
 import AuthFeatureInterface
+import Domain
+import Core
 
 // MARK: - Creator(Factory Interface)
-protocol AuthFeatureBuildable {
+public protocol AuthFeatureBuildable {
     func makeSignIn() -> SignInPresentable
 }
 
 // MARK: - Concrete Creator
-final class AuthFeatureBuilder: AuthFeatureBuildable {
+public final class AuthFeatureBuilder: AuthFeatureBuildable {
     
-    private let authRepository: AuthRepositoryProtocol
+    public init() {}
     
-    public init(authRepository: AuthRepositoryProtocol) {
-        self.authRepository = authRepository
-    }
-    
-    func makeSignIn() -> SignInPresentable {
+    public func makeSignIn() -> SignInPresentable {
         
         // Domain
-        // let repository = AuthRepository()
-        let useCase = AuthUseCase(repository: authRepository)
-        let viewModel = AuthViewModel(useCase: useCase)
+        @Dependency var authUsecase: AuthUsecaseProtocol
+        
+        // ViewModel
+        let viewModel = AuthViewModel(useCase: authUsecase)
         
         // Scene
         let viewController = SignInViewController(viewModel: viewModel)

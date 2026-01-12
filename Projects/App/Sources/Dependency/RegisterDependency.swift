@@ -6,6 +6,8 @@
 //
 
 import Core
+import Data
+import Domain
 
 extension AppDelegate {
     var container: DIContainer {
@@ -13,6 +15,8 @@ extension AppDelegate {
     }
     
     func registerDependencies() {
-        let authRepository = AuthRepository()
+        let authRepository = AuthRepositoryImpl()
+        let authUseCase = AuthUsecaseImpl(authRepository: authRepository)
+        DIContainer.shared.register(AuthUsecaseProtocol.self, dependency: authUseCase)
     }
 }
