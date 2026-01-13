@@ -17,7 +17,11 @@ let project = Project(
                 .external(name: "RxSwift"),
                 .external(name: "RxCocoa"),
                 .external(name: "RxRelay"),
-                .external(name: "Lottie")
+                .external(name: "Lottie"),
+                .external(name: "KakaoSDK"),
+                .external(name: "RxKakaoSDK"),
+                .external(name: "FirebaseAuth"),
+                .external(name: "FirebaseDatabase")
             ]
         ),
     ]

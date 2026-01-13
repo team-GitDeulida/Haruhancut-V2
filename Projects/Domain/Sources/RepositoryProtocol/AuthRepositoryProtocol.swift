@@ -6,7 +6,9 @@
 //
 
 import Foundation
+import RxSwift
+import Core
 
 public protocol AuthRepositoryProtocol {
-    func signIn() async throws
+    func loginWithKakao() -> Observable<Result<String, LoginError>>
 }

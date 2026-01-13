@@ -15,7 +15,8 @@ extension AppDelegate {
     }
     
     func registerDependencies() {
-        let authRepository = AuthRepositoryImpl()
+        let kakaoLoginManager = KakaoLoginManager()
+        let authRepository = AuthRepositoryImpl(kakaoLoginManager: kakaoLoginManager)
         let authUseCase = AuthUsecaseImpl(authRepository: authRepository)
         DIContainer.shared.register(AuthUsecaseProtocol.self, dependency: authUseCase)
     }
