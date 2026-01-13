@@ -1,0 +1,84 @@
+//
+//  AppCoordinator.swift
+//  Coordinator
+//
+//  Created by 김동현 on 
+//
+
+import UIKit
+import Domain
+import Core
+
+public protocol Coordinator: AnyObject {
+    var parentCoordinator: Coordinator? { get set }
+    var childCoordinators: [Coordinator] { get set }
+    func start()
+}
+
+extension Coordinator {
+    func childDidFinish(_ child: Coordinator?) {
+        guard let child = child else { return }
+        childCoordinators.removeAll() { $0 === child }
+    }
+}
+
+public final class AppCoordinator: Coordinator {
+
+    public var parentCoordinator: Coordinator?
+    public var childCoordinators: [Coordinator] = []
+    public var navigationController: UINavigationController
+    private let userSession: UserSessionType
+    
+    public init(navigationController: UINavigationController,
+         userSession: UserSessionType) {
+        self.navigationController = navigationController
+        self.userSession = userSession
+    }
+    
+    // 로그인플로우 or 홈 플로우
+    public func start() {
+        routeInitialFlow()
+        bindUserSession()
+    }
+    
+    /// 로그인 플로우
+    func startLoginFlowCoordinator() {
+        let authCoordinator = AuthCoordinator(navigationController: navigationController,
+                                              userSession: userSession)
+        authCoordinator.parentCoordinator = self
+        childCoordinators.append(authCoordinator)
+        authCoordinator.start()
+    }
+    
+    // 홈 플로우
+    func startHomeFlowCoordinator() {
+        print("홈 플로우 실행 예정")
+    }
+}
+
+private extension AppCoordinator {
+    
+    // 앱 최초 실행 시 진입할 플로우를 결정한다
+    func routeInitialFlow() {
+        if userSession.currentUser == nil {
+            // 앱 시작 시 로그인된 유저가 없음 → 로그인 플로우
+            startLoginFlowCoordinator()
+        } else {
+            // 앱 시작 시 이미 로그인된 유저가 있음 → 홈 플로우
+            startHomeFlowCoordinator()
+        }
+    }
+    
+    // 로그인 / 로그아웃 등 **앱 실행 중 발생하는 상태 변화**에 반응한다
+    func bindUserSession() {
+        userSession.onUserChanged = { [weak self] user in
+            guard let self = self else { return }
+            
+            if user == nil {
+                self.startLoginFlowCoordinator()
+            } else {
+                self.startHomeFlowCoordinator()
+            }
+        }
+    }
+}

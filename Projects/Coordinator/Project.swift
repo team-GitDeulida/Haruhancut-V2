@@ -20,7 +20,6 @@ let project = Project(
                 .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
                 // .project(target: "DSKit", path: "../UI/DSKit")
                 .project(target: "Core", path: "../Core"),
-                .project(target: "Data", path: "../Data"),
             ]
         ),
     ]

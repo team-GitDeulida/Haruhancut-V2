@@ -11,7 +11,8 @@ import PackageDescription
         productTypes: [
             "RxSwift": .framework,
             "RxCocoa": .framework,
-            "RxRelay": .framework
+            "RxRelay": .framework,
+            "Lottie": .framework
         ]
     )
 #endif
@@ -24,7 +25,11 @@ let package = Package(
         // You can read more about dependencies here: https://docs.tuist.io/documentation/tuist/dependencies
         .package(
             url: "https://github.com/ReactiveX/RxSwift.git",
-            from: "6.7.0"
+            from: "6.9.0"
+        ),
+        .package(
+            url: "https://github.com/airbnb/lottie-ios.git",
+            from: "4.6.0"
         )
     ]
 )

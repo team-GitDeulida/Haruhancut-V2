@@ -6,35 +6,37 @@
 //
 
 import UIKit
+import AuthFeatureInterface
+import ThirdPartyLibs
 
 final class SignInViewController: UIViewController {
 
-    private let viewModel: AuthViewModel
+    private let viewModel: AuthViewModelType
+    private let customView = SignInView()
 
-    init(viewModel: AuthViewModel) {
+    init(viewModel: AuthViewModelType) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
-        view.backgroundColor = .systemBackground
-        setupUI()
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func setupUI() {
-        let label = UILabel()
-        label.text = "Auth Demo"
-        label.font = .systemFont(ofSize: 24, weight: .bold)
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-
-        view.addSubview(label)
-
-        NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        customView.animationView.play()
+    }
+    
+    override func loadView() {
+        self.view = customView
+    }
+    
+    private func bindViewModel() {
+        let input = AuthViewModel.Input(kakaoButtonTapped: customView.kakaoLoginButton.rx.tap.asObservable(),
+                                        appleButtonTapped: customView.appleLoginButton.rx.tap.asObservable())
+        
+//        let output = viewModel.
     }
 }
 
