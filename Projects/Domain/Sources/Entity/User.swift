@@ -7,10 +7,12 @@
 
 import Foundation
 
+
 public struct User: Encodable {
     
     public var uid: String
     public let registerDate: Date
+    public let loginPlatform: LoginPlatform
     public var nickname: String
     public var profileImageURL: String?
     public var fcmToken: String?
@@ -32,9 +34,10 @@ public struct User: Encodable {
         case apple = "apple"
     }
     
-    public init(uid: String, registerDate: Date, nickname: String, profileImageURL: String? = nil, fcmToken: String? = nil, birthdayDate: Date, gender: Gender, isPushEnabled: Bool, groupId: String? = nil) {
+    public init(uid: String, registerDate: Date, loginPlatform: LoginPlatform, nickname: String, profileImageURL: String? = nil, fcmToken: String? = nil, birthdayDate: Date, gender: Gender, isPushEnabled: Bool, groupId: String? = nil) {
         self.uid = uid
         self.registerDate = registerDate
+        self.loginPlatform = loginPlatform
         self.nickname = nickname
         self.profileImageURL = profileImageURL
         self.fcmToken = fcmToken
@@ -44,3 +47,4 @@ public struct User: Encodable {
         self.groupId = groupId
     }
 }
+

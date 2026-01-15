@@ -27,8 +27,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // 3. root view controller 설정
         let builder = AuthFeatureBuilder()
         let signIn = builder.makeSignIn()
-
         window.rootViewController = signIn.vc
+        
         self.window = window
         window.makeKeyAndVisible()
     }

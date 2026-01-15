@@ -9,7 +9,7 @@ import Domain
 import RxSwift
 import Core
 
-public final class AuthRepositoryImpl: AuthRepositoryProtocol {
+public final class SignInRepositoryImpl: SignInRepositoryProtocol {
     
     private let kakaoLoginManager: KakaoLoginManager
     
@@ -22,7 +22,7 @@ public final class AuthRepositoryImpl: AuthRepositoryProtocol {
     }
 }
 
-public final class StubAuthRepositoryImpl: AuthRepositoryProtocol {
+public final class StubSignInRepositoryImpl: SignInRepositoryProtocol {
     
     public init() {}
     

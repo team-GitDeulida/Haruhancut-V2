@@ -9,7 +9,7 @@ import Domain
 import RxSwift
 import Core
 
-public final class StubAuthRepositoryImpl: AuthRepositoryProtocol {
+public final class StubSignInRepositoryImpl: SignInRepositoryProtocol {
     public func loginWithKakao() -> Observable<Result<String, LoginError>> {
         return .just(.success("mockToken"))
     }

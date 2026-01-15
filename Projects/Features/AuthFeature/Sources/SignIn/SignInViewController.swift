@@ -7,15 +7,18 @@
 
 import UIKit
 import AuthFeatureInterface
-import ThirdPartyLibs
+import RxSwift
 
 final class SignInViewController: UIViewController {
-
-    private let viewModel: AuthViewModelType
+    
+    // MARK: - Properties
+    let disposeBag = DisposeBag()
+    public var signInViewModel: SignInViewModel
     private let customView = SignInView()
 
-    init(viewModel: AuthViewModelType) {
-        self.viewModel = viewModel
+    // MARK: - Init
+    init(signInViewModel: SignInViewModel) {
+        self.signInViewModel = signInViewModel
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -32,11 +35,21 @@ final class SignInViewController: UIViewController {
         self.view = customView
     }
     
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        bindViewModel()
+    }
+    
     private func bindViewModel() {
-        let input = AuthViewModel.Input(kakaoButtonTapped: customView.kakaoLoginButton.rx.tap.asObservable(),
-                                        appleButtonTapped: customView.appleLoginButton.rx.tap.asObservable())
+        let input = SignInViewModel.Input(kakaoLoginButtonTapped: customView.kakaoLoginButton.rx.tap.asDriver(),
+                                          appleLoginButtonTapped: customView.appleLoginButton.rx.tap.asDriver())
         
-//        let output = viewModel.
+        let output = signInViewModel.transform(input: input)
+        output.loginResult
+            .drive(onNext: { result in
+                print("loginResult: \(result)")
+            })
+            .disposed(by: disposeBag)
     }
 }
 

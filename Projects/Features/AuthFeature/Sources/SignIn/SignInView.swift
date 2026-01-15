@@ -81,6 +81,6 @@ final class SignInView: UIView {
     }
 }
 
-#Preview {
-    SignInViewController(viewModel: StubAuthViewModel())
-}
+//#Preview {
+//    SignInViewController(viewModel: StubAuthViewModel())
+//}
