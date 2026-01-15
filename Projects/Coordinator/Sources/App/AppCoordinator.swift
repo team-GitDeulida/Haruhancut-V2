@@ -52,7 +52,24 @@ public final class AppCoordinator: Coordinator {
     
     // 홈 플로우
     func startHomeFlowCoordinator() {
-        print("홈 플로우 실행 예정")
+        // print("홈 플로우 실행 예정")
+        
+        // 1. AuthCoordinator 제거
+        childCoordinators.removeAll { $0 is AuthCoordinator }
+        
+        // 2. HomeCoordinator 중복 방지
+        if childCoordinators.contains(where: { $0 is HomeCoordinator }) {
+            return
+        }
+        
+        // 3️⃣ HomeCoordinator 시작
+        let homeCoordinator = HomeCoordinator(
+            navigationController: navigationController,
+            userSession: userSession
+        )
+        homeCoordinator.parentCoordinator = self
+        childCoordinators.append(homeCoordinator)
+        homeCoordinator.start()
     }
 }
 

@@ -7,10 +7,12 @@
 
 import AuthFeatureInterface
 import Domain
-import RxCocoa
 import Core
+import RxSwift
+import RxCocoa
 
 final class SignInViewModel: SignInViewModelType {
+    let disposeBag = DisposeBag()
     
     // MARK: - Properties
     private let signInUsecase: SignInUsecaseProtocol
@@ -40,7 +42,15 @@ extension SignInViewModel {
         
         let kakaoResult = input.kakaoLoginButtonTapped.map { Result<Void, LoginError>.success(()) }
         let appleResult = input.appleLoginButtonTapped.map { Result<Void, LoginError>.success(()) }
+        
         let loginResult = Driver.merge(kakaoResult, appleResult)
+            // side effect
+            .do(onNext: { [weak self] result in
+                if case .success = result {
+                    self?.onSignInSuccess?()
+                }
+            })
+        
         return Output(loginResult: loginResult)
         
         // return Output(loginResult: Driver.empty())

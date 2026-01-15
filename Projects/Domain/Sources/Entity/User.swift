@@ -48,3 +48,15 @@ public struct User: Encodable {
     }
 }
 
+extension User {
+    public static var sampleUser1: User {
+        User(uid: "stub-uid",
+             registerDate: Date(),
+             loginPlatform: .apple,
+             nickname: "stub-nickname-apple",
+             birthdayDate: .now,
+             gender: .male,
+             isPushEnabled: true
+        )
+    }
+}

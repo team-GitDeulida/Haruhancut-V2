@@ -8,7 +8,7 @@
 import Foundation
 
 extension Encodable {
-    func toDictionary() -> [String: Any]? {
+    public func toDictionary() -> [String: Any]? {
         do {
             let data = try JSONEncoder().encode(self)
             let jsonObject = try JSONSerialization.jsonObject(with: data)
@@ -21,7 +21,7 @@ extension Encodable {
 }
 
 extension Decodable {
-    static func fromDictionary(_ dict: [String: Any]) -> Self? {
+    public static func fromDictionary(_ dict: [String: Any]) -> Self? {
         do {
             let data = try JSONSerialization.data(withJSONObject: dict)
             let decodedObject = try JSONDecoder().decode(Self.self, from: data)

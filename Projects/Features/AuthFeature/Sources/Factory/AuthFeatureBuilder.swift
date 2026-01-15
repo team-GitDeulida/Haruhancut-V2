@@ -31,7 +31,6 @@ extension AuthFeatureBuilder: AuthFeatureBuildable {
         @Dependency var signInUsecase: SignInUsecaseProtocol
         let vm = SignInViewModel(signInUsecase: signInUsecase)
         let vc = SignInViewController(signInViewModel: vm)
-        return (vc: vc, vm: vm)
+        return (vc, vm)
     }
-    
 }

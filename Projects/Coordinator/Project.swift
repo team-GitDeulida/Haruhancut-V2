@@ -16,6 +16,7 @@ let project = Project(
             dependencies: [
                 // Feature 의존성은 나중에 추가
                 .project(target: "AuthFeature", path: "../Features/AuthFeature"),
+                .project(target: "HomeFeature", path: "../Features/HomeFeature"),
                 .project(target: "OnboardingFeature", path: "../Features/OnboardingFeature"),
                 .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
                 // .project(target: "DSKit", path: "../UI/DSKit")

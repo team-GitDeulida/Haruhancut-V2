@@ -21,7 +21,7 @@ public struct UserDTO: Codable { /// Json -> Swift 객체(서버 응답용)
     public let isPushEnabled: Bool?
     public let groupId: String?
     
-    init(uid: String?, registerDate: String?, loginPlatform: String?, nickname: String?, profileImageURL: String?, fcmToken: String?, birthdayDate: String?, gender: String?, isPushEnabled: Bool?, groupId: String?) {
+    public init(uid: String?, registerDate: String?, loginPlatform: String?, nickname: String?, profileImageURL: String?, fcmToken: String?, birthdayDate: String?, gender: String?, isPushEnabled: Bool?, groupId: String?) {
         self.uid = uid
         self.registerDate = registerDate
         self.loginPlatform = loginPlatform

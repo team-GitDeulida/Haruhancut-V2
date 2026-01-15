@@ -27,11 +27,11 @@ public final class AuthCoordinator: Coordinator {
         let builder = AuthFeatureBuilder()
         var signIn = builder.makeSignIn()
         
-        signIn.vm.onAuthCompleted = { [weak self] in
+        signIn.vm.onSignInSuccess = { [weak self] in
             guard let self = self else { return }
             
             // 로그인 성공시 세션 전달
-            // self.userSession.update()
+            self.userSession.update(user: User.sampleUser1)
             
             // Auth 플로우 종료
             self.parentCoordinator?.childDidFinish(self)

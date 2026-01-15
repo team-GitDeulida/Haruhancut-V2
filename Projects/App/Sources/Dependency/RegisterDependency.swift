@@ -18,6 +18,6 @@ extension AppDelegate {
         let kakaoLoginManager = KakaoLoginManager()
         let signInRepository = SignInRepositoryImpl(kakaoLoginManager: kakaoLoginManager)
         let signInUseCase = SignInUsecaseImpl(signInRepository: signInRepository)
-        DIContainer.shared.register(SignInUsecaseImpl.self, dependency: signInUseCase)
+        DIContainer.shared.register(SignInUsecaseProtocol.self, dependency: signInUseCase)
     }
 }

@@ -9,6 +9,7 @@ import FirebaseAuth
 import FirebaseDatabase
 import RxSwift
 import Core
+import Domain
 
 enum ProviderID: String {
     case kakao
@@ -178,7 +179,7 @@ extension FirebaseAuthManager {
     /// Firebase Realtime Database에 유저 정보를 저장하고, 저장된 User를 반환 - create
     /// - Parameter user: 저장할 User 객체
     /// - Returns: Result<User, LoginError>
-    func registerUserToRealtimeDatabase(user: User) -> Observable<Result<User, LoginError>> {
+    func registerUserToRealtimeDatabase(user: Domain.User) -> Observable<Result<Domain.User, LoginError>> {
         guard let firebaseUID = Auth.auth().currentUser?.uid else {
             return Observable.just(.failure(.authError))
         }
@@ -200,7 +201,7 @@ extension FirebaseAuthManager {
     
     /// 나의 유저정보 불러오기 - read
     /// - Returns: Observable<User?>
-    func fetchMyInfo() -> Observable<User?> {
+    func fetchMyInfo() -> Observable<Domain.User?> {
         guard let uid = Auth.auth().currentUser?.uid else {
             print("🔸 로그인된 유저 없음")
             return Observable.just(nil)
@@ -221,7 +222,7 @@ extension FirebaseAuthManager {
     /// Uid기반 유저 정보 가져오기 - read
     /// - Parameter uid: uid
     /// - Returns: Observable<User?>
-    func fetchUser(uid: String) -> Observable<User?> {
+    func fetchUser(uid: String) -> Observable<Domain.User?> {
         let path = "users/\(uid)"
             
             return readValue(path: path, type: UserDTO.self)
@@ -237,12 +238,12 @@ extension FirebaseAuthManager {
     /// 유저 업데이트 - update
     /// - Parameter user: user구조체
     /// - Returns: Observable<Result<User, LoginError>>
-    func updateUser(user: User) -> Observable<Result<User, LoginError>> {
+    func updateUser(user: Domain.User) -> Observable<Result<Domain.User, LoginError>> {
         let path = "users/\(user.uid)"
         let dto = user.toDTO()
         
         return updateValue(path: path, value: dto)
-            .map { success -> Result<User, LoginError> in
+            .map { success -> Result<Domain.User, LoginError> in
                 if success {
                     return .success(user)
                 } else {
@@ -257,7 +258,7 @@ extension FirebaseAuthManager {
     func deleteUser(uid: String) -> Observable<Bool> {
         // 1. 유저 정보 읽기(groudId 확보용)
         return fetchUser(uid: uid)
-            .flatMap { (user: User!) -> Observable<Bool> in
+            .flatMap { (user: Domain.User!) -> Observable<Bool> in
                 guard let groudId = user.groupId else {
                     // 그룹이 없으면 곧바로 성공
                     return .just(true)
