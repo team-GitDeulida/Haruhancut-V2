@@ -12,9 +12,12 @@ enum RxExample {
     case just
     case of
     case from
+    case from2
     case create
     
-    static let current: RxExample = .create
+    case subscribe
+    
+    static let current: RxExample = .subscribe
 }
 
 func run(_ example: RxExample) {
@@ -25,8 +28,13 @@ func run(_ example: RxExample) {
         observable_of()
     case .from:
         observable_from()
+    case .from2:
+        observable_from_filter_map()
     case .create:
         observable_create()
+        
+    case .subscribe:
+        subscribe()
     }
 }
 
@@ -110,6 +118,22 @@ func observable_from() {
     }
 }
 
+func observable_from_filter_map() {
+    runner(description: "observable_from_filter_map") {
+        let disposeBag = DisposeBag()
+        let arr = [1, 2, 3, 4, 5]
+        let observable = Observable.from(arr)
+        
+        observable
+            .filter { $0.isMultiple(of: 2) } // 짝수만 필터링
+            .map { String($0) }              // 문자열로 반환
+            .subscribe(onNext: { str in
+                print(str)
+            })
+            .disposed(by: disposeBag)
+    }
+}
+
 func observable_create() {
     /**
      클로저 형식이며 다양한 값(onNext, onCompleted)를 생성할 수 있음
@@ -144,3 +168,4 @@ func observable_create() {
     )
     .disposed(by: disposeBag)
 }
+

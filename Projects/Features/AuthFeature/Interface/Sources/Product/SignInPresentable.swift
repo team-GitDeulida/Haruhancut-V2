@@ -11,6 +11,7 @@ import Core
 /// 화면 전환 로직을 View / ViewModel 밖으로 분리하기 위한 트리거 -> Coordinator
 public protocol SignInRouteTrigger {
     var onSignInSuccess: (() -> Void)? { get set }
+    var onFirstSignInSuccess: (() -> Void)? { get set }
 }
 
 /// ViewModel Protocol

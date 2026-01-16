@@ -19,11 +19,12 @@ final class SignInViewModel: SignInViewModelType {
 
     // MARK: - Coordinate Trigger
     var onSignInSuccess: (() -> Void)?
+    var onFirstSignInSuccess: (() -> Void)?
     
     // MARK: - Inputs
     public struct Input {
-        let kakaoLoginButtonTapped: Driver<Void>
-        let appleLoginButtonTapped: Driver<Void>
+        let kakaoLoginButtonTapped: Observable<Void>
+        let appleLoginButtonTapped: Observable<Void>
     }
     
     // MARK: - Outputs
@@ -41,15 +42,21 @@ extension SignInViewModel {
     func transform(input: Input) -> Output {
         
         let kakaoResult = input.kakaoLoginButtonTapped.map { Result<Void, LoginError>.success(()) }
-        let appleResult = input.appleLoginButtonTapped.map { Result<Void, LoginError>.success(()) }
+        let appleResult = input.appleLoginButtonTapped.map { Result<Void, LoginError>.failure(.noUser) }
         
-        let loginResult = Driver.merge(kakaoResult, appleResult)
+        let loginResult = Observable.merge(kakaoResult, appleResult)
+            
             // side effect
             .do(onNext: { [weak self] result in
                 if case .success = result {
                     self?.onSignInSuccess?()
                 }
+                
+                if case .failure(.noUser) = result {
+                    self?.onFirstSignInSuccess?()
+                }
             })
+            .asDriver(onErrorJustReturn: .failure(.signUpError))
         
         return Output(loginResult: loginResult)
         

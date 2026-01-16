@@ -41,8 +41,8 @@ final class SignInViewController: UIViewController {
     }
     
     private func bindViewModel() {
-        let input = SignInViewModel.Input(kakaoLoginButtonTapped: customView.kakaoLoginButton.rx.tap.asDriver(),
-                                          appleLoginButtonTapped: customView.appleLoginButton.rx.tap.asDriver())
+        let input = SignInViewModel.Input(kakaoLoginButtonTapped: customView.kakaoLoginButton.rx.tap.asObservable(),
+                                          appleLoginButtonTapped: customView.appleLoginButton.rx.tap.asObservable())
         
         let output = signInViewModel.transform(input: input)
         output.loginResult

@@ -41,7 +41,7 @@ public final class AppCoordinator: Coordinator {
         bindUserSession()
     }
     
-    /// 로그인 플로우
+    // 로그인 플로우
     func startLoginFlowCoordinator() {
         let authCoordinator = AuthCoordinator(navigationController: navigationController,
                                               userSession: userSession)
@@ -62,14 +62,28 @@ public final class AppCoordinator: Coordinator {
             return
         }
         
-        // 3️⃣ HomeCoordinator 시작
-        let homeCoordinator = HomeCoordinator(
-            navigationController: navigationController,
-            userSession: userSession
-        )
+        // 3 HomeCoordinator 시작
+        let homeCoordinator = HomeCoordinator(navigationController: navigationController,
+                                              userSession: userSession)
         homeCoordinator.parentCoordinator = self
         childCoordinators.append(homeCoordinator)
         homeCoordinator.start()
+    }
+    
+    // 회원가입 플로우
+    func startSignUpFlowCoordinator() {
+        // 1. 중복 방지
+        if childCoordinators.contains(where: { $0 is SignUpCoordinator }) {
+            return
+        }
+        
+        // 2. SignUpCoordinator 생성
+        let signUpCoordinator = SignUpCoordinator(navigationController: navigationController,
+                                                  userSession: userSession)
+        
+        signUpCoordinator.parentCoordinator = self
+        childCoordinators.append(signUpCoordinator)
+        signUpCoordinator.start()
     }
 }
 
