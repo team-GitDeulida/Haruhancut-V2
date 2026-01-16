@@ -10,3 +10,4 @@
 @_exported import RxCocoa
 @_exported import RxRelay
 @_exported import Lottie
+@_exported import ScaleKit

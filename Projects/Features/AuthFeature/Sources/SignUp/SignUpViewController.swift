@@ -9,8 +9,14 @@ import UIKit
 
 final class SignUpViewController: UIViewController {
     
+    enum Step {
+        case nickname
+        case birthday
+    }
+    
     // MARK: - Properties
-    private let customView = GroupView()
+    private let customView = SignUpView()
+    private var currentStep: Step = .nickname
     
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -30,6 +36,43 @@ final class SignUpViewController: UIViewController {
     }
     
     private func bindViewModel() {
- 
+        customView.onNextTapped = { [weak self] in
+            guard let self else { return }
+            self.moveToBirthday()
+        }
+        
+        customView.onBackTapped = { [weak self] in
+            guard let self else { return }
+            self.handleBack()
+        }
+        
+        customView.onSkipTapped = { [weak self] in
+            guard let self else { return }
+            self.finishSignUp()
+        }
     }
+    
+    private func moveToBirthday() {
+        currentStep = .birthday
+        customView.moveToBirthdayPage()
+    }
+    
+    private func handleBack() {
+        switch currentStep {
+        case .nickname:
+            navigationController?.popViewController(animated: true)
+            
+        case .birthday:
+            currentStep = .nickname
+            customView.moveToNicknamePage()
+        }
+    }
+    
+    private func finishSignUp() {
+        // 회원가입 완료 처리
+    }
+}
+
+#Preview {
+    SignUpViewController()
 }

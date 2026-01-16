@@ -17,3 +17,15 @@ domain:
 # ex) make module name=Network dir=Shared
 module:
 	@tuist scaffold module --name $(name) $(if $(dir),--dir $(dir),)
+
+project:
+	tuist install
+	tuist generate
+
+edit:
+	tuist edit
+
+clean:
+	tuist clean
+	tuist clean dependencies
+	

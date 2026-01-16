@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import AuthFeatureInterface
 
 final class SignUpViewModel: SignUpViewModelType {
     

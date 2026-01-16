@@ -23,7 +23,8 @@ let project = Project(
                 .external(name: "KakaoSDK"),
                 .external(name: "RxKakaoSDK"),
                 .external(name: "FirebaseAuth"),
-                .external(name: "FirebaseDatabase")
+                .external(name: "FirebaseDatabase"),
+                .external(name: "ScaleKit"),
             ]
         ),
     ]

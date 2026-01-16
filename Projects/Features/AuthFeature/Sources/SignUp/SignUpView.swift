@@ -6,100 +6,129 @@
 //
 
 import UIKit
-import DSKit
 
-final class GroupView: UIView {
+final class SignUpView: UIView {
+    // MARK: - Events
+    var onBackTapped: (() -> Void)?
+    var onSkipTapped: (() -> Void)?
+    var onNextTapped: (() -> Void)?
     
-    // MARK: - UI Component
-    let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "하루한컷"
-        label.font = UIFont.hcFont(.bold, size: 20)
-        label.textColor = .mainWhite
-        return label
-    }()
+    let backButton = UIButton()
+    let skipButton = UIButton()
     
-    private lazy var mainLabel: UILabel = {
-        let label = UILabel()
-        label.text = "가족에게 받은\n그룹 초대 코드가 있으신가요?"
-        label.numberOfLines = 0
-        label.textColor = .mainWhite
-        label.font = UIFont.hcFont(.bold, size: 20)
-        return label
-    }()
+    let scrollView = UIScrollView()
+    let contentView = UIView()
     
-    // 입장 label
-    lazy var enterButton: HCGroupButton = {
-        let button = HCGroupButton(
-            topText: "초대 코드를 받았다면",
-            bottomText: "가족 방 입장하기",
-            rightImage: "arrow.right")
-        return button
-    }()
+    let nicknameSettingView = NicknameSettingView()
+    let birthDaySettingView = BirthdaySettingView()
     
-    // 초대 label
-    lazy var hostButton: UIButton = {
-        let button = HCGroupButton(
-            topText: "초대 코드가 없다면",
-            bottomText: "가족 방 만들기",
-            rightImage: "arrow.right")
-        return button
-    }()
-    
-    // 입장초대 viewStack
-    private lazy var hStackView: UIStackView = {
-        let stack = UIStackView(arrangedSubviews: [
-            enterButton,
-            hostButton
-        ])
-        stack.spacing = 20
-        stack.axis = .vertical
-        stack.distribution = .fillEqually
-        stack.alignment = .fill
-        return stack
-    }()
-
-    // MARK: - Initializer
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
         setupConstraints()
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
-    // MARK: - UI Setup
+    
     private func setupUI() {
         backgroundColor = .background
         
-        [mainLabel, hStackView].forEach {
-            self.addSubview($0)
+        scrollView.isPagingEnabled = true
+        scrollView.isScrollEnabled = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.contentInsetAdjustmentBehavior = .never
+        
+        // 🔹 버튼 타겟 연결 (⭐️ 핵심)
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        skipButton.addTarget(self, action: #selector(skipTapped), for: .touchUpInside)
+        nicknameSettingView.nextButton.addTarget(
+            self,
+            action: #selector(nextTapped),
+            for: .touchUpInside
+        )
+        
+        addSubview(scrollView)
+        scrollView.addSubview(contentView)
+        [nicknameSettingView, birthDaySettingView].forEach {
+            contentView.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
-
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.translatesAutoresizingMaskIntoConstraints = false
     }
 
     // MARK: - Constraints
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // MARK: - mainLabel
-            mainLabel.topAnchor.constraint(equalTo: self.safeAreaLayoutGuide.topAnchor, constant: 30),
-            mainLabel.leadingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            
-            // MARK: - hStack
-            // 위치
-            hStackView.topAnchor.constraint(equalTo: mainLabel.bottomAnchor, constant: 50),
-            hStackView.centerXAnchor.constraint(equalTo: self.centerXAnchor),
-            
-            // 크기
-            hStackView.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 20),
-            hStackView.heightAnchor.constraint(equalToConstant: 200)
+            // MARK: - ScrollView
+            scrollView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+
+            // MARK: - ContentView (🔥 핵심)
+            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+
+            // ⭐️ 세로는 고정, 가로만 늘림
+            contentView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, multiplier: 2),
+
+            // MARK: - Page 1 (Nickname)
+            nicknameSettingView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            nicknameSettingView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            nicknameSettingView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            nicknameSettingView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+
+            // MARK: - Page 2 (Birthday)
+            birthDaySettingView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            birthDaySettingView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            birthDaySettingView.leadingAnchor.constraint(equalTo: nicknameSettingView.trailingAnchor),
+            birthDaySettingView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            birthDaySettingView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor)
         ])
+    }
+
+    // MARK: - Page Control
+    func moveToBirthdayPage(animated: Bool = true) {
+        let x = scrollView.frame.width
+        scrollView.setContentOffset(CGPoint(x: x, y: 0), animated: animated)
+    }
+    
+//    func moveToBirthdayPage(animated: Bool = true) {
+//        let pageWidth = scrollView.frameLayoutGuide.layoutFrame.width
+//        scrollView.setContentOffset(CGPoint(x: pageWidth, y: 0), animated: animated)
+//    }
+    
+    func moveToNicknamePage(animated: Bool = true) {
+        scrollView.setContentOffset(.zero, animated: animated)
+    }
+    
+    @objc private func backTapped() {
+        onBackTapped?()
+    }
+    
+    @objc private func skipTapped() {
+        onSkipTapped?()
+    }
+    
+    @objc private func nextTapped() {
+        onNextTapped?()
     }
 }
 
+#if DEBUG
+final class SignUpPreviewVC: UIViewController {
+    override func loadView() {
+        self.view = SignUpView()
+    }
+}
+#endif
+
 #Preview {
-    GroupView()
+    SignUpPreviewVC()
 }

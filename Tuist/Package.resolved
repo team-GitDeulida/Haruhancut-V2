@@ -1,5 +1,5 @@
 {
-  "originHash" : "e50cd2a366ec0d349bf0203a98d032245becdabf450d630d318aa1e280ebba5f",
+  "originHash" : "ca50752d88a606727abaf47a1e508ee08861e326ed79ebc90d8ba0670489fd70",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -161,6 +161,15 @@
       "state" : {
         "revision" : "5004a18539bd68905c5939aa893075f578f4f03d",
         "version" : "6.9.1"
+      }
+    },
+    {
+      "identity" : "scalekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/indextrown/ScaleKit.git",
+      "state" : {
+        "revision" : "573426348275332d0b7a0cc68eea01b241e4e468",
+        "version" : "1.1.3"
       }
     },
     {

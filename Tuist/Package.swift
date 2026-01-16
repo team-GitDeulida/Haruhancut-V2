@@ -12,7 +12,8 @@ import PackageDescription
             "RxSwift": .framework,
             "RxCocoa": .framework,
             "RxRelay": .framework,
-            "Lottie": .framework
+            "Lottie": .framework,
+            "ScaleKit": .framework,
         ]
     )
 #endif
@@ -45,6 +46,11 @@ let package = Package(
         .package(
             url: "https://github.com/firebase/firebase-ios-sdk.git",
             from: "12.7.0"
+        ),
+
+        .package(
+            url: "https://github.com/indextrown/ScaleKit.git",
+            from: "1.1.3"
         )
     ]
 )
