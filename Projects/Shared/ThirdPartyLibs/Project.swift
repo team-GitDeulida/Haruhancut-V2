@@ -25,6 +25,7 @@ let project = Project(
                 .external(name: "FirebaseAuth"),
                 .external(name: "FirebaseDatabase"),
                 .external(name: "ScaleKit"),
+                .external(name: "Kingfisher"),
             ]
         ),
     ]

@@ -51,6 +51,11 @@ let package = Package(
         .package(
             url: "https://github.com/indextrown/ScaleKit.git",
             from: "1.1.3"
+        ),
+
+        .package(
+            url: "https://github.com/onevcat/Kingfisher.git",
+            from: "8.6.2"
         )
     ]
 )

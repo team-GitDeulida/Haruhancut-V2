@@ -12,6 +12,7 @@ final class SignUpViewController: UIViewController {
     enum Step {
         case nickname
         case birthday
+        case profile
     }
     
     // MARK: - Properties
@@ -38,7 +39,7 @@ final class SignUpViewController: UIViewController {
     private func bindViewModel() {
         customView.onNextTapped = { [weak self] in
             guard let self else { return }
-            self.moveToBirthday()
+            self.handleNext()
         }
         
         customView.onBackTapped = { [weak self] in
@@ -52,21 +53,45 @@ final class SignUpViewController: UIViewController {
         }
     }
     
-    private func moveToBirthday() {
-        currentStep = .birthday
-        customView.moveToBirthdayPage()
+    private func pageIndex(for step: Step) -> Int {
+        switch step {
+        case .nickname: return 0
+        case .birthday: return 1
+        case .profile:  return 2
+        }
+    }
+    
+    private func handleNext() {
+        switch currentStep {
+        case .nickname:
+            currentStep = .birthday
+            customView.move(to: pageIndex(for: currentStep))
+
+        case .birthday:
+            currentStep = .profile
+            customView.move(to: pageIndex(for: currentStep))
+
+        case .profile:
+            finishSignUp()
+        }
     }
     
     private func handleBack() {
         switch currentStep {
+
         case .nickname:
             navigationController?.popViewController(animated: true)
-            
+
         case .birthday:
             currentStep = .nickname
-            customView.moveToNicknamePage()
+            customView.move(to: pageIndex(for: currentStep))
+
+        case .profile:
+            currentStep = .birthday
+            customView.move(to: pageIndex(for: currentStep))
         }
     }
+
     
     private func finishSignUp() {
         // 회원가입 완료 처리

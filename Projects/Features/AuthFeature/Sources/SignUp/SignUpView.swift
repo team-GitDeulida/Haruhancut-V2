@@ -21,6 +21,7 @@ final class SignUpView: UIView {
     
     let nicknameSettingView = NicknameSettingView()
     let birthDaySettingView = BirthdaySettingView()
+    let profileSettingView = ProfileSettingView()
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -40,18 +41,15 @@ final class SignUpView: UIView {
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.contentInsetAdjustmentBehavior = .never
         
-        // 🔹 버튼 타겟 연결 (⭐️ 핵심)
+        // 버튼 타겟 연결
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         skipButton.addTarget(self, action: #selector(skipTapped), for: .touchUpInside)
-        nicknameSettingView.nextButton.addTarget(
-            self,
-            action: #selector(nextTapped),
-            for: .touchUpInside
-        )
+        nicknameSettingView.nextButton.addTarget(self ,action: #selector(nextTapped), for: .touchUpInside)
+        birthDaySettingView.nextButton.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
         
         addSubview(scrollView)
         scrollView.addSubview(contentView)
-        [nicknameSettingView, birthDaySettingView].forEach {
+        [nicknameSettingView, birthDaySettingView, profileSettingView].forEach {
             contentView.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
@@ -68,15 +66,15 @@ final class SignUpView: UIView {
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
 
-            // MARK: - ContentView (🔥 핵심)
+            // MARK: - ContentView
             contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
             contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
             contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
 
-            // ⭐️ 세로는 고정, 가로만 늘림
+            // 세로는 고정, 가로만 늘림
             contentView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, multiplier: 2),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, multiplier: 3),
 
             // MARK: - Page 1 (Nickname)
             nicknameSettingView.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -89,20 +87,21 @@ final class SignUpView: UIView {
             birthDaySettingView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             birthDaySettingView.leadingAnchor.constraint(equalTo: nicknameSettingView.trailingAnchor),
             birthDaySettingView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
-            birthDaySettingView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor)
+            
+            // MARK: - Page 3 (Profile)
+            profileSettingView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            profileSettingView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            profileSettingView.leadingAnchor.constraint(equalTo: birthDaySettingView.trailingAnchor),
+            profileSettingView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            profileSettingView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         ])
     }
 
     // MARK: - Page Control
-    func moveToBirthdayPage(animated: Bool = true) {
-        let x = scrollView.frame.width
+    func move(to index: Int, animated: Bool = true) {
+        let x = scrollView.frame.width * CGFloat(index)
         scrollView.setContentOffset(CGPoint(x: x, y: 0), animated: animated)
     }
-    
-//    func moveToBirthdayPage(animated: Bool = true) {
-//        let pageWidth = scrollView.frameLayoutGuide.layoutFrame.width
-//        scrollView.setContentOffset(CGPoint(x: pageWidth, y: 0), animated: animated)
-//    }
     
     func moveToNicknamePage(animated: Bool = true) {
         scrollView.setContentOffset(.zero, animated: animated)
