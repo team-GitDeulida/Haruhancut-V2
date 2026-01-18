@@ -71,7 +71,7 @@ public final class AppCoordinator: Coordinator {
     }
     
     // 회원가입 플로우
-    func startSignUpFlowCoordinator() {
+    func startSignUpFlowCoordinator(platform: User.LoginPlatform) {
         // 1. 중복 방지
         if childCoordinators.contains(where: { $0 is SignUpCoordinator }) {
             return
@@ -79,7 +79,8 @@ public final class AppCoordinator: Coordinator {
         
         // 2. SignUpCoordinator 생성
         let signUpCoordinator = SignUpCoordinator(navigationController: navigationController,
-                                                  userSession: userSession)
+                                                  userSession: userSession,
+                                                  platform: platform)
         
         signUpCoordinator.parentCoordinator = self
         childCoordinators.append(signUpCoordinator)

@@ -16,7 +16,7 @@ public protocol AuthFeatureBuildable {
     /// - Returns: Product
     func makeSignIn() -> SignInPresentable
     
-    func makeSignUp() -> SignUpPresentable
+    func makeSignUp(platform: User.LoginPlatform) -> SignUpPresentable
     
 }
 
@@ -36,11 +36,11 @@ extension AuthFeatureBuilder: AuthFeatureBuildable {
         return (vc, vm)
     }
     
-    public func makeSignUp() -> SignUpPresentable {
+    public func makeSignUp(platform: User.LoginPlatform) -> SignUpPresentable {
         // @Dependency var signUpUsecase: SignUpUsecaseProtocol
         // let vm = SignUpViewModel(signUpUsecase: signUpUsecase)
-        let vm = SignUpViewModel()
-        let vc = SignUpViewController()
+        let vm = SignUpViewModel(loginPlatform: platform)
+        let vc = SignUpViewController(viewModel: vm)
         return (vc, vm)
     }
 }

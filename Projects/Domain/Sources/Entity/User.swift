@@ -60,3 +60,20 @@ extension User {
         )
     }
 }
+
+extension User: CustomStringConvertible {
+    public var description: String {
+        """
+        
+        👤 User
+        ├─ ID: \(uid)
+        ├─ registerDate: \(registerDate)
+        ├─ loginPlatform: \(loginPlatform)
+        ├─ nickname: \(nickname)
+        ├─ birthdayDate \(birthdayDate)
+        ├─ gender \(gender)
+        └─ isPushEnabled \(isPushEnabled)
+
+        """
+    }
+}

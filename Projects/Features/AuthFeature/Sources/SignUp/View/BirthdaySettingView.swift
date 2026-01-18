@@ -10,10 +10,8 @@ import DSKit
 
 final class BirthdaySettingView: UIView {
     
-    let nickname: String = ""
-    
     // MARK: - UI Component
-    private lazy var mainLabel: UILabel = HCLabel(type: .main(text: "\(self.nickname) 님의 생년월일을 알려주세요."))
+    private lazy var mainLabel: UILabel = HCLabel(type: .main(text: ""))
     private lazy var subLabel: UILabel = HCLabel(type: .sub(text: "가족들이 함께 생일을 축하할 수 있어요!"))
     lazy var textField: UITextField = HCTextField(placeholder: "2000.11.11")
     private lazy var hStackView: UIStackView = {
@@ -79,5 +77,9 @@ final class BirthdaySettingView: UIView {
             nextButton.heightAnchor.constraint(equalToConstant: 50), // 버튼 높이
                    
         ])
+    }
+    
+    func updateNickname(nickname: String) {
+        mainLabel.text = "\(nickname) 님의 생년월일을 알려주세요."
     }
 }

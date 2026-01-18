@@ -12,6 +12,7 @@ import RxSwift
 import RxCocoa
 
 final class SignInViewModel: SignInViewModelType {
+    
     let disposeBag = DisposeBag()
     
     // MARK: - Properties
@@ -19,7 +20,7 @@ final class SignInViewModel: SignInViewModelType {
 
     // MARK: - Coordinate Trigger
     var onSignInSuccess: (() -> Void)?
-    var onFirstSignInSuccess: (() -> Void)?
+    var onFirstSignInSuccess: ((User.LoginPlatform) -> Void)?
     
     // MARK: - Inputs
     public struct Input {
@@ -41,21 +42,40 @@ final class SignInViewModel: SignInViewModelType {
 extension SignInViewModel {
     func transform(input: Input) -> Output {
         
-        let kakaoResult = input.kakaoLoginButtonTapped.map { Result<Void, LoginError>.success(()) }
-        let appleResult = input.appleLoginButtonTapped.map { Result<Void, LoginError>.failure(.noUser) }
+        // 로그인 플랫폼 선택
+        let kakaoPlatform = input.kakaoLoginButtonTapped.map { User.LoginPlatform.kakao }
+        let applePlatform = input.appleLoginButtonTapped.map { User.LoginPlatform.apple }
+        let selectedPlatform = Observable.merge(kakaoPlatform, applePlatform)
         
-        let loginResult = Observable.merge(kakaoResult, appleResult)
+        // 선택된 플랫폼으로 로그인 시도
+        let loginResult = selectedPlatform
+            .flatMapLatest { [weak self] platform in
+                guard let self = self else {
+                    return Observable<(User.LoginPlatform, Result<Void, LoginError>)>.empty()
+                }
+                
+                // 소셜 로그인
+                return signInUsecase
+                    .signIn(with: platform)
+                    .map { result in
+                        (platform, result)
+                    }
+            }
             
-            // side effect
-            .do(onNext: { [weak self] result in
+            // side effect(결과에 따라 플로우 분기)
+            .do(onNext: { [weak self] platform, result in
+                
+                // 기존 유저 로그인
                 if case .success = result {
                     self?.onSignInSuccess?()
                 }
                 
+                // 신규 유저 로그인
                 if case .failure(.noUser) = result {
-                    self?.onFirstSignInSuccess?()
+                    self?.onFirstSignInSuccess?(platform)
                 }
             })
+            .map { _, result in result }
             .asDriver(onErrorJustReturn: .failure(.signUpError))
         
         return Output(loginResult: loginResult)

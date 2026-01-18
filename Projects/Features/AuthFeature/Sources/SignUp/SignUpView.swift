@@ -8,13 +8,6 @@
 import UIKit
 
 final class SignUpView: UIView {
-    // MARK: - Events
-    var onBackTapped: (() -> Void)?
-    var onSkipTapped: (() -> Void)?
-    var onNextTapped: (() -> Void)?
-    
-    let backButton = UIButton()
-    let skipButton = UIButton()
     
     let scrollView = UIScrollView()
     let contentView = UIView()
@@ -36,23 +29,22 @@ final class SignUpView: UIView {
     private func setupUI() {
         backgroundColor = .background
         
+        
+        addSubview(scrollView)
+        // addSubview(backButton)
+        scrollView.addSubview(contentView)
+        
         scrollView.isPagingEnabled = true
         scrollView.isScrollEnabled = false
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.contentInsetAdjustmentBehavior = .never
         
-        // 버튼 타겟 연결
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        skipButton.addTarget(self, action: #selector(skipTapped), for: .touchUpInside)
-        nicknameSettingView.nextButton.addTarget(self ,action: #selector(nextTapped), for: .touchUpInside)
-        birthDaySettingView.nextButton.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
         
-        addSubview(scrollView)
-        scrollView.addSubview(contentView)
         [nicknameSettingView, birthDaySettingView, profileSettingView].forEach {
             contentView.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
+        // backButton.translatesAutoresizingMaskIntoConstraints = false
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         contentView.translatesAutoresizingMaskIntoConstraints = false
     }
@@ -60,8 +52,12 @@ final class SignUpView: UIView {
     // MARK: - Constraints
     private func setupConstraints() {
         NSLayoutConstraint.activate([
+            // MARK: - Back Button
+            // backButton.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 0),
+            // backButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            
             // MARK: - ScrollView
-            scrollView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor),
+            scrollView.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -102,22 +98,6 @@ final class SignUpView: UIView {
         let x = scrollView.frame.width * CGFloat(index)
         scrollView.setContentOffset(CGPoint(x: x, y: 0), animated: animated)
     }
-    
-    func moveToNicknamePage(animated: Bool = true) {
-        scrollView.setContentOffset(.zero, animated: animated)
-    }
-    
-    @objc private func backTapped() {
-        onBackTapped?()
-    }
-    
-    @objc private func skipTapped() {
-        onSkipTapped?()
-    }
-    
-    @objc private func nextTapped() {
-        onNextTapped?()
-    }
 }
 
 #if DEBUG
@@ -128,6 +108,10 @@ final class SignUpPreviewVC: UIViewController {
 }
 #endif
 
-#Preview {
-    SignUpPreviewVC()
-}
+//#Preview {
+//    SignUpPreviewVC()
+//}
+
+//#Preview {
+//    SignUpViewController(viewModel: SignUpViewModel())
+//}

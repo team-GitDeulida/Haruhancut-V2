@@ -39,14 +39,14 @@ public final class AuthCoordinator: Coordinator {
         }
         
         // 회원가입
-        signIn.vm.onFirstSignInSuccess = { [weak self] in
+        signIn.vm.onFirstSignInSuccess = { [weak self] platform in
             guard let self = self else { return }
             
             // AuthCoordinator 종료
             self.parentCoordinator?.childDidFinish(self)
             
             // AppCoordinator에게 회원가입 플로우 요청
-            (self.parentCoordinator as? AppCoordinator)?.startSignUpFlowCoordinator()
+            (self.parentCoordinator as? AppCoordinator)?.startSignUpFlowCoordinator(platform: platform)
         }
         
         self.navigationController.setViewControllers([signIn.vc], animated: true)

@@ -14,18 +14,21 @@ public final class SignUpCoordinator: Coordinator {
     public var childCoordinators: [Coordinator] = []
     private let navigationController: UINavigationController
     private let userSession: UserSessionType
+    private let platform: User.LoginPlatform
     
     public init(
         navigationController: UINavigationController,
-        userSession: UserSessionType
+        userSession: UserSessionType,
+        platform: User.LoginPlatform
     ) {
         self.navigationController = navigationController
         self.userSession = userSession
+        self.platform = platform
     }
     
     public func start() {
         let builder = AuthFeatureBuilder()
-        var signUp = builder.makeSignUp()
+        var signUp = builder.makeSignUp(platform: platform)
         
         signUp.vm.onSignUpSuccess = { [weak self] in
             guard let self = self else { return }
@@ -38,6 +41,5 @@ public final class SignUpCoordinator: Coordinator {
         }
         
         self.navigationController.setViewControllers([signUp.vc], animated: true)
-        // navigationController.pushViewController(signUp.vc, animated: true)
     }
 }

@@ -7,15 +7,20 @@
 
 import UIKit
 import DSKit
+import RxCocoa
 
 final class ProfileSettingView: UIView {
     
     // MARK: - Properties
-    let nickname: String = ""
     var onRequestPresentImagePicker: ((UIImagePickerController.SourceType) -> Void)?
     
+    // MARK: - UIImageView Rx화
+    // - UIImageView는 rx.image같은 Observable이 없어서 이미지 선택 시 emit하는 스트림을 직접 구현해야 함
+    // - updateProfileImage()에서 profileImageRelay.accept(image) 해주자
+    let profileImageRelay = BehaviorRelay<UIImage?>(value: nil)
+    
     // MARK: - UI Component
-    private lazy var mainLabel: UILabel = HCLabel(type: .main(text: "\(self.nickname) 님의 프로필을 설정해 주세요"))
+    private lazy var mainLabel: UILabel = HCLabel(type: .main(text: ""))
     private lazy var subLabel: UILabel = HCLabel(type: .sub(text: "지금은 넘어가도 돼요!"))
     private lazy var hStackView: UIStackView = {
         let st = UIStackView(arrangedSubviews: [
@@ -91,5 +96,16 @@ final class ProfileSettingView: UIView {
             activityIndicator.centerXAnchor.constraint(equalTo: self.centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: self.centerYAnchor)
         ])
+    }
+}
+
+extension ProfileSettingView {
+    func updateNickname(nickname: String) {
+        mainLabel.text = "\(nickname) 님의 프로필을 설정해 주세요"
+    }
+    
+    func updateProfileImage(_ image: UIImage) {
+        profileImageView.setImage(image)
+        profileImageRelay.accept(image)
     }
 }
