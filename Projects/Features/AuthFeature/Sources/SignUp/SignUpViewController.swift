@@ -64,9 +64,8 @@ final class SignUpViewController: UIViewController {
 
                 case .profile:
                     self?.customView.move(to: 2)
-    
-                case .finish:
-                    self?.finishSignUp()
+                
+                default: break
                 }
             })
             .disposed(by: disposeBag)
@@ -89,10 +88,6 @@ final class SignUpViewController: UIViewController {
         customView.profileSettingView.onRequestPresentImagePicker = { [weak self] sourceType in
             self?.presentImagePicker(sourceType: sourceType)
         }
-    }
-    
-    private func finishSignUp() {
-        print("🎉 회원가입 완료")
     }
 }
 

@@ -43,11 +43,17 @@ let project = Project(
 
                 .project(target: "Coordinator", path: "../Coordinator"),
                 .project(target: "Data", path: "../Data"),
+                .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs"),
+                .external(name: "FirebaseCore"),
+                .external(name: "FirebaseAuth"),
+                .external(name: "FirebaseDatabase"),
+                .external(name: "FirebaseStorage"),
+                .external(name: "FirebaseMessaging")
             ],
             settings: .settings(
                 configurations: [
                     .debug(name: "Debug", xcconfig: "../Shared/Configs/Shared.xcconfig"),
-                    .release(name: "Release", xcconfig: "../Shared/Configs/Shared.xcconfig")
+                    .release(name: "Release", xcconfig: "../Shared/Configs/Shared.xcconfig"),
                 ]
                 // base: [
                 //     "CODE_SIGN_STYLE": "Automatic",

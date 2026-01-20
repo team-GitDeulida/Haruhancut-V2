@@ -21,9 +21,13 @@ let project = Project(
                 .external(name: "RxBlocking"),
                 .external(name: "Lottie"),
                 .external(name: "KakaoSDK"),
+                .external(name: "KakaoSDKCertCore"),
                 .external(name: "RxKakaoSDK"),
                 .external(name: "FirebaseAuth"),
+                .external(name: "FirebaseCore"),
                 .external(name: "FirebaseDatabase"),
+                .external(name: "FirebaseStorage"),
+                .external(name: "FirebaseMessaging"),
                 .external(name: "ScaleKit"),
                 .external(name: "Kingfisher"),
             ]

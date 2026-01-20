@@ -24,6 +24,7 @@ final class SignUpViewModel: SignUpViewModelType {
     // registerUser Builder
     let userBuilder: UserBuilder
     
+    // trigger
     var onSignUpSuccess: (() -> Void)?
     
     enum Step {
@@ -109,7 +110,8 @@ extension SignUpViewModel {
                     if let profile = profile {
                         self.userBuilder.withProfileImage(profile)
                     }
-                    try self.userBuilder.build()
+                    self.userBuilder.build()
+                    self.onSignUpSuccess?()
                     return .finish
 
                 case .finish:

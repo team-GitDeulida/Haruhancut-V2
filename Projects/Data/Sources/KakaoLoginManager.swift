@@ -8,8 +8,13 @@
 import RxSwift
 import KakaoSDKUser
 import RxKakaoSDKUser
+import Core
 
-public final class KakaoLoginManager {
+public protocol KakaoLoginManagerProtocol {
+    func login() -> Observable<Result<String, LoginError>>
+}
+
+public final class KakaoLoginManager: KakaoLoginManagerProtocol {
     
     public init() {}
     
