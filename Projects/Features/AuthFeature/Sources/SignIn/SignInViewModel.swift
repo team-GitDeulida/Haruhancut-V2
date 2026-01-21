@@ -30,7 +30,7 @@ final class SignInViewModel: SignInViewModelType {
     
     // MARK: - Outputs
     public struct Output {
-        let loginResult: Driver<Result<Void, LoginError>>
+        let loginResult: Driver<Result<SocialAuthPayload, LoginError>>
     }
     
     // MARK: - Init
@@ -51,36 +51,110 @@ extension SignInViewModel {
         let loginResult = selectedPlatform
             .flatMapLatest { [weak self] platform in
                 guard let self = self else {
-                    return Observable<(User.LoginPlatform, Result<Void, LoginError>)>.empty()
+                    return Observable<Result<SocialAuthPayload, LoginError>>.empty()
                 }
                 
-                // 소셜 로그인
-                return signInUsecase
-                    .signIn(with: platform)
-                    .map { result in
-                        (platform, result)
-                    }
+                // 소셜 로그인 플로우
+                return self.loginFlow(platform: platform)
             }
-            
-            // side effect(결과에 따라 플로우 분기)
-            .do(onNext: { [weak self] platform, result in
-                
-                // 기존 유저 로그인
-                if case .success = result {
-                    self?.onSignInSuccess?()
-                }
-                
-                // 신규 유저 로그인
-                if case .failure(.noUser) = result {
-                    self?.onFirstSignInSuccess?(platform)
-                }
-            })
-            .map { _, result in result }
             .asDriver(onErrorJustReturn: .failure(.signUpError))
         
         return Output(loginResult: loginResult)
         
         // return Output(loginResult: Driver.empty())
         // return Output(loginResult: Driver.just(.success(())))
+    }
+}
+
+private extension SignInViewModel {
+    // 소셜 로그인 -> firebase 인증 -> 유저 판별
+    func loginFlow(platform: User.LoginPlatform) -> Observable<Result<SocialAuthPayload, LoginError>> {
+        signInUsecase
+            // 1. 선택된 플랫폼으로 "소셜 로그인" 요청
+            //    - kakao → kakao token
+            //    - apple → idToken + authorizationCode
+            .signIn(with: platform)
+            
+            // 2. 소셜 로그인 결과를 다음 단계로 연결
+            .flatMapLatest { [weak self] result in
+                guard let self = self else {
+                    return Observable<Result<SocialAuthPayload, LoginError>>.empty()
+                }
+                
+                switch result {
+                case .failure(let error):
+                    // 그대로 실패를 UI까지 전달
+                    return .just(.failure(error))
+                    
+                case .success(let payload):
+                    // Firebase 인증 + 기존/신규 유저 판별
+                    return self.authenticateAndResolveUser(payload: payload)
+                }
+            }
+    }
+    
+    // firebase 인증 후 기존 / 신규 유저 판별
+    func authenticateAndResolveUser(payload: SocialAuthPayload) -> Observable<Result<SocialAuthPayload, LoginError>> {
+        return authenticate(payload: payload)
+            // authenticate(...) 결과: Observable<Result<Void, LoginError>>
+            .flatMapLatest { [weak self] authResult in
+                guard let self = self else {
+                    return Observable<Result<SocialAuthPayload, LoginError>>.empty()
+                }
+                
+                switch authResult {
+                case .failure(let error):
+                    print("Firebase Auth 실패: \(error)")
+                    return .just(.failure(error))
+                    
+                case .success:
+                    // 인증 성공
+                    // 이제 "이 사람이 기존 유저인지?" 조회 함수 호출
+                    return self.resolveUser(payload: payload)
+                }
+            }
+    }
+    
+    // payload -> firebase auth 파라미터 변환
+    func authenticate(payload: SocialAuthPayload) -> Observable<Result<Void, LoginError>> {
+        switch payload {
+        case .kakao(let token):
+            return signInUsecase.authenticateUser(prividerID: "kakao",
+                                                  idToken: token,
+                                                  rawNonce: nil)
+        case .apple(let idToken, let rawNonce):
+            print("디버깅: idToken: \(idToken), rawNonce:\(rawNonce)")
+            return signInUsecase.authenticateUser(prividerID: "apple",
+                                                  idToken: idToken,
+                                                  rawNonce: rawNonce)
+        }
+    }
+    
+    // 기존 유저 / 신규 유저 분기
+    func resolveUser(payload: SocialAuthPayload) -> Observable<Result<SocialAuthPayload, LoginError>> {
+        let userStream = signInUsecase
+            // Firebase Realtime DB에서 내 정보 조회
+            .fetchUserInfo()
+        
+        let resolvedStream = userStream
+            .map { [weak self] user in
+                guard let self = self else {
+                    return Result<SocialAuthPayload, LoginError>.failure(.signUpError)
+                }
+                
+                if user != nil {
+                    // 기존 유저
+                    print("기존 유저")
+                    self.onSignInSuccess?()
+                    return .success(payload)
+                } else {
+                    // 신규 유저
+                    print("신규 유저")
+                    self.onFirstSignInSuccess?(payload.platform)
+                    return .failure(.noUser)
+                }
+            }
+        
+        return resolvedStream
     }
 }

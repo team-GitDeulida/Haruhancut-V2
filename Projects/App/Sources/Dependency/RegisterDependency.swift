@@ -19,7 +19,7 @@ extension AppDelegate {
         let appleLoginManager = AppleLoginManager()
         let firebaseAuthManager = FirebaseAuthManager()
         let firebaseStorageManager = FirebaseStorageManager()
-        let signInRepository = SignInRepositoryImpl(kakaoLoginManager: kakaoLoginManager, appleLoginManager: appleLoginManager, firebaseAuthManager: firebaseAuthManager as! FirebaseAuthManagerProtocol, firebaseStorageManager: firebaseStorageManager)
+        let signInRepository = SignInRepositoryImpl(kakaoLoginManager: kakaoLoginManager, appleLoginManager: appleLoginManager, firebaseAuthManager: firebaseAuthManager as FirebaseAuthManagerProtocol, firebaseStorageManager: firebaseStorageManager)
         let signInUseCase = SignInUsecaseImpl(signInRepository: signInRepository)
         DIContainer.shared.register(SignInUsecaseProtocol.self, dependency: signInUseCase)
     }

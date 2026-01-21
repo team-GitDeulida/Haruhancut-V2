@@ -11,6 +11,17 @@ import RxSwift
 import Core
 import Domain
 
+//enum ProviderID: String {
+//    case kakao
+//    case apple
+//    var authProviderID: AuthProviderID {
+//        switch self {
+//        case .kakao: return .custom("oidc.kakao")
+//        case .apple: return .apple
+//        }
+//    }
+//}
+
 enum ProviderID: String {
     case kakao
     case apple
@@ -60,7 +71,10 @@ public final class FirebaseAuthManager {
         Database.database(url: Constants.Firebase.realtimeURL).reference()
     }
     
-    public init() {}
+    public init() {
+        print("🔥 Auth called from bundle:",
+              Bundle.main.bundleIdentifier ?? "nil")
+    }
 }
 
 // MARK: - CRUD
@@ -185,7 +199,9 @@ extension FirebaseAuthManager {
     /// - Returns: Result<Void, LoginError>
     public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>> {
         guard let provider = ProviderID(rawValue: prividerID) else {
+            print("이거")
             return Observable.just(.failure(LoginError.signUpError))
+            
         }
         
         let credential = OAuthProvider.credential(

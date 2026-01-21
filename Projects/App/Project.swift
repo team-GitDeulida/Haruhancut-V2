@@ -30,8 +30,10 @@ let project = Project(
                     ]
                 ],
             ]),
+            
             sources: ["Sources/**"],
             resources: ["Resources/**"],
+            entitlements: .file(path: "App.entitlements"),
             dependencies: [
                 // // Feature 의존성은 나중에 추가
                 // .project(target: "AuthFeature", path: "../Features/AuthFeature"),

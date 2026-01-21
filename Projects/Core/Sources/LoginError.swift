@@ -21,6 +21,7 @@ public enum LoginError: Error {
     // MARK: - apple
     case invalidCredential
     case sdkApple(Error)
+    case invalidNonce
     
     // MARK: - Auth
     case authError
@@ -39,6 +40,8 @@ public enum LoginError: Error {
             "⚠️ 애플 인증 오류"
         case .sdkApple(let error):
             "⚠️ 애플 SDK 오류: \(error)"
+        case .invalidNonce:
+            "⚠️ 애플 nonce 오류:"
         case .authError:
             "⚠️ 파이어베이스 인증 실패"
         case .signUpError:

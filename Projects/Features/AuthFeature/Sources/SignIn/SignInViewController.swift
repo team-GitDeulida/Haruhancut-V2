@@ -47,12 +47,8 @@ final class SignInViewController: UIViewController {
         let output = signInViewModel.transform(input: input)
         output.loginResult
             .drive(onNext: { result in
-                print("loginResult: \(result)")
+                // print("vc: 로그인 성공")
             })
             .disposed(by: disposeBag)
     }
 }
-
-
-
-

@@ -18,6 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         // 파이어베이스 설정
         FirebaseApp.configure()
+        print("호출")
         
         // AppLifeCycle
         registerDependencies()
