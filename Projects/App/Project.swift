@@ -45,10 +45,20 @@ let project = Project(
                         "CFBundleTypeRole": "Editor",
                         "CFBundleURLSchemes": [
                             // ⬇️ GoogleService-Info.plist의 REVERSED_CLIENT_ID 값
-                            "app-1-831208504322-ios-3b8d46d187d27f43f7fb1b"
+                            "$(GOOGLE_REVERSED_CLIENT_ID)"
                         ]
                     ]
-                ]
+                ],
+
+                // Kakao SDK 필수 쿼리 스킴
+                "LSApplicationQueriesSchemes": [
+                    "kakaokompassauth",
+                    "kakaolink",
+                    "kakaoplus"
+                ],
+
+                // Kakao Native App Key (핵심)
+                "KAKAO_NATIVE_APP_KEY": "$(KAKAO_NATIVE_APP_KEY)",
             ]),
             
             sources: ["Sources/**"],

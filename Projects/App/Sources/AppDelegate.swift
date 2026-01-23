@@ -11,6 +11,10 @@ import UIKit
 import FirebaseCore
 import FirebaseMessaging
 
+// kakao
+import RxKakaoSDKCommon
+import KakaoSDKAuth
+
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     
@@ -39,11 +43,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Firebase
         FirebaseApp.configure()
         
+        // Kakao
+        if let nativeAppKey: String = Bundle.main.infoDictionary?["KAKAO_NATIVE_APP_KEY"] as? String {
+            RxKakaoSDK.initSDK(appKey: nativeAppKey, loggingEnable: false)
+        }
+        
         // AppLifeCycle
         registerDependencies()
         
         return true
         
+    }
+    
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        // 카카오톡 로그인
+        if (AuthApi.isKakaoTalkLoginUrl(url)) {
+            return AuthController.rx.handleOpenUrl(url: url)
+        }
+        
+        return false
     }
 
     // MARK: UISceneSession Lifecycle

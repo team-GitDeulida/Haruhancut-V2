@@ -79,4 +79,7 @@ Tuist/.build
 # **/*.xcconfig
 
 *.plist
-!**/Info.plist
+# !**/Info.plist
+
+# Local configs (secrets)
+Projects/Shared/Configs/Shared.xcconfig
