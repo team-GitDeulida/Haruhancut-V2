@@ -144,12 +144,12 @@ private extension SignInViewModel {
                 
                 if user != nil {
                     // 기존 유저
-                    print("기존 유저")
+                    print("기존 유저 코디네이터 트리거: \(user!)")
                     self.onSignInSuccess?()
                     return .success(payload)
                 } else {
                     // 신규 유저
-                    print("신규 유저")
+                    print("신규 유저 코디네이터 트리거")
                     self.onFirstSignInSuccess?(payload.platform)
                     return .failure(.noUser)
                 }

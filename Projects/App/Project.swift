@@ -29,6 +29,26 @@ let project = Project(
                         ]
                     ]
                 ],
+
+                // URL Schemes 
+                "CFBundleURLTypes": [
+                    // Kakao
+                    [
+                        "CFBundleTypeRole": "Editor",
+                        "CFBundleURLSchemes": [
+                            "kakao$(KAKAO_NATIVE_APP_KEY)"
+                        ]
+                    ],
+
+                    // Firebase Phone Auth / Google
+                    [
+                        "CFBundleTypeRole": "Editor",
+                        "CFBundleURLSchemes": [
+                            // ⬇️ GoogleService-Info.plist의 REVERSED_CLIENT_ID 값
+                            "app-1-831208504322-ios-3b8d46d187d27f43f7fb1b"
+                        ]
+                    ]
+                ]
             ]),
             
             sources: ["Sources/**"],
@@ -46,11 +66,11 @@ let project = Project(
                 .project(target: "Coordinator", path: "../Coordinator"),
                 .project(target: "Data", path: "../Data"),
                 .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs"),
-                .external(name: "FirebaseCore"),
-                .external(name: "FirebaseAuth"),
-                .external(name: "FirebaseDatabase"),
-                .external(name: "FirebaseStorage"),
-                .external(name: "FirebaseMessaging")
+                // .external(name: "FirebaseCore"),
+                // .external(name: "FirebaseAuth"),
+                // .external(name: "FirebaseDatabase"),
+                // .external(name: "FirebaseStorage"),
+                // .external(name: "FirebaseMessaging")
             ],
             settings: .settings(
                 configurations: [

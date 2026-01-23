@@ -13,16 +13,37 @@ import FirebaseMessaging
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
+    
+    override init() {
+        super.init()
+        
+        
+        /*
+        print("🔥 Firebase configured in AppDelegate.init")
+        
+        if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") {
+            print("✅ GoogleService-Info.plist path:", path)
+            if let dict = NSDictionary(contentsOfFile: path) {
+                print("✅ CLIENT_ID:", dict["CLIENT_ID"] ?? "nil")
+                print("✅ REVERSED_CLIENT_ID:", dict["REVERSED_CLIENT_ID"] ?? "nil")
+            }
+        } else {
+            print("❌ GoogleService-Info.plist NOT FOUND in bundle")
+        }
+         */
+
+    }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
-        // 파이어베이스 설정
+        // Firebase
         FirebaseApp.configure()
-        print("호출")
         
         // AppLifeCycle
         registerDependencies()
+        
         return true
+        
     }
 
     // MARK: UISceneSession Lifecycle

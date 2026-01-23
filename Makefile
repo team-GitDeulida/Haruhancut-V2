@@ -29,3 +29,9 @@ clean:
 	tuist clean
 	tuist clean dependencies
 	
+reset:
+	tuist clean
+	rm -rf Tuist/.build
+	rm -rf ~/.tuist-cache
+	tuist install
+	tuist generate
