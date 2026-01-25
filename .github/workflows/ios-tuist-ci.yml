@@ -27,72 +27,51 @@ jobs:
           xcodebuild -version
 
       # ======================
-      # 3️⃣ Install mise
+      # 3️⃣ Cache Homebrew / SPM / DerivedData
       # ======================
-      - name: Install mise
-        run: |
-          curl https://mise.run | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      # ======================
-      # 4️⃣ Cache Tuist / SPM / DerivedData
-      # ======================
-      - name: Cache Tuist & SPM
+      - name: Cache Homebrew & SPM
         uses: actions/cache@v4
         with:
           path: |
-            ~/.tuist
-            ~/.swiftpm
+            ~/Library/Caches/Homebrew
             ~/Library/Developer/Xcode/DerivedData
+            ~/.swiftpm
           key: >
-            ${{ runner.os }}-tuist-
-            ${{ hashFiles('.mise.toml', '**/Package.resolved') }}
+            ${{ runner.os }}-brew-tuist-
+            ${{ hashFiles('**/Package.resolved') }}
 
       # ======================
-      # 5️⃣ Install Tuist (via mise)
+      # 4️⃣ Install Tuist (Homebrew)
       # ======================
       - name: Install Tuist
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # mise activate도 CI에선 exit 1을 줄 수 있으므로 무시
-          eval "$($HOME/.local/bin/mise activate bash)" || true
-
-          # tool은 명시적으로 설치
-          mise install tuist@4.115.0 || true
-
-          # 실제 성공 조건
-          command -v tuist
+          brew tap tuist/tuist
+          brew install tuist@4.115.0
           tuist version
 
       # ======================
-      # 6️⃣ Tuist Generate
+      # 5️⃣ Tuist Generate
       # ======================
       - name: Tuist Generate
         run: |
-          eval "$($HOME/.local/bin/mise activate bash)"
           tuist generate --no-open
 
       # ======================
-      # 7️⃣ Tuist Build
+      # 6️⃣ Tuist Build
       # ======================
       - name: Tuist Build
         run: |
-          eval "$($HOME/.local/bin/mise activate bash)"
           tuist build \
             --scheme Haruhancut \
             --configuration Debug \
             --destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
 
       # ======================
-      # 8️⃣ Tuist Test (옵션)
+      # 7️⃣ Tuist Test (옵션)
       # ======================
       # - name: Tuist Test
       #   run: |
-      #     eval "$($HOME/.local/bin/mise activate bash)"
       #     tuist test \
       #       --scheme Haruhancut \
       #       --configuration Debug \
       #       --destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
-
-
