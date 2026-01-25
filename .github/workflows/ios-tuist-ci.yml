@@ -48,8 +48,10 @@ jobs:
       # ======================
       - name: Install Tuist 4.115.0
         run: |
-          curl -Ls https://install.tuist.io | bash
-          tuist install 4.115.0
+          curl -L https://github.com/tuist/tuist/releases/download/4.115.0/tuist.zip -o tuist.zip
+          unzip tuist.zip
+          chmod +x tuist
+          sudo mv tuist /usr/local/bin/tuist
           tuist version
 
       # ======================
