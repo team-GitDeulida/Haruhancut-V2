@@ -91,7 +91,7 @@ private extension AppCoordinator {
     // 앱 최초 실행 시 진입할 플로우를 결정한다
     func routeInitialFlow() {
         let isLoggedIn =
-        // userSession.isLoggedIn &&
+        userSession.isLoggedIn &&
         Auth.auth().currentUser != nil
     
         if isLoggedIn {
