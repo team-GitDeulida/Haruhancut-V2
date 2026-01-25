@@ -15,6 +15,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: List iOS Simulators
+        run: |
+          xcrun simctl list devices
+
       # 🔐 secrets → xcconfig
       - name: Create Shared.xcconfig
         run: |
