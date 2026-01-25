@@ -70,7 +70,7 @@ jobs:
           tuist xcodebuild build \
             -scheme App \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,id=D1E9845A-AC27-4475-A69F-0AC11BA1E8AA'
+            -sdk iphonesimulator
 
       # 📧 Email 알림
       - name: Send email on success
