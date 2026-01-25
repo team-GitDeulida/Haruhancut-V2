@@ -2,9 +2,9 @@ name: iOS Tuist Build & Test
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -48,10 +48,16 @@ jobs:
       # ======================
       - name: Install Tuist 4.115.0
         run: |
-          curl -L https://github.com/tuist/tuist/releases/download/4.115.0/tuist.zip -o tuist.zip
-          unzip tuist.zip
+          curl -L \
+            https://github.com/tuist/tuist/releases/download/4.115.0/tuist.zip \
+            -o /tmp/tuist.zip
+
+          cd /tmp
+          unzip -o tuist.zip
+
           chmod +x tuist
           sudo mv tuist /usr/local/bin/tuist
+
           tuist version
 
       # ======================
@@ -74,6 +80,7 @@ jobs:
       # ======================
       # 7️⃣ Tuist Test
       # ======================
+
 #      - name: Tuist Test
 #        run: |
 #          tuist test \
