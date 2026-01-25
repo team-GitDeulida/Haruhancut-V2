@@ -12,23 +12,30 @@ jobs:
     runs-on: macos-15
 
     steps:
-      # ======================
-      # 1️⃣ Checkout
-      # ======================
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ======================
-      # 2️⃣ Select Xcode 16.2
-      # ======================
+      # 🔐 secrets → xcconfig
+      - name: Create Shared.xcconfig
+        run: |
+          mkdir -p Projects/Shared/Configs
+          cat << 'EOF' > Projects/Shared/Configs/Shared.xcconfig
+          ${{ secrets.SHARED_XCCONFIG }}
+          EOF
+
       - name: Select Xcode 16.2
         run: |
           sudo xcode-select -s /Applications/Xcode_16.2.app
           xcodebuild -version
 
-      # ======================
-      # 3️⃣ Cache Tuist / SPM / DerivedData
-      # ======================
+      - name: Cache Homebrew
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar
+          key: ${{ runner.os }}-brew-tuist-4.115.0
+
       - name: Cache Tuist & SPM
         uses: actions/cache@v4
         with:
@@ -42,39 +49,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-tuist-
 
-      # ======================
-      # 4️⃣ Install Tuist (Homebrew)
-      # ======================
       - name: Install Tuist
         run: |
           brew tap tuist/tuist
           brew install tuist@4.115.0
           tuist version
 
-      # ======================
-      # 5️⃣ Tuist Install & Generate
-      # ======================
       - name: Tuist Install & Generate
         run: |
           tuist install
           tuist generate --no-open
 
-      # ======================
-      # 6️⃣ Tuist Build
-      # ======================
       - name: Tuist Build
         run: |
           tuist build \
             --scheme Haruhancut \
             --configuration Debug \
             --destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
-
-      # ======================
-      # 7️⃣ Tuist Test (옵션)
-      # ======================
-      # - name: Tuist Test
-      #   run: |
-      #     tuist test \
-      #       --scheme Haruhancut \
-      #       --configuration Debug \
-      #       --destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
