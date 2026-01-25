@@ -12,30 +12,43 @@ jobs:
     runs-on: macos-14
 
     steps:
+      # ======================
       # 1️⃣ Checkout
-      - uses: actions/checkout@v4
+      # ======================
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # 2️⃣ Xcode 16.2 선택
+      # ======================
+      # 2️⃣ Select Xcode 16.2
+      # ======================
       - name: Select Xcode 16.2
         run: |
           sudo xcode-select -s /Applications/Xcode_16.2.app
           xcodebuild -version
 
-      # 3️⃣ Mise 설치
-      - name: Install mise
+      # ======================
+      # 3️⃣ Install & Activate mise
+      # ======================
+      - name: Install & Activate mise
         run: |
           curl https://mise.run | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo 'eval "$(mise activate bash)"' >> $GITHUB_ENV
 
-      # 4️⃣ Tuist 설치 (mise.toml 기준)
+      # ======================
+      # 4️⃣ Install Tuist (via mise)
+      # ======================
       - name: Install Tuist
         run: |
+          eval "$(mise activate bash)"
           mise install
           mise use
           which tuist
           tuist version
 
-      # 5️⃣ Cache (선택, 속도용)
+      # ======================
+      # 5️⃣ Cache Tuist / SPM / DerivedData
+      # ======================
       - name: Cache Tuist & SPM
         uses: actions/cache@v4
         with:
@@ -43,25 +56,36 @@ jobs:
             ~/.tuist
             ~/.swiftpm
             ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-tuist-${{ hashFiles('.mise.toml', '**/Package.resolved') }}
+          key: >
+            ${{ runner.os }}-tuist-
+            ${{ hashFiles('.mise.toml', '**/Package.resolved') }}
 
+      # ======================
       # 6️⃣ Tuist Generate
+      # ======================
       - name: Tuist Generate
-        run: tuist generate --no-open
+        run: |
+          eval "$(mise activate bash)"
+          tuist generate --no-open
 
-      # 7️⃣ Build
+      # ======================
+      # 7️⃣ Tuist Build
+      # ======================
       - name: Tuist Build
         run: |
+          eval "$(mise activate bash)"
           tuist build \
             --scheme Haruhancut \
             --configuration Debug \
             --destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
 
-      # 7️⃣ Tuist Test
-
-#      - name: Tuist Test
-#        run: |
-#          tuist test \
-#            --scheme Haruhancut \
-#            --configuration Debug \
-#            --destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
+      # ======================
+      # 8️⃣ Tuist Test (선택)
+      # ======================
+      # - name: Tuist Test
+      #   run: |
+      #     eval "$(mise activate bash)"
+      #     tuist test \
+      #       --scheme Haruhancut \
+      #       --configuration Debug \
+      #       --destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
