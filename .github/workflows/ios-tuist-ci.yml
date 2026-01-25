@@ -56,7 +56,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           eval "$($HOME/.local/bin/mise activate bash)"
-          mise install
+          mise install tuist@4.115.0
           which tuist
           tuist version
 
