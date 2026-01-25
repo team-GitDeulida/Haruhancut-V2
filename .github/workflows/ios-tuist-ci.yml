@@ -48,7 +48,8 @@ jobs:
       # ======================
       - name: Install Tuist 4.115.0
         run: |
-          curl -Ls https://install.tuist.io | bash -s -- 4.115.0
+          curl -Ls https://install.tuist.io | bash
+          tuist install 4.115.0
           tuist version
 
       # ======================
