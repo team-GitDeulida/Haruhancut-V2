@@ -8,6 +8,8 @@
 import UIKit
 import Domain
 import Core
+import Data
+import FirebaseAuth
 
 public protocol Coordinator: AnyObject {
     var parentCoordinator: Coordinator? { get set }
@@ -27,12 +29,10 @@ public final class AppCoordinator: Coordinator {
     public var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
     public var navigationController: UINavigationController
-    private let userSession: UserSessionType
+    @Dependency private var userSession: UserSessionType
     
-    public init(navigationController: UINavigationController,
-         userSession: UserSessionType) {
+    public init(navigationController: UINavigationController) {
         self.navigationController = navigationController
-        self.userSession = userSession
     }
     
     // 로그인플로우 or 홈 플로우
@@ -43,8 +43,7 @@ public final class AppCoordinator: Coordinator {
     
     // 로그인 플로우
     func startLoginFlowCoordinator() {
-        let authCoordinator = AuthCoordinator(navigationController: navigationController,
-                                              userSession: userSession)
+        let authCoordinator = AuthCoordinator(navigationController: navigationController)
         authCoordinator.parentCoordinator = self
         childCoordinators.append(authCoordinator)
         authCoordinator.start()
@@ -63,15 +62,14 @@ public final class AppCoordinator: Coordinator {
         }
         
         // 3 HomeCoordinator 시작
-        let homeCoordinator = HomeCoordinator(navigationController: navigationController,
-                                              userSession: userSession)
+        let homeCoordinator = HomeCoordinator(navigationController: navigationController)
         homeCoordinator.parentCoordinator = self
         childCoordinators.append(homeCoordinator)
         homeCoordinator.start()
     }
     
     // 회원가입 플로우
-    func startSignUpFlowCoordinator(platform: User.LoginPlatform) {
+    func startSignUpFlowCoordinator(platform: Domain.User.LoginPlatform) {
         // 1. 중복 방지
         if childCoordinators.contains(where: { $0 is SignUpCoordinator }) {
             return
@@ -79,7 +77,7 @@ public final class AppCoordinator: Coordinator {
         
         // 2. SignUpCoordinator 생성
         let signUpCoordinator = SignUpCoordinator(navigationController: navigationController,
-                                                  userSession: userSession,
+                                           
                                                   platform: platform)
         
         signUpCoordinator.parentCoordinator = self
@@ -92,18 +90,22 @@ private extension AppCoordinator {
     
     // 앱 최초 실행 시 진입할 플로우를 결정한다
     func routeInitialFlow() {
-        if userSession.currentUser == nil {
-            // 앱 시작 시 로그인된 유저가 없음 → 로그인 플로우
-            startLoginFlowCoordinator()
-        } else {
+        let isLoggedIn =
+        userSession.isLoggedIn &&
+        Auth.auth().currentUser != nil
+    
+        if isLoggedIn {
             // 앱 시작 시 이미 로그인된 유저가 있음 → 홈 플로우
             startHomeFlowCoordinator()
+        } else {
+            // 앱 시작 시 로그인된 유저가 없음 → 로그인 플로우
+            startLoginFlowCoordinator()
         }
     }
     
     // 로그인 / 로그아웃 등 **앱 실행 중 발생하는 상태 변화**에 반응한다
     func bindUserSession() {
-        userSession.onUserChanged = { [weak self] user in
+        userSession.bind { [weak self] (user: SessionUser?) in
             guard let self = self else { return }
             
             if user == nil {

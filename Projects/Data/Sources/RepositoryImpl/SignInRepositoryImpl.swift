@@ -17,16 +17,20 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
     private let firebaseAuthManager: FirebaseAuthManagerProtocol
     private let firebaseStorageManager: FirebaseStorageManagerProtocol
     
+    private let userSession: UserSessionType
+    
     public init(
         kakaoLoginManager: KakaoLoginManagerProtocol,
         appleLoginManager: AppleLoginManagerProtocol,
         firebaseAuthManager: FirebaseAuthManagerProtocol,
-        firebaseStorageManager: FirebaseStorageManagerProtocol
+        firebaseStorageManager: FirebaseStorageManagerProtocol,
+        userSession: UserSessionType
     ) {
         self.kakaoLoginManager = kakaoLoginManager
         self.appleLoginManager = appleLoginManager
         self.firebaseAuthManager = firebaseAuthManager
         self.firebaseStorageManager = firebaseStorageManager
+        self.userSession = userSession
     }
     
     public func loginWithKakao() -> RxSwift.Observable<Result<String, LoginError>> {
@@ -46,7 +50,30 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
     }
     
     public func fetchUserInfo() -> RxSwift.Observable<User?> {
+        
+        /*
+        // 캐시 먼저 방출
+        let cached = Observable.just(userSession.sessionUser)
+        
+        // 서버 데이터 방출
+        let remote = firebaseAuthManager.fetchMyInfo()
+            .do(onNext: { [weak self] user in
+                guard let self, let user = user else { return }
+                
+                // 서버 데이터 session 업데이트
+                self.userSession.update(SessionUser(userId: user.uid))
+            })
+        
+        return Observable.concat(.just(nil), remote)
+         */
+        
         return firebaseAuthManager.fetchMyInfo()
+            .do(onNext: { [weak self] user in
+                guard let self, let user = user else { return }
+                
+                // 서버 데이터 session 업데이트
+                self.userSession.update(SessionUser(userId: user.uid))
+            })
     }
     
     public func fetchUser(uid: String) -> RxSwift.Observable<User?> {

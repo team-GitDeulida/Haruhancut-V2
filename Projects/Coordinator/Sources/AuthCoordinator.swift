@@ -13,14 +13,11 @@ public final class AuthCoordinator: Coordinator {
     public var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
     private let navigationController: UINavigationController
-    private let userSession: UserSessionType
     
     public init(
-        navigationController: UINavigationController,
-        userSession: UserSessionType
+        navigationController: UINavigationController
     ) {
         self.navigationController = navigationController
-        self.userSession = userSession
     }
     
     public func start() {
@@ -32,7 +29,7 @@ public final class AuthCoordinator: Coordinator {
             guard let self = self else { return }
             
             // 로그인 성공시 세션 전달
-            self.userSession.update(user: User.sampleUser1)
+            // self.userSession.update(user: User.sampleUser1)
             
             // Auth 플로우 종료
             self.parentCoordinator?.childDidFinish(self)

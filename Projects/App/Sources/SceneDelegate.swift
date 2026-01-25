@@ -28,11 +28,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let navigationController = UINavigationController()
         
         // 4. UserSession 생성
-        let userSession = UserSession()
+        // let userSession = UserSession()
         
         // 5. AppCoordinator 생성
-        let appCoordinator = AppCoordinator(navigationController: navigationController,
-                                            userSession: userSession)
+        let appCoordinator = AppCoordinator(navigationController: navigationController)
         self.appCoordinator = appCoordinator
         appCoordinator.start()
 

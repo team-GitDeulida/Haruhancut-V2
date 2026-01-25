@@ -15,14 +15,11 @@ public final class HomeCoordinator: Coordinator {
     public var childCoordinators: [Coordinator] = []
     
     private let navigationController: UINavigationController
-    private let userSession: UserSessionType
     
     public init(
-        navigationController: UINavigationController,
-        userSession: UserSessionType
+        navigationController: UINavigationController
     ) {
         self.navigationController = navigationController
-        self.userSession = userSession
     }
     
     public func start() {
