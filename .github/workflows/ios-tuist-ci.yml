@@ -52,6 +52,8 @@ jobs:
       # 5️⃣ Install Tuist (via mise)
       # ======================
       - name: Install Tuist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           eval "$($HOME/.local/bin/mise activate bash)"
           mise install
