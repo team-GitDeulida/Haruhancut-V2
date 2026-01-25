@@ -27,18 +27,20 @@ jobs:
           xcodebuild -version
 
       # ======================
-      # 3️⃣ Cache Homebrew / SPM / DerivedData
+      # 3️⃣ Cache Tuist / SPM / DerivedData
       # ======================
-      - name: Cache Homebrew & SPM
+      - name: Cache Tuist & SPM
         uses: actions/cache@v4
         with:
           path: |
-            ~/Library/Caches/Homebrew
-            ~/Library/Developer/Xcode/DerivedData
+            ~/.tuist
             ~/.swiftpm
+            ~/Library/Developer/Xcode/DerivedData
           key: >
-            ${{ runner.os }}-brew-tuist-
-            ${{ hashFiles('**/Package.resolved') }}
+            ${{ runner.os }}-tuist-
+            ${{ hashFiles('Tuist/Dependencies.swift', '**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-tuist-
 
       # ======================
       # 4️⃣ Install Tuist (Homebrew)
@@ -50,10 +52,11 @@ jobs:
           tuist version
 
       # ======================
-      # 5️⃣ Tuist Generate
+      # 5️⃣ Tuist Install & Generate
       # ======================
-      - name: Tuist Generate
+      - name: Tuist Install & Generate
         run: |
+          tuist install
           tuist generate --no-open
 
       # ======================
