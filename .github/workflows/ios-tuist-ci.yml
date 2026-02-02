@@ -65,14 +65,13 @@ jobs:
           tuist generate --no-open
 
       # 18.5 16 pro max 시뮬레이터에서 빌드 및 테스트 실행
-      # -destination 'generic/platform=iOS Simulator'
       - name: Tuist Build
         run: |
           tuist xcodebuild build \
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5'
+            -destination 'generic/platform=iOS Simulator'
 
       # 📧 Email 알림
       - name: Send email on success
