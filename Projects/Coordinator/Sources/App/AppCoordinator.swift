@@ -29,7 +29,7 @@ public final class AppCoordinator: Coordinator {
     public var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
     public var navigationController: UINavigationController
-    @Dependency private var userSession: UserSessionType
+    @Dependency var userSession: UserSessionType
     
     public init(navigationController: UINavigationController) {
         self.navigationController = navigationController
@@ -51,7 +51,6 @@ public final class AppCoordinator: Coordinator {
     
     // 홈 플로우
     func startHomeFlowCoordinator() {
-        // print("홈 플로우 실행 예정")
         
         // 1. AuthCoordinator 제거
         childCoordinators.removeAll { $0 is AuthCoordinator }
@@ -84,10 +83,31 @@ public final class AppCoordinator: Coordinator {
         childCoordinators.append(signUpCoordinator)
         signUpCoordinator.start()
     }
+    
+    // 로그아웃
+    func logoutWithRotation() {
+        // 1. 세션 정리 (상태 변경)
+        userSession.clear()
+        
+        // 2. 모든 자식 코디네이터 정리
+        childCoordinators.forEach { $0.parentCoordinator = nil }
+        childCoordinators.removeAll()
+        
+        // 3. 회전 애니메이션으로 로그인 플로우 시작
+        UIView.transition(
+            with: navigationController.view,
+            duration: 0.4,
+            options: .transitionFlipFromLeft,
+            animations: {
+                self.startLoginFlowCoordinator()
+            }
+        )
+    }
 }
 
 private extension AppCoordinator {
     
+    // MARK: - Root Flow
     // 앱 최초 실행 시 진입할 플로우를 결정한다
     func routeInitialFlow() {
         let isLoggedIn =
@@ -103,16 +123,15 @@ private extension AppCoordinator {
         }
     }
     
+    // MARK: - Bind Session
     // 로그인 / 로그아웃 등 **앱 실행 중 발생하는 상태 변화**에 반응한다
     func bindUserSession() {
         userSession.bind { [weak self] (user: SessionUser?) in
             guard let self = self else { return }
             
-            if user == nil {
-                self.startLoginFlowCoordinator()
-            } else {
+            if user != nil {
                 self.startHomeFlowCoordinator()
-            }
+            } 
         }
     }
 }

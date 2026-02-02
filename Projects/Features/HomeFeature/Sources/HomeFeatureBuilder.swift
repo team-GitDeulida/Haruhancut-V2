@@ -21,8 +21,8 @@ public final class HomeFeatureBuilder {
 extension HomeFeatureBuilder: HomeFeatureBuildable {
     public func makeHome() -> HomePresentable {
         // return HomeInteractor()
-        let vc = HomeViewController()
-        let vm = HomeViewModel() 
+        let vm = HomeViewModel()
+        let vc = HomeViewController(viewModel: vm)
         return (vc, vm)
     }
 }

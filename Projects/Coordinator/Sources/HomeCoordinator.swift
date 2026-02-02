@@ -24,7 +24,20 @@ public final class HomeCoordinator: Coordinator {
     
     public func start() {
         let builder = HomeFeatureBuilder()
-        let home = builder.makeHome()
+        var home = builder.makeHome()
+        
+        home.vm.onLogoutTapped = { [weak self] in
+            guard let self = self else { return }
+            
+            // 로그인 화면으로 이동
+            (self.parentCoordinator as? AppCoordinator)?
+                .logoutWithRotation()
+                //.userSession
+                // .clear()
+            
+            // HomeCoordinator 종료
+            self.parentCoordinator?.childDidFinish(self)
+        }
         
         // 홈은 루트 플로우 → 스택 교체
         navigationController.setViewControllers([home.vc], animated: true)

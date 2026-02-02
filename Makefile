@@ -29,9 +29,11 @@ clean:
 	tuist clean
 	tuist clean dependencies
 	
+# 4.115.0
 reset:
 	tuist clean
 	rm -rf Tuist/.build
 	rm -rf ~/.tuist-cache
+	tuist version
 	tuist install
-	tuist generate
+	tuist generate --no-open
