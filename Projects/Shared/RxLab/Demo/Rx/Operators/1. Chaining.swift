@@ -183,3 +183,84 @@ func chaining_type_change_1() {
             .disposed(by: disposeBag)
     }
 }
+
+func chaining_type_change_2() {
+    runner(description: "Int -> Observable<String> -> String") {
+        let disposeBag = DisposeBag()
+
+        Observable.of(1, 2, 3)
+            // Int
+            // -> Observable<String>
+            .flatMap { number -> Observable<String> in
+                Observable.just("값은 \(number)")
+            }
+
+            // String
+            .subscribe(onNext: { text in
+                print(text)
+            })
+            .disposed(by: disposeBag)
+    }
+}
+
+func chaining_type_change_3() {
+    runner(description: "Void -> String -> Int") {
+        let disposeBag = DisposeBag()
+
+        let tap = PublishSubject<Void>()
+        let text = PublishSubject<String>()
+
+        tap
+            // Void (버튼 탭)
+            // -> 최신 String
+            .withLatestFrom(text)
+
+            // String
+            // -> 글자 수(Int)
+            .map { value -> Int in
+                value.count
+            }
+
+            .subscribe(onNext: { length in
+                print("글자 수:", length)
+            })
+            .disposed(by: disposeBag)
+
+        // 실행
+        text.onNext("RxSwift")
+        tap.onNext(())
+    }
+}
+
+func chaining_type_change_4() {
+    runner(description: "String -> Result -> String") {
+        let disposeBag = DisposeBag()
+
+        Observable.of("10", "x", "3")
+            // String
+            // -> Result<Int, Error>
+            .map { text -> Result<Int, Error> in
+                if let number = Int(text) {
+                    return .success(number)
+                } else {
+                    return .failure(NetworkError.fail)
+                }
+            }
+
+            // Result
+            // -> String
+            .map { result -> String in
+                switch result {
+                case .success(let number):
+                    return "성공: \(number)"
+                case .failure:
+                    return "실패"
+                }
+            }
+
+            .subscribe(onNext: { message in
+                print(message)
+            })
+            .disposed(by: disposeBag)
+    }
+}
