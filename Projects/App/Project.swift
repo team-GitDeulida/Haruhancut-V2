@@ -103,7 +103,8 @@ let project = Project(
             ),
             runAction: .runAction(
                 configuration: .debug,
-                executable: "App"
+                executable: "App",
+                destinations: [.iPhone]
             ),
             archiveAction: .archiveAction(
                 configuration: .release
