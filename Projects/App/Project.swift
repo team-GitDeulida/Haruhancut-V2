@@ -93,5 +93,21 @@ let project = Project(
                 // ]
             )
         )
+    ],
+    schemes: [
+        .scheme(
+            name: "App",
+            shared: true,
+            buildAction: .buildAction(
+                targets: ["App"]
+            ),
+            runAction: .runAction(
+                configuration: .debug,
+                executable: "App"
+            ),
+            archiveAction: .archiveAction(
+                configuration: .release
+            )
+        )
     ]
 )

@@ -41,6 +41,11 @@ final class GroupViewModel: GroupViewModelType {
     }
     
     func transform(input: Input) -> Output {
+        input.enterButtonTapped
+            .bind(onNext: {
+                
+            })
+        
         let hostResult = input.hostButtonTapped
         
         return Output(hostResult: .just(.success("")),
