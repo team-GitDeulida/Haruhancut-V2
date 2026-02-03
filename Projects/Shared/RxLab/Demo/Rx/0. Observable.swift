@@ -4,6 +4,99 @@
 //
 //  Created by 김동현 on 1/13/26.
 //
+// https://velog.io/@maddie/iOS-RxSwift4-연산자-사전
+// https://babbab2.tistory.com/185
+
+/*
+ Observable : 흘려보내기만 한다 (읽기 전용)
+ Subject    : 밖에서 값을 밀어 넣을 수 있다
+ Relay      : Subject인데 절대 죽지 않는다
+ 
+ 
+ MARK: Observable
+ ─────────────────────────────────────
+ MARK: Observable은 “값이 시간에 따라 흘러나오는 읽기 전용 스트림”이다.
+
+ - Rx의 가장 기본이 되는 타입
+ - 모든 Rx 타입의 출발점
+ - 값은 내부 로직에서만 생성되며
+   외부에서 직접 밀어 넣을 수는 없다
+
+ 개념적으로
+ - 생산자 (Producer)
+ - 값이 흘러가는 파이프
+ 
+ 역할
+ ─────────────────────────────────────
+ - 값을 방출(onNext)하는 스트림 정의
+ - 비동기 이벤트를 시간 축으로 표현
+ - map, filter, flatMap 등으로 값 변환
+
+ Observable은
+ ❌ 값을 저장하지 않는다
+ ❌ 상태를 보장하지 않는다
+ ⭕️ 그저 "흘려보낸다"
+ 
+ 특징
+ ─────────────────────────────────────
+ - lazy
+   → subscribe 되기 전까지 실행되지 않음
+ - cold observable (기본)
+   → 구독 시마다 새로 실행
+ - 다수의 연산자(operator)로 변환 가능
+
+ Observable은
+ - 상태 관리 ❌
+ - UI 직접 바인딩 ❌
+ - 비즈니스 로직 ⭕️
+ 
+ 스레드
+ ─────────────────────────────────────
+ - ❌ 스레드 보장 없음
+ - 기본적으로 "현재 실행 중인 스레드"에서 동작
+
+ 스레드 제어는 명시적으로 해야 함
+ - subscribe(on:)  → 작업 시작 스레드
+ - observe(on:)    → 값 소비 스레드
+
+ 예)
+ observable
+     .subscribe(on: backgroundScheduler)
+     .observe(on: MainScheduler.instance)
+ 
+ 에러
+  ─────────────────────────────────────
+  - ⭕️ 에러 방출 가능 (onError)
+  - 에러 발생 시 스트림 즉시 종료
+  - 이후 onNext는 전달되지 않음
+
+  에러 제어 방법
+  - catchError
+  - retry
+  - materialize
+
+  Observable은
+  "실패할 수 있는 스트림"을 표현하는 데 적합
+ 
+ 언제 사용하는가
+ ─────────────────────────────────────
+ - 네트워크 요청
+ - 파일 IO
+ - 비즈니스 로직 처리
+ - 데이터 가공 / 변환
+ - 상태가 아닌 "과정"을 표현할 때
+
+ 예)
+ - API 요청 결과
+ - 계산 로직
+ - 데이터 파이프라인
+ 
+ 한 줄 요약
+ ─────────────────────────────────────
+ ❝ Observable은 값을 저장하지 않고,
+    시간에 따라 흘려보내는 읽기 전용 스트림이다 ❞
+ */
+
 
 import Foundation
 import RxSwift
@@ -16,8 +109,13 @@ enum RxExample {
     case create
     
     case subscribe
+    case bind
     
-    static let current: RxExample = .subscribe
+    case publish
+    case behavior
+    case replay
+    
+    static let current: RxExample = .replay
 }
 
 func run(_ example: RxExample) {
@@ -35,6 +133,14 @@ func run(_ example: RxExample) {
         
     case .subscribe:
         subscribe()
+    case .bind:
+        bind()
+    case .publish:
+        subject_publish()
+    case .behavior:
+        subject_behavior()
+    case .replay:
+        subject_replay()
     }
 }
 

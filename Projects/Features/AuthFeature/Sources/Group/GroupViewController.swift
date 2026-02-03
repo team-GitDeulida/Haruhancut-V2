@@ -5,6 +5,7 @@
 //
 
 import UIKit
+import RxSwift
 
 // MARK: - (C)GroupViewController
 final class GroupViewController: UIViewController {
@@ -29,10 +30,18 @@ final class GroupViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
     }   
-
+    
     // MARK: - Bindings
     private func bindViewModel() {
-
+        
+        let input = GroupViewModel.Input(enterButtonTapped: customView.groupSelectView.enterButton.rx.tap.asObservable(),
+                                         hostButtonTapped: customView.groupSelectView.hostButton.rx.tap.asObservable(),
+                                         groupNameText: customView.groupHostView.textField.rx.text.orEmpty.asObservable(),
+                                         hostEndTapped: customView.groupHostView.endButton.rx.tap.asObservable(),
+                                         invideCodeText: customView.groupEnterView.textField.rx.text.orEmpty.asObservable(),
+                                         enterEndTapped: customView.groupEnterView.endButton.rx.tap.asObservable())
+        
+        let output = viewModel.transform(input: input)
     }
 }
 

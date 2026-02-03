@@ -5,17 +5,40 @@
 //
 
 import UIKit
+import RxSwift
+import AuthFeatureInterface
+import RxCocoa
+import Core
 
 final class GroupViewModel: GroupViewModelType {
-    func transform(input: Int) -> Int {
-        return 0
-    }
-    
-    typealias Input = Int
-    
-    typealias Output = Int
     
     var onGroupMakeOrJoinSuccess: (() -> Void)?
     
+    struct Input {
+        // Select
+        let enterButtonTapped: Observable<Void>
+        let hostButtonTapped: Observable<Void>
+        
+        // Host
+        let groupNameText: Observable<String>
+        let hostEndTapped: Observable<Void>
+        
+        // Enter
+        let invideCodeText: Observable<String>
+        let enterEndTapped: Observable<Void>
+    }
+    
+    struct Output {
+        let hostResult: Driver<Result<String, GroupError>>
+        let joinResult: Driver<Result<String, GroupError>>
+    }
+    
+    func transform(input: Input) -> Output {
+        let hostResult = input.hostButtonTapped
+          
+        
+        return Output(hostResult: .just(.success("")),
+                      joinResult: .just(.success("")))
+    }
     
 }

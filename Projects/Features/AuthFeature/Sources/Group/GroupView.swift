@@ -20,8 +20,8 @@ final class GroupView: UIView {
     
     // MARK: - View
     let groupSelectView = GroupSelectView()
-    let groupEnterView = GroupEnterView()
     let groupHostView = GroupHostView()
+    let groupEnterView = GroupEnterView()
 
     // MARK: - Initializer
     override init(frame: CGRect) {
@@ -86,6 +86,12 @@ final class GroupView: UIView {
             groupEnterView.leadingAnchor.constraint(equalTo: groupHostView.trailingAnchor),
             groupEnterView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
         ])
+    }
+    
+    // MARK: - Page Control
+    func move(to index: Int, animated: Bool = true) {
+        let x = scrollView.frame.width * CGFloat(index)
+        scrollView.setContentOffset(CGPoint(x: x, y: 0), animated: animated)
     }
 }
 

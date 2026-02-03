@@ -14,7 +14,11 @@ let project = Project(
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "RxLabInterface")
+                .target(name: "RxLabInterface"),
+                .project(
+                    target: "ThirdPartyLibs",
+                    path: "../../Shared/ThirdPartyLibs" // ⬅️ 실제 Project.swift 위치
+                )
             ]
         ),
         
