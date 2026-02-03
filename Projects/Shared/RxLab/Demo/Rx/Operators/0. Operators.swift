@@ -359,3 +359,173 @@ func take_skip() {
     }
 }
 
+/*
+ do
+ ─────────────────────────────────────
+ 역할
+ - 스트림을 변경하지 않고 "중간에서 엿보기"만 한다
+ - 사이드 이펙트(side-effect) 전용 연산자
+
+ 특징
+ - 값은 그대로 흘려보냄 (map 아님)
+ - 디버깅, 로깅, 상태 추적에 사용
+ - 데이터 흐름에 영향 ❌
+
+ 언제 사용하는가
+ - 네트워크 요청 로그
+ - 값 흐름 디버깅
+ - subscribe 전에 상태 확인
+
+ 주의
+ - 로직을 넣으면 안 됨
+ - 값 변환 ❌
+ - 상태 변경 ❌ (원칙적으로)
+
+ 한 줄 요약
+ - ❝ 건드리지 말고 보기만 한다 ❞
+ */
+func `do`() {
+    runner(description: "do") {
+        let disposeBag = DisposeBag()
+
+        Observable.of(1, 2, 3)
+            .do(onNext: { value in
+                print("👉 중간 확인:", value)
+            })
+            .do(onSubscribe: { print("요청 시작") })
+            .do(onError: { print("에러 발생:", $0) })
+            .do(onCompleted: { print("완료") })
+            .map { $0 * 2 }
+            .subscribe(onNext: { print("✅ 최종:", $0) })
+            .disposed(by: disposeBag)
+    }
+}
+
+/*
+ enum Result<Success, Failure: Error> {
+     case success(Success)
+     case failure(Failure)
+ }
+
+ Rx에서 Result쓰는이유
+ - onNext
+ - onError
+ 이게 있는데 왜 굳이 Result를쓰는가?
+ => 스트림을 “죽이지 않고” 성공/실패를 값으로 흘리고 싶을 때
+ 
+ ex) Result를 안 쓰면 생기는 문제 (Rx 기본 방식)
+ - Result를 안 쓰면 생기는 문제 (Rx 기본 방식)
+ - onError 발생 → 스트림 종료
+ - 이후 재시도 / UI 업데이트 불가
+ func fetchUser() -> Observable<User> {
+     Observable.create { observer in
+         observer.onError(NetworkError.fail)
+         return Disposables.create()
+     }
+ }
+ 
+ ex) Result를 쓰는 기본 패턴 (스트림 유지)
+ 장점
+ - 스트림 안 죽음
+ - 성공/실패를 값으로 처리
+ - UI에서 분기 가능
+ func fetchUser() -> Observable<Result<User, Error>> {
+     Observable.create { observer in
+         observer.onNext(.failure(NetworkError.fail))
+         return Disposables.create()
+     }
+ }
+ */
+
+
+/*
+ Result
+ ─────────────────────────────────────
+ 역할
+ - 성공 / 실패를 "에러 이벤트"가 아닌 "값"으로 표현
+
+ Rx에서 Result를 쓰는 이유
+ - onError를 쓰면 스트림이 종료됨
+ - UI에서는 "실패도 하나의 상태"로 다뤄야 함
+ - 스트림을 죽이지 않고 상태 분기 처리 가능
+
+ 핵심 포인트
+ - 실패해도 onNext로 흘러감
+ - subscribe가 계속 살아 있음
+ - UI / 상태 머신 / MVVM Output에 적합
+
+ 한 줄 요약
+ - ❝ 에러를 터뜨리지 말고 상태로 흘려보낸다 ❞
+ */
+
+enum NetworkError: Error {
+    case fail
+}
+
+struct User {
+    let name: String
+}
+
+func result_operator() {
+    runner(description: "Result as Value") {
+        let disposeBag = DisposeBag()
+
+        // 성공 / 실패를 값으로 방출하는 Observable
+        let fetchUser = Observable<Result<User, Error>>.create { observer in
+            observer.onNext(.success(User(name: "동현")))
+            observer.onNext(.failure(NetworkError.fail))
+            observer.onNext(.success(User(name: "RxSwift")))
+            return Disposables.create()
+        }
+
+        fetchUser
+            .subscribe(onNext: { result -> () in
+                switch result {
+                case .success(let user):
+                    print("✅ 성공:", user.name)
+                case .failure(let error):
+                    print("❌ 실패:", error)
+                }
+            })
+            .disposed(by: disposeBag)
+    }
+}
+
+/*
+ compactMap
+ ─────────────────────────────────────
+ 역할
+ - 값을 변환하면서 nil은 자동으로 제거
+
+ 특징
+ - map + filter(nil 제거)의 조합
+ - Optional을 반환해야 함
+ - nil이 나오면 해당 이벤트는 버려짐
+
+ 언제 사용하는가
+ - String → Int 변환
+ - Optional 값 안전하게 언래핑
+ - 실패한 변환 무시
+
+ 한 줄 요약
+ - ❝ 변환하다가 실패한 건 조용히 버린다 ❞
+ */
+func compactMap() {
+    runner(description: "compactMap") {
+        let disposeBag = DisposeBag()
+
+        Observable.of("1", "2", "A", "3", "B")
+            .compactMap { value -> Int? in
+                Int(value)   // 변환 실패 시 nil
+            }
+            .subscribe(onNext: { print($0) })
+            .disposed(by: disposeBag)
+
+        /*
+         출력
+         1
+         2
+         3
+         */
+    }
+}
