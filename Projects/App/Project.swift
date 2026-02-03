@@ -5,7 +5,7 @@ let project = Project(
     targets: [
         .target(
             name: "App",
-            destinations: [.iPhone, .iPad],
+            destinations: [.iPhone, .iPad, .simulator],
             product: .app,
             productName: "Haruhancut",
             bundleId: "com.indextrown.Haruhancut",
