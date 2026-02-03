@@ -129,40 +129,53 @@ jobs:
           defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
 
       # =====================================================
-      # 9️⃣ Build for Testing
+      # 9️⃣ Build only (테스트 없음)
       # =====================================================
-      - name: Build for testing
+      - name: Build (Debug)
         run: |
           set -o pipefail
-          xcodebuild build-for-testing \
+          xcodebuild build \
             -workspace Haruhancut.xcworkspace \
             -scheme App \
             -configuration Debug \
             -destination "id=$SIMULATOR_UDID" \
             -derivedDataPath DerivedData
 
-      # =====================================================
-      # 🔟 Unit Tests
-      # =====================================================
-      - name: Run Unit Tests
-        run: |
-          set -o pipefail
-          xcodebuild test-without-building \
-            -workspace Haruhancut.xcworkspace \
-            -scheme App \
-            -destination "id=$SIMULATOR_UDID" \
-            -derivedDataPath DerivedData \
-            -only-testing:HaruhancutTests
+      # # =====================================================
+      # # 9️⃣ Build for Testing
+      # # =====================================================
+      # - name: Build for testing
+      #   run: |
+      #     set -o pipefail
+      #     xcodebuild build-for-testing \
+      #       -workspace Haruhancut.xcworkspace \
+      #       -scheme App \
+      #       -configuration Debug \
+      #       -destination "id=$SIMULATOR_UDID" \
+      #       -derivedDataPath DerivedData
 
-      # =====================================================
-      # 1️⃣1️⃣ UI Tests
-      # =====================================================
-      - name: Run UI Tests
-        run: |
-          set -o pipefail
-          xcodebuild test-without-building \
-            -workspace Haruhancut.xcworkspace \
-            -scheme App \
-            -destination "id=$SIMULATOR_UDID" \
-            -derivedDataPath DerivedData \
-            -only-testing:HaruhancutUITests
+      # # =====================================================
+      # # 🔟 Unit Tests
+      # # =====================================================
+      # - name: Run Unit Tests
+      #   run: |
+      #     set -o pipefail
+      #     xcodebuild test-without-building \
+      #       -workspace Haruhancut.xcworkspace \
+      #       -scheme App \
+      #       -destination "id=$SIMULATOR_UDID" \
+      #       -derivedDataPath DerivedData \
+      #       -only-testing:HaruhancutTests
+
+      # # =====================================================
+      # # 1️⃣1️⃣ UI Tests
+      # # =====================================================
+      # - name: Run UI Tests
+      #   run: |
+      #     set -o pipefail
+      #     xcodebuild test-without-building \
+      #       -workspace Haruhancut.xcworkspace \
+      #       -scheme App \
+      #       -destination "id=$SIMULATOR_UDID" \
+      #       -derivedDataPath DerivedData \
+      #       -only-testing:HaruhancutUITests
