@@ -138,7 +138,7 @@ jobs:
             -workspace Haruhancut.xcworkspace \
             -scheme App \
             -configuration Debug \
-            -destination "id=$SIMULATOR_UDID" \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
             -derivedDataPath DerivedData
 
       # # =====================================================
