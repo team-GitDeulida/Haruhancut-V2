@@ -10,6 +10,7 @@ import Domain
 import AuthFeature
 
 public final class AuthCoordinator: Coordinator {
+    
     public var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
     private let navigationController: UINavigationController
@@ -27,9 +28,6 @@ public final class AuthCoordinator: Coordinator {
         // 기존 유저
         signIn.vm.onSignInSuccess = { [weak self] in
             guard let self = self else { return }
-            
-            // 로그인 성공시 세션 전달
-            // self.userSession.update(user: User.sampleUser1)
             
             // Auth 플로우 종료
             self.parentCoordinator?.childDidFinish(self)

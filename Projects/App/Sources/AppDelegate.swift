@@ -48,9 +48,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             RxKakaoSDK.initSDK(appKey: nativeAppKey, loggingEnable: false)
         }
         
-        // AppLifeCycle
-        registerDependencies()
-        
         return true
         
     }

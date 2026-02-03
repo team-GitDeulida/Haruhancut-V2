@@ -8,6 +8,7 @@
 import Foundation
 import RxSwift
 import Core
+import UIKit
 
 public enum SocialAuthPayload {
     case kakao(token: String)
@@ -27,6 +28,8 @@ public protocol SignInUsecaseProtocol {
     func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>>
     func registerUserToRealtimeDatabase(user: User) -> RxSwift.Observable<Result<User, LoginError>>
     func fetchUserInfo() -> Observable<User?>
+    func updateUser(user: User) -> Observable<Result<User, LoginError>>
+    func uploadImage(user: User, image: UIImage) -> Observable<Result<URL, LoginError>>
 }
 
 public final class SignInUsecaseImpl: SignInUsecaseProtocol {
@@ -73,6 +76,24 @@ public final class SignInUsecaseImpl: SignInUsecaseProtocol {
     public func fetchUserInfo() -> Observable<User?> {
         return repository.fetchUserInfo()
     }
+    
+    /// 유저 업데이트
+    /// - Parameter user: 유저
+    /// - Returns: 성공유무
+    public func updateUser(user: User) -> Observable<Result<User, LoginError>> {
+        return repository.updateUser(user: user)
+    }
+    
+    /// 이미지 업로드
+    /// - Parameters:
+    ///   - user: 유저
+    ///   - image: 이미지
+    /// - Returns: 이미지url
+    public func uploadImage(user: User, image: UIImage) -> Observable<Result<URL, LoginError>> {
+        return repository.uploadImage(user: user, image: image)
+    }
+    
+    
 }
 
 /*

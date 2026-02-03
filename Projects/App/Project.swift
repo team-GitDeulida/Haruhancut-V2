@@ -5,7 +5,7 @@ let project = Project(
     targets: [
         .target(
             name: "App",
-            destinations: [.iPhone, .iPad, .macWithiPadDesign],
+            destinations: [.iPhone, .iPad],
             product: .app,
             productName: "Haruhancut",
             bundleId: "com.indextrown.Haruhancut",
@@ -83,16 +83,6 @@ let project = Project(
                 // .external(name: "FirebaseMessaging")
             ],
             settings: .settings(
-                base: [
-                    // 🔑 Simulator + Device 둘 다 허용
-                    "SUPPORTED_PLATFORMS": "iphonesimulator iphoneos",
-
-                    // 🔑 CI에서 arm64 simulator 차단 금지
-                    "EXCLUDED_ARCHS[sdk=iphonesimulator*]": "",
-
-                    // 안정화
-                    "ONLY_ACTIVE_ARCH": "NO"
-                ],
                 configurations: [
                     .debug(name: "Debug", xcconfig: "../Shared/Configs/Shared.xcconfig"),
                     .release(name: "Release", xcconfig: "../Shared/Configs/Shared.xcconfig"),

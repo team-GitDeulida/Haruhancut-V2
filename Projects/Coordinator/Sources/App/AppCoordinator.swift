@@ -37,8 +37,8 @@ public final class AppCoordinator: Coordinator {
     
     // 로그인플로우 or 홈 플로우
     public func start() {
-        routeInitialFlow()
-        bindUserSession()
+        observeSession()
+        routeBySession()
     }
     
     // 로그인 플로우
@@ -84,22 +84,28 @@ public final class AppCoordinator: Coordinator {
         signUpCoordinator.start()
     }
     
+    // 그룹 플로우
+    func startGroupFlowCoordinator() {
+        if childCoordinators.contains(where: { $0 is GroupCoordinator }) {
+            return
+        }
+        
+        let coordinator = GroupCoordinator(navigationController: navigationController)
+        coordinator.parentCoordinator = self
+        childCoordinators.append(coordinator)
+        coordinator.start()
+    }
+    
     // 로그아웃
     func logoutWithRotation() {
-        // 1. 세션 정리 (상태 변경)
-        userSession.clear()
-        
-        // 2. 모든 자식 코디네이터 정리
-        childCoordinators.forEach { $0.parentCoordinator = nil }
-        childCoordinators.removeAll()
-        
-        // 3. 회전 애니메이션으로 로그인 플로우 시작
+        // 회전 애니메이션으로 로그인 플로우 시작
         UIView.transition(
             with: navigationController.view,
             duration: 0.4,
             options: .transitionFlipFromLeft,
             animations: {
-                self.startLoginFlowCoordinator()
+                // 세션 정리 (상태 변경)
+                self.userSession.clear()
             }
         )
     }
@@ -109,29 +115,34 @@ private extension AppCoordinator {
     
     // MARK: - Root Flow
     // 앱 최초 실행 시 진입할 플로우를 결정한다
-    func routeInitialFlow() {
+    func routeBySession() {
         let isLoggedIn =
         userSession.isLoggedIn &&
         Auth.auth().currentUser != nil
-    
-        if isLoggedIn {
-            // 앱 시작 시 이미 로그인된 유저가 있음 → 홈 플로우
-            startHomeFlowCoordinator()
-        } else {
-            // 앱 시작 시 로그인된 유저가 없음 → 로그인 플로우
+        
+        // 1️⃣ 로그인 안 됨
+        guard isLoggedIn else {
             startLoginFlowCoordinator()
+            return
         }
+
+        // 2️⃣ 로그인 됐는데 그룹 없음
+        guard userSession.hasGroup else {
+            startGroupFlowCoordinator()
+            print("그룹 플로우")
+            return
+        }
+
+        // 3️⃣ 로그인 + 그룹 있음
+        startHomeFlowCoordinator()
     }
     
     // MARK: - Bind Session
-    // 로그인 / 로그아웃 등 **앱 실행 중 발생하는 상태 변화**에 반응한다
-    func bindUserSession() {
-        userSession.bind { [weak self] (user: SessionUser?) in
+    // 로그인 / 로그아웃 등 앱 실행 중 발생하는 상태 변화에 반응한다
+    func observeSession() {
+        userSession.observe { [weak self] (user: SessionUser?) in
             guard let self = self else { return }
-            
-            if user != nil {
-                self.startHomeFlowCoordinator()
-            } 
+            self.routeBySession()
         }
     }
 }

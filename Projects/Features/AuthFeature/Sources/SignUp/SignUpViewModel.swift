@@ -10,10 +10,15 @@ import AuthFeatureInterface
 import RxSwift
 import RxCocoa
 import Domain
+import FirebaseMessaging
+import Core
 
 final class SignUpViewModel: SignUpViewModelType {
     
     private let disposeBag = DisposeBag()
+    
+    // MARK: - Properties
+    private let signInUsecase: SignInUsecaseProtocol
     
     // ViewModel 내부
     private let stepRelay = BehaviorRelay<Step>(value: .nickname)
@@ -59,7 +64,10 @@ final class SignUpViewModel: SignUpViewModelType {
         let nickname: Driver<String> /// 확정된 닉네임
     }
     
-    init(loginPlatform: User.LoginPlatform) {
+    init(signInUsecase: SignInUsecaseProtocol,
+         loginPlatform: User.LoginPlatform
+    ) {
+        self.signInUsecase = signInUsecase
         self.userBuilder = UserBuilder(loginPlatform: loginPlatform)
     }
 }
@@ -93,29 +101,53 @@ extension SignUpViewModel {
                                                      nicknameRelay,
                                                      birthdayRelay,
                                                      profileImageRelay))
-            .map { step, nickname, birtyday, profile in
+            .flatMapLatest { [weak self] step, nickname, birtyday, profile in
+                guard let self = self else { return Observable<Step>.empty() }
                 switch step {
                 case .nickname:
                     print("nickname 확정:", nickname)
                     self.userBuilder.withNickname(nickname)
-                    return .birthday
+                    return .just(.birthday)
 
                 case .birthday:
                     print("birthday 확정:", birtyday)
                     self.userBuilder.withBirthday(birtyday)
-                    return .profile
+                    return .just(.profile)
 
                 case .profile:
-                    print("profile 확정:", profile ?? "이미지 없음")
+                    // print("profile 확정:", profile ?? "이미지 없음")
                     if let profile = profile {
                         self.userBuilder.withProfileImage(profile)
                     }
-                    self.userBuilder.build()
-                    self.onSignUpSuccess?()
-                    return .finish
+                    
+                    let user = self.userBuilder.build()
+                    
+                    // 1) FCM 토큰 발급
+                    return self.generateFcmToken()
+                        
+                        // 2) User 모델에 토큰 저장
+                        .flatMapLatest { token -> Observable<User> in
+                            var userWithToken = user
+                            userWithToken.fcmToken = token
+                            return .just(userWithToken)
+                        }
+                    
+                        // 3) 회원가입 + 이미지 업로드 로직(이미지 존재 시)
+                        .flatMapLatest { userWithToken -> Observable<Result<Void, LoginError>> in
+                            self.registerUserWithProfileIfNeeded(user: userWithToken, image: profile)
+                        }
+                    
+                        // 4) 회원가입 성공시 화면 전환
+                        .do(onNext: { [weak self] result in
+                            if case .success = result {
+                                self?.onSignUpSuccess?()
+                            }
+                        })
+                        .map { _ in Step.finish }
+                    
 
                 case .finish:
-                    return .finish
+                    return .just(.finish)
                 }
             }
             .bind(to: stepRelay)
@@ -127,3 +159,67 @@ extension SignUpViewModel {
                       nickname: nicknameRelay.asDriver())
     }
 }
+
+// MARK: - Usecase Wrapper
+extension SignUpViewModel {
+    
+    // FCM 토큰 발급
+    private func generateFcmToken() -> Observable<String> {
+        return Observable.create { observer in
+            Messaging.messaging().token { token, error in
+                if let error = error {
+                    print("⚠️ FCM 토큰 발급 실패: \(error.localizedDescription)")
+                    print("⚠️ FCM 토큰을 받을 수 없는 기기라서 넘어갑니다.")
+                    observer.onNext("noFCM")
+                    observer.onCompleted()
+                } else if let token = token {
+                    observer.onNext(token)
+                    observer.onCompleted()
+                } else {
+                    observer.onError(NSError(domain: "FCMToken", code: -1,
+                                             userInfo: [NSLocalizedDescriptionKey: "토큰이 없습니다"]))
+                }
+            }
+            
+            return Disposables.create()
+        }
+    }
+    
+    // legacy
+    private func registerUser(user: User) -> Observable<Result<Void, LoginError>> {
+        signInUsecase
+            .registerUserToRealtimeDatabase(user: user) // Result<User, LoginError>
+            .map { $0.mapToVoid() }
+    }
+    
+    private func registerUserWithProfileIfNeeded(user: User, image: UIImage?) -> Observable<Result<Void, LoginError>> {
+        signInUsecase
+            .registerUserToRealtimeDatabase(user: user) // Result<User, LoginError>
+            .flatMapLatest { result -> Observable<Result<Void, LoginError>> in
+                guard case .success(let registerUser) = result else {
+                    return .just(result.mapToVoid())
+                }
+                
+                // 이미지가 없으면 종료
+                guard let image = image else { return .just(.success(())) }
+                
+                // 이미지 업로드
+                return self.signInUsecase
+                    .uploadImage(user: registerUser, image: image)
+                    .flatMapLatest { uploadResult in
+                        switch uploadResult {
+                        case .success(let url):
+                            var updated = registerUser
+                            updated.profileImageURL = url.absoluteString
+                            
+                            return self.signInUsecase
+                                .updateUser(user: updated)
+                                .map { $0.mapToVoid() }
+                        case .failure(let error):
+                            return .just(.failure(error))
+                        }
+                    }
+            }
+    }
+}
+

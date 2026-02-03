@@ -108,9 +108,9 @@ final class SignUpPreviewVC: UIViewController {
 }
 #endif
 
-//#Preview {
-//    SignUpPreviewVC()
-//}
+#Preview {
+    SignUpPreviewVC()
+}
 
 //#Preview {
 //    SignUpViewController(viewModel: SignUpViewModel())

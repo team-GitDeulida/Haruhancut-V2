@@ -9,7 +9,7 @@ import Core
 import Data
 import Domain
 
-extension AppDelegate {
+extension SceneDelegate {
     var container: DIContainer {
         DIContainer.shared
     }

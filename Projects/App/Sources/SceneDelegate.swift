@@ -18,6 +18,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         
+        // AppLifeCycle
+        registerDependencies()
+        
         // 1. scene 캡처
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
@@ -26,9 +29,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         // 3. Navigation Controller 생성
         let navigationController = UINavigationController()
-        
-        // 4. UserSession 생성
-        // let userSession = UserSession()
         
         // 5. AppCoordinator 생성
         let appCoordinator = AppCoordinator(navigationController: navigationController)

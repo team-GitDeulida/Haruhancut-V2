@@ -46,7 +46,14 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
     }
     
     public func registerUserToRealtimeDatabase(user: User) -> RxSwift.Observable<Result<User, LoginError>> {
-        return firebaseAuthManager.registerUserToRealtimeDatabase(user: user)
+        return firebaseAuthManager
+            .registerUserToRealtimeDatabase(user: user)
+            .do(onNext: { [weak self] result in
+                guard let self = self else { return }
+                if case .success(let user) = result {
+                    self.userSession.update(SessionUser(userId: user.uid, groupId: user.groupId))
+                }
+            })
     }
     
     public func fetchUserInfo() -> RxSwift.Observable<User?> {
@@ -72,7 +79,7 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
                 guard let self, let user = user else { return }
                 
                 // 서버 데이터 session 업데이트
-                self.userSession.update(SessionUser(userId: user.uid))
+                self.userSession.update(SessionUser(userId: user.uid, groupId: user.groupId))
             })
     }
     
@@ -86,10 +93,15 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
     
     public func deleteUser(uid: String) -> RxSwift.Observable<Bool> {
         return firebaseAuthManager.deleteUser(uid: uid)
+            .do(onNext: { [weak self] success in
+                if success {
+                    self?.userSession.clear()
+                }
+            })
     }
     
     public func uploadImage(user: User, image: UIImage) -> RxSwift.Observable<Result<URL, LoginError>> {
-       
+        
         let path = "users/\(user.uid)/profile.jpg"
         return firebaseStorageManager.uploadImage(image: image, path: path)
             .map { url in
