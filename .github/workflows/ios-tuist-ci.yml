@@ -72,7 +72,7 @@ jobs:
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16'
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5'
 
       # 📧 Email 알림
       - name: Send email on success
