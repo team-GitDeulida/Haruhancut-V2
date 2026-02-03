@@ -9,7 +9,7 @@ on:
 
 jobs:
   tuist-ci:
-    runs-on: macos-15
+    runs-on: macos-14
 
     steps:
       - name: Checkout
@@ -71,7 +71,7 @@ jobs:
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator'
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0'
 
       # 📧 Email 알림
       - name: Send email on success
