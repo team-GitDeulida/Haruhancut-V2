@@ -1,0 +1,126 @@
+name: iOS Tuist Build & Test
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tuist-ci:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: List iOS Simulators
+        run: |
+          xcrun simctl list devices
+
+      # 🔐 secrets → xcconfig
+      - name: Create Shared.xcconfig
+        run: |
+          mkdir -p Projects/Shared/Configs
+          cat << 'EOF' > Projects/Shared/Configs/Shared.xcconfig
+          ${{ secrets.SHARED_XCCONFIG }}
+          EOF
+
+      - name: Select Xcode 16.2
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app
+          xcodebuild -version
+
+      - name: Cache Homebrew
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar
+          key: ${{ runner.os }}-brew-tuist-4.115.0
+
+      - name: Cache Tuist & SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.tuist
+            ~/.swiftpm
+            ~/Library/Developer/Xcode/DerivedData
+          key: >
+            ${{ runner.os }}-tuist-
+            ${{ hashFiles('Tuist/Dependencies.swift', '**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-tuist-
+
+      - name: Install Tuist
+        run: |
+          brew tap tuist/tuist
+          brew install tuist@4.115.0
+          tuist version
+
+      - name: Tuist Install & Generate
+        run: |
+          tuist install
+          tuist generate --no-open
+
+      # 18.5 16 pro max 시뮬레이터에서 빌드 및 테스트 실행
+      # -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5'
+      # - name: Tuist Build
+      #   run: |
+      #     tuist xcodebuild build \
+      #       -scheme App \
+      #       -configuration Debug \
+      #       -sdk iphonesimulator \
+      #       -destination 'generic/platform=iOS Simulator'
+
+      - name: Build Project
+        run: |
+          xcodebuild \
+            -workspace Haruhancut.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5" \
+            -derivedDataPath build/DerivedData \
+            -verbose \
+            clean build
+
+      # 📧 Email 알림
+      - name: Send email on success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ✅ PopPang iOS 빌드 & 테스트 성공
+          body: |
+            ✅ **하루한컷 패키지를 성공적으로 빌드하고 테스트했습니다.**
+
+            📦 Repository: ${{ github.repository }}
+            🌿 Branch: ${{ github.ref_name }}
+            👤 Triggered by: ${{ github.actor }}
+            🔗 Action URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: indextrown@gmail.com
+          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
+
+      - name: Send email on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ❌ PopPang iOS 빌드 실패
+          body: |
+            ❌ **iOS 빌드 또는 테스트에 실패했습니다.**
+
+            📦 Repository: ${{ github.repository }}
+            🌿 Branch: ${{ github.ref_name }}
+            👤 Triggered by: ${{ github.actor }}
+            🔗 Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: indextrown@gmail.com
+          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>

@@ -1,4 +1,4 @@
-name: iOS Tuist Build & Test
+name: 하루한컷 iOS Build & Test
 
 on:
   pull_request:
@@ -7,120 +7,152 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
-  tuist-ci:
+  ios-ci:
+    name: iOS Tuist Build & Test
     runs-on: macos-15
 
     steps:
+      # =====================================================
+      # 1️⃣ Checkout
+      # =====================================================
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: List iOS Simulators
-        run: |
-          xcrun simctl list devices
-
-      # 🔐 secrets → xcconfig
-      - name: Create Shared.xcconfig
-        run: |
-          mkdir -p Projects/Shared/Configs
-          cat << 'EOF' > Projects/Shared/Configs/Shared.xcconfig
-          ${{ secrets.SHARED_XCCONFIG }}
-          EOF
-
+      # =====================================================
+      # 2️⃣ Xcode 고정
+      # =====================================================
       - name: Select Xcode 16.2
         run: |
           sudo xcode-select -s /Applications/Xcode_16.2.app
           xcodebuild -version
 
-      - name: Cache Homebrew
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Library/Caches/Homebrew
-            /opt/homebrew/Cellar
-          key: ${{ runner.os }}-brew-tuist-4.115.0
+      # =====================================================
+      # 3️⃣ Simulator 목록 출력 (디버깅용)
+      # =====================================================
+      - name: List available iOS simulators
+        run: |
+          echo "📱 Available iOS Simulators"
+          xcrun simctl list devices available
 
-      - name: Cache Tuist & SPM
+      # =====================================================
+      # 4️⃣ Tuist 캐시
+      # =====================================================
+      - name: Cache Tuist & SwiftPM
         uses: actions/cache@v4
         with:
           path: |
             ~/.tuist
             ~/.swiftpm
             ~/Library/Developer/Xcode/DerivedData
-          key: >
-            ${{ runner.os }}-tuist-
-            ${{ hashFiles('Tuist/Dependencies.swift', '**/Package.resolved') }}
+          key: tuist-${{ runner.os }}-${{ hashFiles('Tuist/Dependencies.swift', '**/Package.resolved') }}
           restore-keys: |
-            ${{ runner.os }}-tuist-
+            tuist-${{ runner.os }}-
 
+      # =====================================================
+      # 5️⃣ Tuist Install & Generate
+      # =====================================================
       - name: Install Tuist
         run: |
           brew tap tuist/tuist
           brew install tuist@4.115.0
           tuist version
 
-      - name: Tuist Install & Generate
+      - name: Tuist Generate
         run: |
           tuist install
           tuist generate --no-open
 
-      # 18.5 16 pro max 시뮬레이터에서 빌드 및 테스트 실행
-      # -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5'
-      # - name: Tuist Build
-      #   run: |
-      #     tuist xcodebuild build \
-      #       -scheme App \
-      #       -configuration Debug \
-      #       -sdk iphonesimulator \
-      #       -destination 'generic/platform=iOS Simulator'
+      # =====================================================
+      # 6️⃣ Simulator UDID Resolve (PopPang 방식)
+      # =====================================================
+      - name: Resolve simulator UDID
+        run: |
+          set -euo pipefail
 
-      - name: Build Project
+          SIMULATOR_NAME="iPhone 16 Pro"
+          SIMULATOR_OS="18.2"
+
+          echo "🔍 Resolving simulator: ${SIMULATOR_NAME} (iOS ${SIMULATOR_OS})"
+
+          UDID=$(xcrun simctl list devices available | \
+            grep "iOS ${SIMULATOR_OS}" -A 20 | \
+            grep "^ *${SIMULATOR_NAME} (" | \
+            head -n 1 | \
+            sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+
+          if [ -z "$UDID" ]; then
+            echo "❌ Simulator not found"
+            xcrun simctl list devices available
+            exit 1
+          fi
+
+          echo "✅ Using simulator UDID: $UDID"
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+
+      # =====================================================
+      # 7️⃣ Simulator Boot & Warm-up
+      # =====================================================
+      - name: Boot simulator
+        run: |
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+
+      - name: Warm up simulator
         run: |
           xcodebuild \
             -workspace Haruhancut.xcworkspace \
             -scheme App \
+            -destination "id=$SIMULATOR_UDID" \
+            -showdestinations \
+            > /dev/null
+
+      # =====================================================
+      # 8️⃣ Swift Macro fingerprint validation 비활성화
+      # =====================================================
+      - name: Disable Swift Macro fingerprint validation
+        run: |
+          defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
+
+      # =====================================================
+      # 9️⃣ Build for Testing
+      # =====================================================
+      - name: Build for testing
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -workspace Haruhancut.xcworkspace \
+            -scheme App \
             -configuration Debug \
-            -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5" \
-            -derivedDataPath build/DerivedData \
-            -verbose \
-            clean build
+            -destination "id=$SIMULATOR_UDID" \
+            -derivedDataPath DerivedData
 
-      # 📧 Email 알림
-      - name: Send email on success
-        if: success()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: ✅ PopPang iOS 빌드 & 테스트 성공
-          body: |
-            ✅ **하루한컷 패키지를 성공적으로 빌드하고 테스트했습니다.**
+      # =====================================================
+      # 🔟 Unit Tests
+      # =====================================================
+      - name: Run Unit Tests
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -workspace Haruhancut.xcworkspace \
+            -scheme App \
+            -destination "id=$SIMULATOR_UDID" \
+            -derivedDataPath DerivedData \
+            -only-testing:HaruhancutTests
 
-            📦 Repository: ${{ github.repository }}
-            🌿 Branch: ${{ github.ref_name }}
-            👤 Triggered by: ${{ github.actor }}
-            🔗 Action URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          to: indextrown@gmail.com
-          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
-
-      - name: Send email on failure
-        if: failure()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: ❌ PopPang iOS 빌드 실패
-          body: |
-            ❌ **iOS 빌드 또는 테스트에 실패했습니다.**
-
-            📦 Repository: ${{ github.repository }}
-            🌿 Branch: ${{ github.ref_name }}
-            👤 Triggered by: ${{ github.actor }}
-            🔗 Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          to: indextrown@gmail.com
-          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
+      # =====================================================
+      # 1️⃣1️⃣ UI Tests
+      # =====================================================
+      - name: Run UI Tests
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -workspace Haruhancut.xcworkspace \
+            -scheme App \
+            -destination "id=$SIMULATOR_UDID" \
+            -derivedDataPath DerivedData \
+            -only-testing:HaruhancutUITests
