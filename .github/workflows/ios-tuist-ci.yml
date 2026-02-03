@@ -66,13 +66,25 @@ jobs:
 
       # 18.5 16 pro max 시뮬레이터에서 빌드 및 테스트 실행
       # -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5'
-      - name: Tuist Build
+      # - name: Tuist Build
+      #   run: |
+      #     tuist xcodebuild build \
+      #       -scheme App \
+      #       -configuration Debug \
+      #       -sdk iphonesimulator \
+      #       -destination 'generic/platform=iOS Simulator'
+
+      - name: Build Project
         run: |
-          tuist xcodebuild build \
+          xcodebuild \
+            -workspace Haruhancut.xcworkspace \
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator'
+            -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5" \
+            -derivedDataPath build/DerivedData \
+            -verbose \
+            clean build
 
       # 📧 Email 알림
       - name: Send email on success
