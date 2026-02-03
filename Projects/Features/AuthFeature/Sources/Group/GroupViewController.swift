@@ -9,6 +9,8 @@ import RxSwift
 
 // MARK: - (C)GroupViewController
 final class GroupViewController: UIViewController {
+    
+    let disposeBag = DisposeBag()
     private let viewModel: GroupViewModel
     private let customView = GroupView()
     
@@ -42,6 +44,19 @@ final class GroupViewController: UIViewController {
                                          enterEndTapped: customView.groupEnterView.endButton.rx.tap.asObservable())
         
         let output = viewModel.transform(input: input)
+        
+        output.step
+            .drive(onNext: { [weak self] step in
+                switch step {
+                case .host:
+                    self?.customView.move(to: 0)
+                case .enter:
+                    self?.customView.move(to: 1)
+                case .select:
+                    self?.customView.move(to: 2)
+                }
+            })
+            .disposed(by: disposeBag)
     }
 }
 

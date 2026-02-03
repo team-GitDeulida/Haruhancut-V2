@@ -117,7 +117,7 @@ jobs:
           xcodebuild \
             -workspace Haruhancut.xcworkspace \
             -scheme App \
-            -destination "id=$SIMULATOR_UDID" \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
             -showdestinations \
             > /dev/null
 
