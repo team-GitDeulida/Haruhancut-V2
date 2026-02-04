@@ -1,6 +1,10 @@
 name: 하루한컷 iOS Build & Test
 
 on:
+  # UTC 22:00 = KST 07:00 (매일)
+  schedule:
+    - cron: "0 22 * * *"
+
   pull_request:
     branches: [main, develop]
   push:
