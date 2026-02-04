@@ -137,21 +137,30 @@ private extension SignInViewModel {
             .fetchUserInfo()
         
         let resolvedStream = userStream
-            .map { [weak self] user in
+            .map { [weak self] result in
                 guard let self = self else {
                     return Result<SocialAuthPayload, LoginError>.failure(.signUpError)
                 }
                 
-                if user != nil {
+                switch result {
+                case .success(let user):
                     // 기존 유저
-                    print("기존 유저 코디네이터 트리거: \(user!)")
+                    print("기존 유저 코디네이터 트리거: \(user)")
                     self.onSignInSuccess?()
                     return .success(payload)
-                } else {
-                    // 신규 유저
-                    print("신규 유저 코디네이터 트리거")
-                    self.onFirstSignInSuccess?(payload.platform)
-                    return .failure(.noUser)
+                case .failure(let error):
+                    
+                    switch error {
+                    case .noUser:
+                        // 신규 유저
+                        print("신규 유저 코디네이터 트리거")
+                        self.onFirstSignInSuccess?(payload.platform)
+                        return .failure(.noUser)
+                        
+                    default:
+                        return .failure(error)
+                    }
+                    
                 }
             }
         

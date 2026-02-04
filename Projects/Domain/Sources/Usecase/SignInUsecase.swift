@@ -27,7 +27,7 @@ public protocol SignInUsecaseProtocol {
     func signIn(with: User.LoginPlatform) -> Observable<Result<SocialAuthPayload, LoginError>>
     func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>>
     func registerUserToRealtimeDatabase(user: User) -> RxSwift.Observable<Result<User, LoginError>>
-    func fetchUserInfo() -> Observable<User?>
+    func fetchUserInfo() -> Observable<Result<User, LoginError>>
     func updateUser(user: User) -> Observable<Result<User, LoginError>>
     func uploadImage(user: User, image: UIImage) -> Observable<Result<URL, LoginError>>
 }
@@ -73,8 +73,8 @@ public final class SignInUsecaseImpl: SignInUsecaseProtocol {
     
     /// 본인 정보 불러오기
     /// - Returns: Observable<User?>
-    public func fetchUserInfo() -> Observable<User?> {
-        return repository.fetchUserInfo()
+    public func fetchUserInfo() -> Observable<Result<User, LoginError>> {
+        return repository.fetchMyUser()
     }
     
     /// 유저 업데이트

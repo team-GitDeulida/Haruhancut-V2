@@ -7,64 +7,6 @@
 import UIKit
 import RxSwift
 
-//// MARK: - (C)GroupViewController
-//final class GroupViewController: UIViewController {
-//    
-//    let disposeBag = DisposeBag()
-//    private let viewModel: GroupViewModel
-//    private let customView = GroupView()
-//    
-//    // MARK: - Initializer
-//    init(viewModel: GroupViewModel) {
-//        self.viewModel = viewModel
-//        super.init(nibName: nil, bundle: nil)
-//    }
-//
-//    required init?(coder: NSCoder) {
-//        fatalError("init(coder:) has not been implemented")
-//    }
-//
-//    // MARK: - LifeCycle
-//    override func loadView() {
-//        self.view = customView
-//    }
-//
-//    override func viewDidLoad() {
-//        super.viewDidLoad()
-//    }   
-//    
-//    // MARK: - Bindings
-//    private func bindViewModel() {
-//        
-//        let input = GroupViewModel.Input(enterButtonTapped: customView.groupSelectView.enterButton.rx.tap.asObservable(),
-//                                         hostButtonTapped: customView.groupSelectView.hostButton.rx.tap.asObservable(),
-//                                         groupNameText: customView.groupHostView.textField.rx.text.orEmpty.asObservable(),
-//                                         hostEndTapped: customView.groupHostView.endButton.rx.tap.asObservable(),
-//                                         invideCodeText: customView.groupEnterView.textField.rx.text.orEmpty.asObservable(),
-//                                         enterEndTapped: customView.groupEnterView.endButton.rx.tap.asObservable())
-//        
-//        let output = viewModel.transform(input: input)
-//        
-//        output.step
-//            .drive(onNext: { [weak self] step in
-//                switch step {
-//                case .host:
-//                    self?.customView.move(to: 0)
-//                case .enter:
-//                    self?.customView.move(to: 1)
-//                case .select:
-//                    self?.customView.move(to: 2)
-//                }
-//            })
-//            .disposed(by: disposeBag)
-//    }
-//}
-//
-//#Preview {
-//    GroupViewController(viewModel: GroupViewModel())
-//}
-
-
 // MARK: - (C)GroupViewController
 final class GroupViewController: UIViewController {
     
@@ -117,13 +59,18 @@ final class GroupViewController: UIViewController {
         let input = GroupViewModel.Input(backTapped: backButton.rx.tap.asObservable(),
                                          enterButtonTapped: customView.groupSelectView.enterButton.rx.tap.asObservable(),
                                          hostButtonTapped: customView.groupSelectView.hostButton.rx.tap.asObservable(),
+                                         
                                          groupNameText: customView.groupHostView.textField.rx.text.orEmpty.asObservable(),
+                                         hostReturnTapped: customView.groupHostView.textField.rx.controlEvent(.editingDidEndOnExit).asObservable(),
                                          hostEndTapped: customView.groupHostView.endButton.rx.tap.asObservable(),
+                                         
                                          invideCodeText: customView.groupEnterView.textField.rx.text.orEmpty.asObservable(),
+                                         enterReturnTapped: customView.groupEnterView.textField.rx.controlEvent(.editingDidEndOnExit).asObservable(),
                                          enterEndTapped: customView.groupEnterView.endButton.rx.tap.asObservable())
         
         let output = viewModel.transform(input: input)
         
+        // 화면 이동
         output.step
             .distinctUntilChanged() // 이전과 같은 값이면 방출하지 않는다
             .scan((prev: Step.select, current: Step.select)) { acc, next in
@@ -154,7 +101,37 @@ final class GroupViewController: UIViewController {
                 }
             })
             .disposed(by: disposeBag)
-
+        
+        // 조건1: 키보드 return 입력 시 키보드 내려간다
+        output.endEditingTrigger
+            .emit(onNext: { [weak self] in
+                guard let self = self else { return }
+                self.view.endEditing(true)
+            }).disposed(by: disposeBag)
+        
+        // 조건2: 그룹 생성 시 그룹 이름은 2글자 이상이어야 한다
+        output.hostGroupNameValid
+            .drive(with: self, onNext: { vc, isValid in
+                vc.customView.groupHostView.endButton.isEnabled = isValid
+            })
+            .disposed(by: disposeBag)
+        
+        // 조건3: 그룹 입장 시 초대코드는 1자리 이상이어야 한다
+        output.joinInviteCodeValid
+            .drive(with: self, onNext: { vc, isValid in
+                vc.customView.groupEnterView.endButton.isEnabled = isValid
+            })
+            .disposed(by: disposeBag)
+        
+        // 조건4: 뒤로가기 버튼 누를때는 키보드 애니메이션 비활성화(선택)
+        backButton.rx.tap
+            .withUnretained(self)
+            .subscribe(onNext: { vc, _ in
+                UIView.performWithoutAnimation {
+                    vc.view.endEditing(true)
+                }
+            })
+            .disposed(by: disposeBag)
     }
     
     // 네비게이션 설정1
@@ -204,9 +181,8 @@ final class GroupViewController: UIViewController {
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
         navigationController?.navigationBar.compactAppearance = appearance
     }
-
 }
 
-#Preview {
-    GroupViewController(viewModel: GroupViewModel())
-}
+//#Preview {
+//    GroupViewController(viewModel: GroupViewModel())
+//}

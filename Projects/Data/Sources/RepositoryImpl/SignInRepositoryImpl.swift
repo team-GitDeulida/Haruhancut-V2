@@ -10,6 +10,25 @@ import RxSwift
 import Core
 import UIKit
 
+//public protocol SignInRepositoryProtocol {
+//    // MARK: - Login
+//    func loginWithKakao() -> Observable<Result<String, LoginError>>
+//    func loginWithApple() -> Observable<Result<(String, String), LoginError>>
+//    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>>
+//    
+//    // MARK: - User
+//    func registerUserToRealtimeDatabase(user: User) -> Observable<Result<User, LoginError>>
+//    func fetchMyUser() -> Observable<Result<User, LoginError>>
+//    func fetchUser(uid: String) -> Observable<Result<User, LoginError>>
+//    
+//    func updateUser(user: User) -> Observable<Result<User, LoginError>>
+//    func deleteUser(uid: String) -> Observable<Result<Void, LoginError>>
+//    
+//    // MARK: - Image
+//    func uploadImage(user: User, image: UIImage) -> Observable<Result<URL, LoginError>>
+//}
+
+
 public final class SignInRepositoryImpl: SignInRepositoryProtocol {
     
     private let kakaoLoginManager: KakaoLoginManagerProtocol
@@ -41,22 +60,34 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
         appleLoginManager.login()
     }
     
-    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> RxSwift.Observable<Result<Void, LoginError>> {
-        return firebaseAuthManager.authenticateUser(prividerID: prividerID, idToken: idToken, rawNonce: rawNonce)
+    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>> {
+        return firebaseAuthManager.authenticateUser(prividerID: prividerID,
+                                                    idToken: idToken,
+                                                    rawNonce: rawNonce)
+        /*
+        .map { .success(()) }
+        .catch { _ in
+            .just(.failure(.authError))
+        }
+         */
+        .asResult(failure: .authError)
     }
     
-    public func registerUserToRealtimeDatabase(user: User) -> RxSwift.Observable<Result<User, LoginError>> {
+    public func registerUserToRealtimeDatabase(user: User) -> Observable<Result<User, LoginError>> {
         return firebaseAuthManager
             .registerUserToRealtimeDatabase(user: user)
-            .do(onNext: { [weak self] result in
-                guard let self = self else { return }
-                if case .success(let user) = result {
-                    self.userSession.update(SessionUser(userId: user.uid, groupId: user.groupId))
-                }
-            })
+            .map { user in
+                self.userSession.update(
+                    SessionUser(userId: user.uid, groupId: user.groupId)
+                )
+                return .success(user)
+            }
+            .catch { _ in
+                .just(.failure(.signUpError))
+            }
     }
     
-    public func fetchUserInfo() -> RxSwift.Observable<User?> {
+    public func fetchMyUser() -> Observable<Result<User, LoginError>> {
         
         /*
         // 캐시 먼저 방출
@@ -75,50 +106,64 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
          */
         
         return firebaseAuthManager.fetchMyInfo()
-            .do(onNext: { [weak self] user in
-                guard let self, let user = user else { return }
-                
-                // 서버 데이터 session 업데이트
-                self.userSession.update(SessionUser(userId: user.uid, groupId: user.groupId))
-            })
-    }
-    
-    public func fetchUser(uid: String) -> RxSwift.Observable<User?> {
-        return firebaseAuthManager.fetchUser(uid: uid)
-    }
-    
-    public func updateUser(user: User) -> RxSwift.Observable<Result<User, LoginError>> {
-        return firebaseAuthManager.updateUser(user: user)
-    }
-    
-    public func deleteUser(uid: String) -> RxSwift.Observable<Bool> {
-        return firebaseAuthManager.deleteUser(uid: uid)
-            .do(onNext: { [weak self] success in
-                if success {
-                    self?.userSession.clear()
+            .map { userOptional in
+                guard let user = userOptional else {
+                    return .failure(.noUser)
                 }
+                
+                self.userSession.update(SessionUser(userId: user.uid, groupId: user.groupId))
+                return .success(user)
+            }
+            .catch { _ in
+                .just(.failure(.fetchUserError))
+            }
+    }
+    
+    public func fetchUser(uid: String) -> Observable<Result<User, LoginError>> {
+        return firebaseAuthManager.fetchUser(uid: uid)
+            .map { userOptional in
+                guard let user = userOptional else {
+                    return .failure(.noUser)
+                }
+                return .success(user)
+            }
+            .catch { _ in
+                .just(.failure(.fetchUserError))
+            }
+    }
+    
+    public func updateUser(user: User) -> Observable<Result<User, LoginError>> {
+        return firebaseAuthManager.updateUser(user: user)
+            .map { .success(user) }
+            .catch { _ in
+                .just(.failure(.updateUserError))
+            }
+    }
+    
+    public func deleteUser(uid: String) -> Observable<Result<Void, LoginError>> {
+        return firebaseAuthManager.deleteUser(uid: uid)
+            .do(onNext: { [weak self] in
+                self?.userSession.clear()
             })
+            .map { .success(()) }
+            .catch { _ in
+                .just(.failure(.deleteUserError))
+            }
     }
     
     public func uploadImage(user: User, image: UIImage) -> RxSwift.Observable<Result<URL, LoginError>> {
         
         let path = "users/\(user.uid)/profile.jpg"
         return firebaseStorageManager.uploadImage(image: image, path: path)
-            .map { url in
-                if let url = url {
-                    return .success(url)
-                } else {
-                    return .failure(.signUpError)
+            .map { urlOptional in
+                guard let url = urlOptional else {
+                    return .failure(.uploadImageError)
                 }
+                return .success(url)
+            }
+            .catch { _ in
+                .just(.failure(.uploadImageError))
             }
     }
 }
 
-//public final class StubSignInRepositoryImpl: SignInRepositoryProtocol {
-//    
-//    public init() {}
-//    
-//    public func loginWithKakao() -> Observable<Result<String, LoginError>> {
-//        return .just(.success("mockToken"))
-//    }
-//}

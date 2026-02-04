@@ -13,7 +13,7 @@ public enum GroupError: Error {
 }
 
 public enum LoginError: Error {
-    
+
     // MARK: - kakao
     case noTokenKakao
     case sdkKakao(Error)
@@ -29,6 +29,9 @@ public enum LoginError: Error {
     case noUser
     case logoutError
     case updateUserError
+    case fetchUserError
+    case deleteUserError
+    case uploadImageError
     
     var description: String {
         switch self {
@@ -52,6 +55,12 @@ public enum LoginError: Error {
             "⚠️ 로그아웃 실패"
         case .updateUserError:
             "⚠️ 유저 업데이트 실패"
+        case .fetchUserError:
+            "⚠️ 유저 fetch 실패"
+        case .deleteUserError:
+            "⚠️ 유저 삭제 실패"
+        case .uploadImageError:
+            "⚠️ 이미지 업로드 실패"
         }
     }
 }

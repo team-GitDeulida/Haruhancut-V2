@@ -11,6 +11,19 @@ import RxCocoa
 import Core
 import Domain
 
+public enum FirebaseError: Error {
+    
+    // Encoding / Decoding
+    case encodingFailed
+    case decodingFailed
+    
+    // Firebase Realtime Database
+    case permissionDenied
+    case pathNotFound
+    case invalidData
+    case unknown(Error)
+}
+
 public enum ProviderID: String {
     case kakao
     case apple
@@ -22,35 +35,65 @@ public enum ProviderID: String {
     }
 }
 
+/*
+ Infra
+ - 성공: Observable<T> / Observable<Void>
+ - 실패: onError(Error)
+ */
 public protocol FirebaseAuthManagerProtocol {
-    // 제네릭
-    func setValue<T: Encodable>(path: String, value: T) -> Observable<Bool>      // create
+    // MARK: - 제네릭
+    func setValue<T: Encodable>(path: String, value: T) -> Observable<Void>      // create
     func readValue<T: Decodable>(path: String, type: T.Type) -> Observable<T>    // read
-    func updateValue<T: Encodable>(path: String, value: T) -> Observable<Bool>   // update
-    func deleteValue(path: String) -> Observable<Bool>                           // dellete
+    func updateValue<T: Encodable>(path: String, value: T) -> Observable<Void>   // update
+    func deleteValue(path: String) -> Observable<Void>                           // dellete
     
     
-    // 유저관련
-    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>>
-    func registerUserToRealtimeDatabase(user: Domain.User) -> Observable<Result<Domain.User, LoginError>>
-    func fetchMyInfo() -> Observable<Domain.User?> // 원래 fetchUserInfo() 네이밍에서 변경
+    // MARK: - 유저관련
+    // Firebase Auth 인증
+    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Void>
+    
+    // Realtime DB 유저 생성
+    func registerUserToRealtimeDatabase(user: Domain.User) -> Observable<Domain.User>
+    
+    // 내 정보 조회
+    func fetchMyInfo() -> Observable<Domain.User?>
+    
+    // 특정 유저 조회
     func fetchUser(uid: String) -> Observable<Domain.User?>
-    func updateUser(user: Domain.User) -> Observable<Result<Domain.User, LoginError>>
-    func deleteUser(uid: String) -> Observable<Bool>
+    
+    // 유저 업데이트
+    func updateUser(user: Domain.User) -> Observable<Void>
+    
+    // 유저 삭제 (Auth + DB)
+    func deleteUser(uid: String) -> Observable<Void>
     
     
-    // 그룹관련
-    func createGroup(groupName: String) -> Observable<Result<(groupId: String, inviteCode: String), GroupError>>
-    func updateUserGroupId(groupId: String) -> Observable<Result<Void, GroupError>>
-    func fetchGroup(groupId: String) -> Observable<Result<HCGroup, GroupError>>
-    func joinGroup(inviteCode: String) -> Observable<Result<HCGroup, GroupError>>
-    func updateGroup(path: String, post: PostDTO) -> Observable<Bool>
+    // MARK: - 그룹관련
+    // 그룹 생성
+    func createGroup(groupName: String) -> Observable<(groupId: String, inviteCode: String)>
     
-    // 댓글관련
-    func addComment(path: String, value: CommentDTO) -> Observable<Bool>
-    func deleteComment(path: String) -> Observable<Bool>
+    // 유저 groupId 업데이트
+    func updateUserGroupId(groupId: String) -> Observable<Void>
     
-    // 스냅샷관련
+    // 그룹 조회
+    func fetchGroup(groupId: String) -> Observable<HCGroup>
+    
+    // 그룹 참가
+    func joinGroup(inviteCode: String) -> Observable<HCGroup>
+    
+    // 그룹 게시글 업데이트
+    func updateGroup(path: String, post: PostDTO) -> Observable<Void>
+    
+    
+    // MARK: - 댓글관련
+    // 댓글 작성
+    func addComment(path: String, value: CommentDTO) -> Observable<Void>
+    
+    // 댓글 삭제
+    func deleteComment(path: String) -> Observable<Void>
+    
+    // MARK: - Realtime Observe
+    // 실시간 스냅샷 스트림
     func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T>
 }
 
@@ -65,12 +108,8 @@ public final class FirebaseAuthManager: FirebaseAuthManagerProtocol {
 // MARK: - Realtime Database 제네릭 함수
 extension FirebaseAuthManager {
     
-    /// Create or Overwrite
-    /// - Parameters:
-    ///   - path: 경로
-    ///   - value: 값
-    /// - Returns: Observable<Bool>
-    public func setValue<T: Encodable>(path: String, value: T) -> Observable<Bool> {
+    
+    public func setValue<T: Encodable>(path: String, value: T) -> Observable<Void> {
         return Observable.create { observer in
             do {
                 let data = try JSONEncoder().encode(value)
@@ -81,7 +120,7 @@ extension FirebaseAuthManager {
                         print("🔥 setValue 실패: \(error.localizedDescription)")
                         observer.onError(error)
                     } else {
-                        observer.onNext(true)
+                        observer.onNext(())
                     }
                     observer.onCompleted()
                 }
@@ -132,23 +171,21 @@ extension FirebaseAuthManager {
     ///   - path: 업데이트할 Firebase 경로
     ///   - value: 업데이트할 일부 필드를 가진 값 (Encodable → Dictionary로 변환됨)
     /// - Returns: 업데이트 성공 여부를 방출하는 Observable<Bool>
-    public func updateValue<T: Encodable>(path: String, value: T) -> Observable<Bool> {
+    public func updateValue<T: Encodable>(path: String, value: T) -> Observable<Void> {
         return Observable.create { observer in
             guard let dict = value.toDictionary() else {
-                observer.onNext(false)
-                observer.onCompleted()
+                observer.onError(FirebaseError.encodingFailed)
                 return Disposables.create()
             }
             
             self.databaseRef.child(path).updateChildValues(dict) { error, _ in
                 if let error = error {
                     print("❌ updateValue 실패: \(error.localizedDescription)")
-                    observer.onNext(false)
+                    observer.onError(error)
                 } else {
-                    // print("✅ updateValue 성공: \(path)")
-                    observer.onNext(true)
+                    observer.onNext(())
+                    observer.onCompleted()
                 }
-                observer.onCompleted()
             }
             
             return Disposables.create()
@@ -158,15 +195,14 @@ extension FirebaseAuthManager {
     /// Delete
     /// - Parameter path: 삭제할 Firebase realtime 데이터 경로
     /// - Returns: 삭제 성공 여부 방출하는 Observable<Bool>
-    public func deleteValue(path: String) -> Observable<Bool> {
+    public func deleteValue(path: String) -> Observable<Void> {
         return Observable.create { observer in
             self.databaseRef.child(path).removeValue { error, _ in
                 if let error = error {
                     print("❌ deleteValue 실패: \(error.localizedDescription)")
-                    observer.onNext(false)
                 } else {
                     print("✅ deleteValue 성공: \(path)")
-                    observer.onNext(true)
+                    observer.onNext(())
                 }
                 observer.onCompleted()
             }
@@ -183,9 +219,9 @@ extension FirebaseAuthManager {
     ///   - prividerID: .kakao, .apple
     ///   - idToken: kakaoToken, appleToken
     /// - Returns: Result<Void, LoginError>
-    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>> {
+    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Void> {
         guard let provider = ProviderID(rawValue: prividerID) else {
-            return Observable.just(.failure(LoginError.signUpError))
+            return .error(FirebaseError.invalidData)
         }
         
         let credential = OAuthProvider.credential(
@@ -198,9 +234,9 @@ extension FirebaseAuthManager {
                 
                 if let error = error {
                     print("❌ Firebase 인증 실패: \(error.localizedDescription)")
-                    observer.onNext(.failure(LoginError.signUpError))
+                    observer.onError(FirebaseError.unknown(error))
                 } else {
-                    observer.onNext(.success(()))
+                    observer.onNext(())
                 }
                 observer.onCompleted()
             }
@@ -211,9 +247,9 @@ extension FirebaseAuthManager {
     /// Firebase Realtime Database에 유저 정보를 저장하고, 저장된 User를 반환 - create
     /// - Parameter user: 저장할 User 객체
     /// - Returns: Result<User, LoginError>
-    public func registerUserToRealtimeDatabase(user: Domain.User) -> Observable<Result<Domain.User, LoginError>> {
+    public func registerUserToRealtimeDatabase(user: Domain.User) -> Observable<Domain.User> {
         guard let firebaseUID = Auth.auth().currentUser?.uid else {
-            return Observable.just(.failure(.authError))
+            return .error(FirebaseError.permissionDenied)
         }
 
         var userEntity = user
@@ -222,13 +258,7 @@ extension FirebaseAuthManager {
         let path = "users/\(firebaseUID)"
 
         return setValue(path: path, value: userDto)
-            .map { success in
-                return success ? .success(userEntity) : .failure(.signUpError)
-            }
-            .catch { error in
-                print("❌ setValue 중 에러 발생: \(error.localizedDescription)")
-                return Observable.just(.failure(.signUpError))
-            }
+            .map { userEntity }
     }
     
     /// 나의 유저정보 불러오기 - read
@@ -270,58 +300,50 @@ extension FirebaseAuthManager {
     /// 유저 업데이트 - update
     /// - Parameter user: user구조체
     /// - Returns: Observable<Result<User, LoginError>>
-    public func updateUser(user: Domain.User) -> Observable<Result<Domain.User, LoginError>> {
+    public func updateUser(user: Domain.User) -> Observable<Void> {
         let path = "users/\(user.uid)"
         let dto = user.toDTO()
         
         return updateValue(path: path, value: dto)
-            .map { success -> Result<Domain.User, LoginError> in
-                if success {
-                    return .success(user)
-                } else {
-                    return .failure(.updateUserError)
-                }
-            }
     }
+
     
     /// 유저 삭제 - delete
     /// - Parameter uid: Uid
     /// - Returns: 삭제유무
-    public func deleteUser(uid: String) -> Observable<Bool> {
-        // 1. 유저 정보 읽기(groudId 확보용)
+    public func deleteUser(uid: String) -> Observable<Void> {
         return fetchUser(uid: uid)
-            .flatMap { (user: Domain.User!) -> Observable<Bool> in
-                guard let groudId = user.groupId else {
-                    // 그룹이 없으면 곧바로 성공
-                    return .just(true)
+            // 1) user 읽어서 groupId 확인
+            .flatMap { user -> Observable<Void> in
+                guard let user else { return .error(FirebaseError.pathNotFound)}
+                
+                // 1-1. 그룹 멤버 경로에서 삭제
+                if let groupId = user.groupId {
+                    let memberPath = "groups/\(groupId)/members/\(uid)"
+                    return self.deleteValue(path: memberPath) // Observable<Void>
                 }
-                // 2. 그룹 멤버 경로에서 삭제
-                let memberPath = "groups/\(groudId)/members/\(uid)"
-                return self.deleteValue(path: memberPath)
+                
+                // 1-2 그룹이 없으면 이 단계는 스킵되지만 성공으로 간주한다
+                return .just(()) // Observable<Void>
             }
-            .flatMap { (groupRemovalSuccess: Bool) -> Observable<Bool> in
-                guard groupRemovalSuccess else {
-                    // 그룹에서 제거 실패
-                    return .just(false)
-                }
-                // 3 users/{uid} 데이터 삭제
-                let userPath = "users/\(uid)"
-                return self.deleteValue(path: userPath)
+            // 2) users/{uid} 삭제
+            .flatMap { _ -> Observable<Void> in
+                self.deleteValue(path: "users/\(uid)")
             }
-            .flatMap { (userRemoved: Bool) -> Observable<Bool> in
-                guard userRemoved else {
-                    // 유저 데이터 삭제 실패
-                    return .just(false)
+            // 3) Firebase Auth 계정 삭제
+            .flatMap { _ -> Observable<Void> in
+                guard let currentUser = Auth.auth().currentUser, currentUser.uid == uid else {
+                    return .error(FirebaseError.permissionDenied)
                 }
-                // 4. Firebase Auth 계정 삭제
-                guard let currentUser = Auth.auth().currentUser,
-                      currentUser.uid == uid else {
-                    return .just(false)
-                }
-                return Observable<Bool>.create { observer in
+                
+                return Observable.create { observer in
                     currentUser.delete { error in
-                        observer.onNext(error == nil)
-                        observer.onCompleted()
+                        if let error = error {
+                            observer.onError(FirebaseError.unknown(error))
+                        } else {
+                            observer.onNext(())
+                            observer.onCompleted()
+                        }
                     }
                     return Disposables.create()
                 }
@@ -340,14 +362,15 @@ extension FirebaseAuthManager {
     /// 그룹 만들기
     /// - Parameter groupName: 그룹 이름
     /// - Returns: Observable<Result<(groupId: String, inviteCode: String), GroupError>>
-    public func createGroup(groupName: String) -> Observable<Result<(groupId: String, inviteCode: String), GroupError>> {
-        let newGroupRef = self.databaseRef.child("groups").childByAutoId()
+    public func createGroup(groupName: String) -> Observable<(groupId: String, inviteCode: String)> {
         
         guard let currentUserId = Auth.auth().currentUser?.uid else {
             print("❌ 현재 로그인된 유저 없음")
-            return Observable.just(.failure(.makeHostError))
+            return .error(FirebaseError.permissionDenied)
         }
         
+        let newGroupRef = self.databaseRef.child("groups").childByAutoId()
+        let groupId = newGroupRef.key ?? UUID().uuidString
         let inviteCode = self.generateInviteCode()
         let joinedAt = Date().toISO8601String()
         
@@ -362,26 +385,18 @@ extension FirebaseAuthManager {
         )
         
         return setValue(path: "groups/\(newGroupRef.key ?? "")", value: groupData.toDTO())
-            .map { success -> Result<(groupId: String, inviteCode: String), GroupError> in
-                if success {
-                    print("✅ 그룹 생성 성공! ID: \(newGroupRef.key ?? "")")
-                    return .success((groupId: newGroupRef.key ?? "", inviteCode: inviteCode))
-                } else {
-                    print("❌ 그룹 생성 실패")
-                    return .failure(.makeHostError)
-                }
-            }
+            .map { (groupId: groupId, inviteCode: inviteCode) }
     }
     
     /// 그룹 Create후 유저속성에 추가
     /// - Parameter groupId: 그룹 Id
     /// - Returns: Observable<Result<Void, GroupError>>
-    public func updateUserGroupId(groupId: String) -> Observable<Result<Void, GroupError>> {
+    public func updateUserGroupId(groupId: String) -> Observable<Void> {
         
         /// 현재 유저의 UID를 구한다
         guard let currentUserId = Auth.auth().currentUser?.uid else {
             print("❌ 현재 로그인된 유저 없음")
-            return Observable.just(.failure(.makeHostError))
+            return .error(FirebaseError.permissionDenied)
         }
             
         /// UID 기반으로 저장할 위치경로를 정한다
@@ -389,121 +404,75 @@ extension FirebaseAuthManager {
         let update = ["groupId": groupId]
         
         return updateValue(path: path, value: update)
-            .map { success -> Result<Void, GroupError> in
-                if success {
-                    return .success(())
-                } else {
-                    return .failure(.makeHostError)
-                }
         }
-    }
     
     /// 그룹 Read
     /// - Parameter groupId: 그룹 ID
     /// - Returns: Observable<Result<HCGroup, GroupError>>
-    public func fetchGroup(groupId: String) -> Observable<Result<HCGroup, GroupError>> {
+    public func fetchGroup(groupId: String) -> Observable<HCGroup> {
         return readValue(path: "groups/\(groupId)", type: HCGroupDTO.self)
-            .map { dto in
-                if let group = dto.toModel() {
-                    return .success(group)
+            .flatMap { dto -> Observable<HCGroup> in
+                if let model = dto.toModel() {
+                    return .just(model)
                 } else {
-                    return .failure(.fetchGroupError)
+                    return .error(FirebaseError.decodingFailed)
                 }
             }
-            .catch { error in
-                print("❌ 그룹 정보 가져오기 실패: \(error.localizedDescription)")
-                return Observable.just(.failure(.fetchGroupError))
-            }
     }
-    
     
     /// 그룸 참가
     /// - Parameter inviteCode: 초대 코드
     /// - Returns: Observable<Result<HCGroup, GroupError>>
-    public func joinGroup(inviteCode: String) -> Observable<Result<HCGroup, GroupError>> {
+    public func joinGroup(inviteCode: String) -> Observable<HCGroup> {
+        guard let currentUID = Auth.auth().currentUser?.uid else {
+            return .error(FirebaseError.permissionDenied)
+        }
+
         return readValue(path: "groups", type: [String: HCGroupDTO].self)
-            .flatMap { groupDict -> Observable<Result<HCGroup, GroupError>> in
-                let groups = groupDict.compactMapValues { $0.toModel() }
-                
-                guard let matched = groups.values.first(where: { $0.inviteCode == inviteCode }) else {
-                    print("❌ 초대코드로 일치하는 그룹 없음")
-                    return Observable.just(.failure(.fetchGroupError))
-                }
-                
-                guard let currentUID = Auth.auth().currentUser?.uid else {
-                    return Observable.just(.failure(.makeHostError))
-                }
-                
-                let groupId = matched.groupId
-                let membersPath = "groups/\(groupId)/members"
-                let groupPath = "groups/\(groupId)"
-                
-                // ✅ [uid: joinedAt] 형태로 불러오기
-                return self.readValue(path: membersPath, type: [String: String].self)
-                    .catchAndReturn([:]) // 멤버가 없을 수도 있으므로 안전하게
-                    .flatMap { existingMembers in
-                        var newMembers = existingMembers
-                        let joinedAt = Date().toISO8601String()
-                        
-                        newMembers[currentUID] = joinedAt
-                        
-                        // ✅ members 업데이트
-                        let membersDict: [String: Any] = ["members": newMembers]
-                        
-                        return Observable.create { observer in
-                            self.databaseRef.child(groupPath).updateChildValues(membersDict) { error, _ in
-                                if let error = error {
-                                    print("❌ members 업데이트 실패: \(error.localizedDescription)")
-                                    observer.onNext(false)
-                                } else {
-                                    print("✅ members 업데이트 성공")
-                                    observer.onNext(true)
-                                }
-                                observer.onCompleted()
-                            }
-                            return Disposables.create()
-                        }
-                    }
-                    .flatMap { success in
-                        if success {
-                            return self.updateUserGroupId(groupId: groupId)
-                                .map { updateResult in
-                                    switch updateResult {
-                                    case .success:
-                                        return Result<HCGroup, GroupError>.success(matched)
-                                    case .failure:
-                                        return Result<HCGroup, GroupError>.failure(.makeHostError)
-                                    }
-                                }
-                        } else {
-                            return .just(.failure(.makeHostError))
-                        }
-                    }
+            .map { dict in
+                dict.compactMapValues { $0.toModel() }
             }
-            .catch { error in
-                print("❌ 그룹 조회 실패: \(error)")
-                return Observable.just(.failure(.fetchGroupError))
+            .flatMap { groups -> Observable<HCGroup> in
+                guard let group = groups.values.first(where: { $0.inviteCode == inviteCode }) else {
+                    return .error(FirebaseError.pathNotFound)
+                }
+
+                let groupId = group.groupId
+                let groupPath = "groups/\(groupId)"
+                let membersPath = "\(groupPath)/members"
+
+                return self.readValue(path: membersPath, type: [String: String].self)
+                    .catchAndReturn([:])
+                    .flatMap { members -> Observable<Void> in
+                        var newMembers = members
+                        newMembers[currentUID] = Date().toISO8601String()
+                        return self.updateValue(path: groupPath, value: ["members": newMembers])
+                    }
+                    .flatMap {
+                        self.updateUserGroupId(groupId: groupId)
+                    }
+                    .map {
+                        group
+                    }
             }
     }
-    
-    
     
     /// 그룹 업데이트
     /// - Parameters:
     ///   - path: 업데이트할 경로
     ///   - post: 올릴 포스트
     /// - Returns: 업데이트 결과
-    public func updateGroup(path: String, post: PostDTO) -> Observable<Bool> {
+    public func updateGroup(path: String, post: PostDTO) -> Observable<Void> {
         return updateValue(path: path, value: post)
     }
 }
 
 // MARK: - 댓글 관련
 extension FirebaseAuthManager {
-    public func addComment(path: String, value: CommentDTO) -> Observable<Bool> {
+    public func addComment(path: String, value: CommentDTO) -> Observable<Void> {
         return setValue(path: path, value: value)
     }
-    public func deleteComment(path: String) -> Observable<Bool> {
+    public func deleteComment(path: String) -> Observable<Void> {
         return deleteValue(path: path)
     }
 }
@@ -550,3 +519,5 @@ extension FirebaseAuthManager {
         }
     }
 }
+
+

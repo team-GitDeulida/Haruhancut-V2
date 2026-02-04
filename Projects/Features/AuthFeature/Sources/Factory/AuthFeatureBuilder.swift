@@ -47,7 +47,8 @@ extension AuthFeatureBuilder: AuthFeatureBuildable {
     }
     
     public func makeGroup() -> GroupPresentable {
-        let vm = GroupViewModel()
+        @Dependency var signInUsecase: SignInUsecaseProtocol
+        let vm = GroupViewModel(signInUsecase: signInUsecase)
         let vc = GroupViewController(viewModel: vm)
         return (vc, vm)
     }
