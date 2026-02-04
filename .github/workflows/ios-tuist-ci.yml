@@ -18,15 +18,11 @@ jobs:
     runs-on: macos-15
 
     steps:
-      # =====================================================
-      # 1️⃣ Checkout
-      # =====================================================
+      # Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
-      # =====================================================
-      # ✅ 1.5️⃣ secrets → Shared.xcconfig (Tuist 전에 반드시!)
-      # =====================================================
+      # secrets → Shared.xcconfig (Tuist 전에 반드시!)
       - name: Create Shared.xcconfig
         run: |
           mkdir -p Projects/Shared/Configs
@@ -38,25 +34,19 @@ jobs:
         run: |
           ls /Applications | grep Xcode
 
-      # =====================================================
-      # 2️⃣ Xcode 고정
-      # =====================================================
+      # Xcode 고정
       - name: Select Xcode 16.4
         run: |
           sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
           xcodebuild -version
 
-      # =====================================================
-      # 3️⃣ Simulator 목록 출력 (디버깅용)
-      # =====================================================
+      # Simulator 목록 출력 (디버깅용)
       - name: List available iOS simulators
         run: |
           echo "📱 Available iOS Simulators"
           xcrun simctl list devices available
 
-      # =====================================================
-      # 4️⃣ Tuist 캐시
-      # =====================================================
+      # Tuist 캐시
       - name: Cache Tuist & SwiftPM
         uses: actions/cache@v4
         with:
@@ -68,9 +58,7 @@ jobs:
           restore-keys: |
             tuist-${{ runner.os }}-
 
-      # =====================================================
-      # 5️⃣ Tuist Install & Generate
-      # =====================================================
+      # Tuist Install & Generate
       - name: Install Tuist
         run: |
           brew tap tuist/tuist
@@ -82,9 +70,7 @@ jobs:
           tuist install
           tuist generate --no-open
 
-      # =====================================================
-      # 6️⃣ Simulator UDID Resolve (PopPang 방식)
-      # =====================================================
+      # Simulator UDID Resolve (PopPang 방식)
       - name: Resolve simulator UDID
         run: |
           set -euo pipefail
@@ -109,9 +95,7 @@ jobs:
           echo "✅ Using simulator UDID: $UDID"
           echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
 
-      # =====================================================
-      # 7️⃣ Simulator Boot & Warm-up
-      # =====================================================
+      # Simulator Boot & Warm-up
       - name: Boot simulator
         run: |
           xcrun simctl bootstatus "$SIMULATOR_UDID" -b
@@ -125,16 +109,12 @@ jobs:
             -showdestinations \
             > /dev/null
 
-      # =====================================================
-      # 8️⃣ Swift Macro fingerprint validation 비활성화
-      # =====================================================
+      # Swift Macro fingerprint validation 비활성화
       - name: Disable Swift Macro fingerprint validation
         run: |
           defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
 
-      # =====================================================
-      # 9️⃣ Build only (테스트 없음)
-      # =====================================================
+      # Build only (테스트 없음)
       # -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
       - name: Build (Debug)
         run: |
@@ -147,7 +127,26 @@ jobs:
             -destination "id=$SIMULATOR_UDID" \
             -derivedDataPath DerivedData
 
-      # 📧 Email 알림
+      # CI가 명령어 트리거로 실행된 경우, 성공 시 PR에 성공 코멘트를 남깁니다.
+      - name: Comment success
+        if: success() && github.event.inputs.triggered_by_command == 'true' && github.event.inputs.pr_number != ''
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.inputs.pr_number }}
+          body: |
+            ✅ **팝팡 패키지를 성공적으로 빌드하고 테스트했습니다.**
+
+      # CI가 명령어 트리거로 실행된 경우, 실패 시 PR에 실패 코멘트를 남깁니다.
+      - name: Comment failure
+        if: failure() && github.event.inputs.triggered_by_command == 'true' && github.event.inputs.pr_number != ''
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.inputs.pr_number }}
+          body: |
+            ❌ **팝팡 패키지 빌드 또는 테스트에 실패했습니다.**
+            👉 Actions 탭에서 로그를 확인해주세요.
+
+      # CI 전체가 성공했을 경우, 빌드 성공 알림 메일을 전송합니다.
       - name: Send email on success
         if: success()
         uses: dawidd6/action-send-mail@v3
@@ -158,7 +157,7 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: ✅ PopPang iOS 빌드 & 테스트 성공
           body: |
-            ✅ **하루한컷 패키지를 성공적으로 빌드하고 테스트했습니다.**
+            ✅ **팝팡 패키지를 성공적으로 빌드하고 테스트했습니다.**
 
             📦 Repository: ${{ github.repository }}
             🌿 Branch: ${{ github.ref_name }}
@@ -167,6 +166,7 @@ jobs:
           to: indextrown@gmail.com
           from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
 
+      # CI 실행 중 하나라도 실패했을 경우, 실패 알림 메일을 전송합니다.
       - name: Send email on failure
         if: failure()
         uses: dawidd6/action-send-mail@v3
@@ -177,12 +177,12 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: ❌ PopPang iOS 빌드 실패
           body: |
-            ❌ **iOS 빌드 또는 테스트에 실패했습니다.**
+            ❌ **팝팡 패키지 빌드 또는 테스트에 실패했습니다.**
 
             📦 Repository: ${{ github.repository }}
             🌿 Branch: ${{ github.ref_name }}
             👤 Triggered by: ${{ github.actor }}
-            🔗 Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            🔗 Action URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           to: indextrown@gmail.com
           from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
 
