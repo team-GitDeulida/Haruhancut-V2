@@ -34,10 +34,14 @@ jobs:
           ${{ secrets.SHARED_XCCONFIG }}
           EOF
 
+      - name: List installed Xcode versions
+        run: |
+          ls /Applications | grep Xcode
+
       # =====================================================
       # 2️⃣ Xcode 고정
       # =====================================================
-      - name: Select Xcode 16.4
+      - name: Select Xcode 16.5
         run: |
           sudo xcode-select -s /Applications/Xcode_16.4.app
           xcodebuild -version
