@@ -276,6 +276,4 @@ jobs:
             -workspace Haruhancut.xcworkspace \
             -scheme App \
             -configuration Debug \
-            -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,OS=latest" \
-            -derivedDataPath DerivedData
+            -sdk iphonesimulator
