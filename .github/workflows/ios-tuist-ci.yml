@@ -15,7 +15,7 @@ permissions:
 jobs:
   ios-ci:
     name: iOS Tuist Build & Test
-    runs-on: macos-15
+    runs-on: macos-14
 
     steps:
       # =====================================================
@@ -37,7 +37,7 @@ jobs:
       # =====================================================
       # 2️⃣ Xcode 고정
       # =====================================================
-      - name: Select Xcode 16.3
+      - name: Select Xcode 16.2
         run: |
           sudo xcode-select -s /Applications/Xcode_16.3.app
           xcodebuild -version
@@ -70,7 +70,7 @@ jobs:
       - name: Install Tuist
         run: |
           brew tap tuist/tuist
-          brew install tuist@4.115.0
+          brew install tuist@4.113.0
           tuist version
 
       - name: Tuist Generate
@@ -108,6 +108,7 @@ jobs:
       # =====================================================
       # 7️⃣ Simulator Boot & Warm-up
       # =====================================================
+      # -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
       - name: Boot simulator
         run: |
           xcrun simctl bootstatus "$SIMULATOR_UDID" -b
@@ -117,7 +118,7 @@ jobs:
           xcodebuild \
             -workspace Haruhancut.xcworkspace \
             -scheme App \
-            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+            -destination "id=$SIMULATOR_UDID" \
             -showdestinations \
             > /dev/null
 
@@ -131,6 +132,7 @@ jobs:
       # =====================================================
       # 9️⃣ Build only (테스트 없음)
       # =====================================================
+      # -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
       - name: Build (Debug)
         run: |
           set -o pipefail
@@ -139,7 +141,7 @@ jobs:
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+            -destination "id=$SIMULATOR_UDID" \
             -derivedDataPath DerivedData
 
       # # =====================================================
