@@ -39,7 +39,7 @@ jobs:
       # =====================================================
       - name: Select Xcode 16.2
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.3.app
+          sudo xcode-select -s /Applications/Xcode_16.2.app
           xcodebuild -version
 
       # =====================================================
@@ -85,8 +85,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          SIMULATOR_NAME="iPhone 16"
-          SIMULATOR_OS="18.5"
+          SIMULATOR_NAME="iPhone 15"
+          SIMULATOR_OS="17.0"
 
           echo "🔍 Resolving simulator: ${SIMULATOR_NAME} (iOS ${SIMULATOR_OS})"
 
