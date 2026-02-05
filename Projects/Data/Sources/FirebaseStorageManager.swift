@@ -10,8 +10,8 @@ import FirebaseStorage
 import RxSwift
 
 public protocol FirebaseStorageManagerProtocol {
-    func uploadImage(image: UIImage, path: String) -> Observable<URL?>
-    func deleteImage(path: String) -> Observable<Bool>
+    func uploadImage(image: UIImage, path: String) -> Observable<URL>
+    func deleteImage(path: String) -> Observable<Void>
 }
 
 public final class FirebaseStorageManager: FirebaseStorageManagerProtocol {
@@ -19,12 +19,11 @@ public final class FirebaseStorageManager: FirebaseStorageManagerProtocol {
 }
 
 extension FirebaseStorageManager {
-    public func uploadImage(image: UIImage, path: String) -> Observable<URL?> {
+    public func uploadImage(image: UIImage, path: String) -> Observable<URL> {
         return Observable.create { observer in
             guard let data = image.jpegData(compressionQuality: 0.8) else {
                 print("❌ JPEG 변환 실패")
-                observer.onNext(nil)
-                observer.onCompleted()
+                observer.onError(FirebaseError.encodingFailed)
                 return Disposables.create()
             }
             
@@ -34,8 +33,7 @@ extension FirebaseStorageManager {
             ref.putData(data, metadata: nil) { _, error in
                 if let error = error {
                     print("❌ 업로드 실패: \(error.localizedDescription)")
-                    observer.onNext(nil)
-                    observer.onCompleted()
+                    observer.onError(FirebaseError.unknown(error))
                     return
                 }
                 
@@ -43,13 +41,14 @@ extension FirebaseStorageManager {
                 ref.downloadURL { url, error in
                     if let error = error {
                         print("❌ downloadURL 실패: \(error.localizedDescription)")
-                        observer.onNext(nil)
+                        observer.onError(FirebaseError.unknown(error))
                     } else if let url = url {
                         print("✅ 이미지 업로드 및 URL 확보 성공: \(url.absoluteString)")
                         observer.onNext(url)
+                        observer.onCompleted()
                     } else {
                         print("❌ URL 없음 (downloadURL nil)")
-                        observer.onNext(nil)
+                        observer.onError(FirebaseError.invalidData)
                     }
                 }
             }
@@ -57,17 +56,17 @@ extension FirebaseStorageManager {
         }
     }
     
-    public func deleteImage(path: String) -> Observable<Bool> {
+    public func deleteImage(path: String) -> Observable<Void> {
         return Observable.create { observer in
             let ref = Storage.storage().reference().child(path)
             ref.delete { error in
                 if let error = error {
                     print("❌ 이미지 삭제 실패: \(error.localizedDescription)")
-                    observer.onNext(false)
+                    observer.onError(FirebaseError.unknown(error))
                 } else {
-                    observer.onNext(true)
+                    observer.onNext(())
+                    observer.onCompleted()
                 }
-                observer.onCompleted()
             }
             return Disposables.create()
         }

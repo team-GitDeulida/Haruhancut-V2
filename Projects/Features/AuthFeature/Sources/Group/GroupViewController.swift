@@ -56,17 +56,18 @@ final class GroupViewController: UIViewController {
     // MARK: - Bindings
     private func bindViewModel() {
         
-        let input = GroupViewModel.Input(backTapped: backButton.rx.tap.asObservable(),
-                                         enterButtonTapped: customView.groupSelectView.enterButton.rx.tap.asObservable(),
-                                         hostButtonTapped: customView.groupSelectView.hostButton.rx.tap.asObservable(),
-                                         
-                                         groupNameText: customView.groupHostView.textField.rx.text.orEmpty.asObservable(),
-                                         hostReturnTapped: customView.groupHostView.textField.rx.controlEvent(.editingDidEndOnExit).asObservable(),
-                                         hostEndTapped: customView.groupHostView.endButton.rx.tap.asObservable(),
-                                         
-                                         invideCodeText: customView.groupEnterView.textField.rx.text.orEmpty.asObservable(),
-                                         enterReturnTapped: customView.groupEnterView.textField.rx.controlEvent(.editingDidEndOnExit).asObservable(),
-                                         enterEndTapped: customView.groupEnterView.endButton.rx.tap.asObservable())
+        let input = GroupViewModel
+            .Input(backTapped: backButton.rx.tap.asObservable(),
+                   enterButtonTapped: customView.groupSelectView.enterButton.rx.tap.asObservable(),
+                   hostButtonTapped: customView.groupSelectView.hostButton.rx.tap.asObservable(),
+                   
+                   groupNameText: customView.groupHostView.textField.rx.text.orEmpty.asObservable(),
+                   hostReturnTapped: customView.groupHostView.textField.rx.controlEvent(.editingDidEndOnExit).asObservable(),
+                   hostEndTapped: customView.groupHostView.endButton.rx.tap.asObservable(),
+                   
+                   invideCodeText: customView.groupEnterView.textField.rx.text.orEmpty.asObservable(),
+                   enterReturnTapped: customView.groupEnterView.textField.rx.controlEvent(.editingDidEndOnExit).asObservable(),
+                   enterEndTapped: customView.groupEnterView.endButton.rx.tap.asObservable())
         
         let output = viewModel.transform(input: input)
         
@@ -130,6 +131,14 @@ final class GroupViewController: UIViewController {
                 UIView.performWithoutAnimation {
                     vc.view.endEditing(true)
                 }
+            })
+            .disposed(by: disposeBag)
+        
+        // 조건4: 알림
+        output.error
+            .withUnretained(self)
+            .emit(onNext: { error in
+                print("알림 - showErrorAlert(error): \(error)")
             })
             .disposed(by: disposeBag)
     }

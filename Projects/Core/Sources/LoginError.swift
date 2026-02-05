@@ -8,8 +8,20 @@
 import Foundation
 
 public enum GroupError: Error {
-    case makeHostError
+    case createGroupError
+    case joinGroupError
+    case updateGroupError
+    case updateUserGroupIdError
     case fetchGroupError
+    
+    case fetchImageError
+    case deleteImageError
+    
+    case addCommentError
+    case deleteCommentError
+    
+    case observeValueStreamError
+    case deleteValueError
 }
 
 public enum LoginError: Error {

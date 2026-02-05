@@ -146,24 +146,14 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
                 self?.userSession.clear()
             })
             .map { .success(()) }
-            .catch { _ in
-                .just(.failure(.deleteUserError))
-            }
+            .catch { _ in .just(.failure(.deleteUserError)) }
     }
     
-    public func uploadImage(user: User, image: UIImage) -> RxSwift.Observable<Result<URL, LoginError>> {
+    public func uploadImage(user: User, image: UIImage) -> Observable<Result<URL, LoginError>> {
         
         let path = "users/\(user.uid)/profile.jpg"
         return firebaseStorageManager.uploadImage(image: image, path: path)
-            .map { urlOptional in
-                guard let url = urlOptional else {
-                    return .failure(.uploadImageError)
-                }
-                return .success(url)
-            }
-            .catch { _ in
-                .just(.failure(.uploadImageError))
-            }
+            .map { .success($0)}
+            .catch { _ in .just(.failure(.uploadImageError)) }
     }
 }
-

@@ -9,17 +9,23 @@ import RxSwift
 import Core
 import UIKit
 
-protocol GroupRepositoryProtocol {
+public protocol GroupRepositoryProtocol {
+    // Group
     func createGroup(groupName: String) -> Observable<Result<(groupId: String, inviteCode: String), GroupError>>
     func joinGroup(inviteCode: String) -> Observable<Result<HCGroup, GroupError>>
-    func updateUserGroupId(groupId: String) -> Observable<Result<Void, GroupError>>
     func updateGroup(path: String, post: Post) -> Observable<Result<Void, GroupError>>
+    func updateUserGroupId(groupId: String) -> Observable<Result<Void, GroupError>>
     func fetchGroup(groupId: String) -> Observable<Result<HCGroup, GroupError>>
-    func uploadImage(image: UIImage, path: String) -> Observable<URL?>
-    func deleteImage(path: String) -> Observable<Bool>
-    func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T>
-    func deleteValue(path: String) -> Observable<Bool>
     
-    func addComment(path: String, value: Comment) -> Observable<Bool>
-    func deleteComment(path: String) -> Observable<Bool>
+    // Image
+    func uploadImage(image: UIImage, path: String) -> Observable<Result<URL, GroupError>>
+    func deleteImage(path: String) -> Observable<Result<Void, GroupError>>
+    
+    // Comment
+    func addComment(path: String, value: Comment) -> Observable<Result<Void, GroupError>>
+    func deleteComment(path: String) -> Observable<Result<Void, GroupError>>
+    
+    // Other
+    func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<Result<T, GroupError>>
+    func deleteValue(path: String) -> Observable<Result<Void, GroupError>>
 }
