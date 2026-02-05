@@ -326,7 +326,7 @@ jobs:
       # 8️⃣ Setup Tuist (brew ❌)
       # =====================================================
       - name: Setup Tuist
-        uses: tuist/tuist-action@v1
+        uses: tuist/tuist-action@main
         with:
           version: 4.115.0
 
