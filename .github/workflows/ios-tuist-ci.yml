@@ -273,14 +273,15 @@ jobs:
           EOF
 
       # =====================================================
-      # 3️⃣ Xcode 고정
+      # 3️⃣ Xcode 선택 (있으면 16.4, 없으면 기본)
       # =====================================================
-      - name: List installed Xcode versions
-        run: ls /Applications | grep Xcode
-
-      - name: Select Xcode 16.4
+      - name: Select Xcode 16.4 (fallback safe)
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          if [ -d "/Applications/Xcode_16.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          else
+            echo "⚠️ Xcode_16.4 not found, using default"
+          fi
           xcodebuild -version
 
       # =====================================================
@@ -292,7 +293,7 @@ jobs:
           xcrun simctl list devices available
 
       # =====================================================
-      # 5️⃣ Cache - Tuist
+      # 5️⃣ Cache - Tuist 바이너리
       # =====================================================
       - name: Cache Tuist
         uses: actions/cache@v4
@@ -312,7 +313,7 @@ jobs:
             swiftpm-${{ runner.os }}-
 
       # =====================================================
-      # 7️⃣ Cache - DerivedData (Build-only 기준, 문제 생기면 제거)
+      # 7️⃣ Cache - DerivedData (Build-only 기준)
       # =====================================================
       - name: Cache DerivedData
         uses: actions/cache@v4
@@ -323,12 +324,19 @@ jobs:
             deriveddata-${{ runner.os }}-
 
       # =====================================================
-      # 8️⃣ Setup Tuist (brew ❌)
+      # 8️⃣ Install Tuist (cache hit 시 0초)
       # =====================================================
-      - name: Setup Tuist
-        uses: tuist/tuist-action@main
-        with:
-          version: 4.115.0
+      - name: Install Tuist (if needed)
+        run: |
+          if [ ! -x "$HOME/.tuist/bin/tuist" ]; then
+            echo "⬇️ Installing Tuist..."
+            curl -Ls https://install.tuist.io | bash
+          else
+            echo "✅ Tuist already installed (cache hit)"
+          fi
+
+          echo "$HOME/.tuist/bin" >> $GITHUB_PATH
+          tuist version
 
       # =====================================================
       # 9️⃣ Tuist Generate
@@ -339,19 +347,15 @@ jobs:
           tuist generate --no-open
 
       # =====================================================
-      # 🔟 Simulator UDID Resolve
+      # 🔟 Simulator UDID Resolve (자동)
       # =====================================================
       - name: Resolve simulator UDID
         run: |
           set -euo pipefail
 
           SIMULATOR_NAME="iPhone 16"
-          SIMULATOR_OS="18.5"
-
-          echo "🔍 Resolving simulator: ${SIMULATOR_NAME} (iOS ${SIMULATOR_OS})"
 
           UDID=$(xcrun simctl list devices available | \
-            grep "iOS ${SIMULATOR_OS}" -A 20 | \
             grep "^ *${SIMULATOR_NAME} (" | \
             head -n 1 | \
             sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
