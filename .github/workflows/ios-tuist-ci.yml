@@ -130,7 +130,8 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "id=$SIMULATOR_UDID" \
-            -derivedDataPath DerivedData
+            -derivedDataPath DerivedData \
+            | xcpretty
 
       # CI가 명령어 트리거로 실행된 경우, 성공 시 PR에 성공 코멘트를 남깁니다.
       - name: Comment success
