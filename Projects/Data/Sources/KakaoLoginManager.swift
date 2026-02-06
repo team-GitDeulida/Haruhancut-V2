@@ -10,28 +10,35 @@ import KakaoSDKUser
 import RxKakaoSDKUser
 import Core
 
+/*
+ Single<String>
+ - 이 타입의 의미
+ - 성공 → onSuccess(String)
+ - 실패 → onError(Error)
+ - ❌ 실패를 값으로 표현할 수 없음 의도
+ */
 public protocol KakaoLoginManagerProtocol {
-    func login() -> Observable<Result<String, LoginError>>
+    func login() -> Single<String>
 }
 
 public final class KakaoLoginManager: KakaoLoginManagerProtocol {
     
     public init() {}
     
-    public func login() -> Observable<Result<String, LoginError>> {
-        let loginObservable = UserApi.isKakaoTalkLoginAvailable()
-        ? UserApi.shared.rx.loginWithKakaoTalk()
-        : UserApi.shared.rx.loginWithKakaoAccount()
+    public func login() -> Single<String> {
+        let loginSingle = UserApi.isKakaoTalkLoginAvailable()
+        ? UserApi.shared.rx.loginWithKakaoTalk().asSingle()
+        : UserApi.shared.rx.loginWithKakaoAccount().asSingle()
         
-        return loginObservable
-            .map { token in
+        return loginSingle
+            .flatMap { token in
                 guard let idToken = token.idToken else {
-                    return .failure(.noTokenKakao)
+                    return .error(LoginError.noTokenKakao)
                 }
-                return .success(idToken)
+                return .just(idToken)
             }
             .catch { error in
-                return .just(.failure(.sdkKakao(error)))
+                return .error(LoginError.sdkKakao(error))
             }
     }
 }

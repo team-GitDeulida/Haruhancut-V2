@@ -30,7 +30,8 @@ final class SignInViewModel: SignInViewModelType {
     
     // MARK: - Outputs
     public struct Output {
-        let loginResult: Driver<Result<SocialAuthPayload, LoginError>>
+        let loginError: Driver<LoginError>
+        // let loginResult: Driver<Result<SocialAuthPayload, LoginError>>
     }
     
     // MARK: - Init
@@ -42,128 +43,99 @@ final class SignInViewModel: SignInViewModelType {
 extension SignInViewModel {
     func transform(input: Input) -> Output {
         
-        // 로그인 플랫폼 선택
+        // 로그인 플랫폼 선택 이벤트로 변환
         let kakaoPlatform = input.kakaoLoginButtonTapped.map { User.LoginPlatform.kakao }
         let applePlatform = input.appleLoginButtonTapped.map { User.LoginPlatform.apple }
         let selectedPlatform = Observable.merge(kakaoPlatform, applePlatform)
         
-        // 선택된 플랫폼으로 로그인 시도
-        let loginResult = selectedPlatform
-            .flatMapLatest { [weak self] platform in
-                guard let self = self else {
-                    return Observable<Result<SocialAuthPayload, LoginError>>.empty()
-                }
-                
-                // 소셜 로그인 플로우
-                return self.loginFlow(platform: platform)
+        // 로그인 과정에서 발생한 에러를 UI로 전달하기 위한 Relay
+        let errorRelay = PublishRelay<LoginError>()
+        
+        // 로그인 플로우 실행
+        selectedPlatform
+            .withUnretained(self)
+            .flatMapLatest { vm, platform -> Observable<Void> in
+                self.loginFlow(platform: platform)
+                    // 로그인 플로우 중 에러가 발생하면
+                    // Result로 감싸지 않고 Rx 에러 스트림으로 처리
+                    .do(onError: { error in
+                        if let loginError = error as? LoginError {
+                            errorRelay.accept(loginError)
+                        }
+                    })
+                    // 에러는 UI로 전달했으므로 스트림은 종료시키지 않음
+                    .catchAndReturn(())
             }
-            .asDriver(onErrorJustReturn: .failure(.signUpError))
+            .subscribe()
+            .disposed(by: disposeBag)
         
-        return Output(loginResult: loginResult)
-        
-        // return Output(loginResult: Driver.empty())
-        // return Output(loginResult: Driver.just(.success(())))
+        return Output(loginError: errorRelay.asDriver(onErrorDriveWith: .empty()))
     }
 }
 
 private extension SignInViewModel {
-    // 소셜 로그인 -> firebase 인증 -> 유저 판별
-    func loginFlow(platform: User.LoginPlatform) -> Observable<Result<SocialAuthPayload, LoginError>> {
+    /// 전체 로그인 시나리오
+    ///
+    /// 1. 소셜 로그인 (Kakao / Apple)
+    /// 2. Firebase 인증 (성공 여부만 중요)
+    /// 3. 기존 유저 / 신규 유저 분기
+    func loginFlow(platform: User.LoginPlatform) -> Observable<Void> {
         signInUsecase
             // 1. 선택된 플랫폼으로 "소셜 로그인" 요청
             //    - kakao → kakao token
             //    - apple → idToken + authorizationCode
             .signIn(with: platform)
             
-            // 2. 소셜 로그인 결과를 다음 단계로 연결
-            .flatMapLatest { [weak self] result in
-                guard let self = self else {
-                    return Observable<Result<SocialAuthPayload, LoginError>>.empty()
-                }
-                
-                switch result {
-                case .failure(let error):
-                    // 그대로 실패를 UI까지 전달
-                    return .just(.failure(error))
-                    
-                case .success(let payload):
-                    // Firebase 인증 + 기존/신규 유저 판별
-                    return self.authenticateAndResolveUser(payload: payload)
-                }
+            // 2. 인증 → 유저 판별 시나리오
+            .flatMap { payload in
+                self.authenticate(payload: payload)
+                    .andThen(self.resolveUser(payload: payload))
             }
+            .asObservable()
     }
     
-    // firebase 인증 후 기존 / 신규 유저 판별
-    func authenticateAndResolveUser(payload: SocialAuthPayload) -> Observable<Result<SocialAuthPayload, LoginError>> {
-        return authenticate(payload: payload)
-            // authenticate(...) 결과: Observable<Result<Void, LoginError>>
-            .flatMapLatest { [weak self] authResult in
-                guard let self = self else {
-                    return Observable<Result<SocialAuthPayload, LoginError>>.empty()
-                }
-                
-                switch authResult {
-                case .failure(let error):
-                    print("Firebase Auth 실패: \(error)")
-                    return .just(.failure(error))
-                    
-                case .success:
-                    // 인증 성공
-                    // 이제 "이 사람이 기존 유저인지?" 조회 함수 호출
-                    return self.resolveUser(payload: payload)
-                }
-            }
-    }
-    
-    // payload -> firebase auth 파라미터 변환
-    func authenticate(payload: SocialAuthPayload) -> Observable<Result<Void, LoginError>> {
+    /// Firebase 인증
+    ///
+    /// - 인증 결과 값은 필요 없고
+    /// - 성공 / 실패 여부만 중요
+    /// → Completable 로 표현
+    func authenticate(payload: SocialAuthPayload) -> Completable {
         switch payload {
         case .kakao(let token):
             return signInUsecase.authenticateUser(prividerID: "kakao",
                                                   idToken: token,
                                                   rawNonce: nil)
+            .asCompletable()
         case .apple(let idToken, let rawNonce):
             print("디버깅: idToken: \(idToken), rawNonce:\(rawNonce)")
             return signInUsecase.authenticateUser(prividerID: "apple",
                                                   idToken: idToken,
                                                   rawNonce: rawNonce)
+            .asCompletable()
         }
     }
     
-    // 기존 유저 / 신규 유저 분기
-    func resolveUser(payload: SocialAuthPayload) -> Observable<Result<SocialAuthPayload, LoginError>> {
-        let userStream = signInUsecase
-            // Firebase Realtime DB에서 내 정보 조회
-            .fetchUserInfo()
-        
-        let resolvedStream = userStream
-            .map { [weak self] result in
-                guard let self = self else {
-                    return Result<SocialAuthPayload, LoginError>.failure(.signUpError)
+    /// 기존 유저 / 신규 유저 판별
+    ///
+    /// - 기존 유저: 홈으로 이동
+    /// - 신규 유저: 온보딩으로 이동
+    /// - 분기 결과는 side-effect로만 처리
+    func resolveUser(payload: SocialAuthPayload) -> Single<Void> {
+        signInUsecase.fetchUserInfo()
+            .do(onSuccess: { [weak self] _ in
+                // 기존 유저
+                self?.onSignInSuccess?()
+            })
+            .catch { [weak self] error in
+                guard let self else { return .error(error) }
+
+                if case LoginError.noUser = error {
+                    // 신규 유저
+                    self.onFirstSignInSuccess?(payload.platform)
                 }
-                
-                switch result {
-                case .success(let user):
-                    // 기존 유저
-                    print("기존 유저 코디네이터 트리거: \(user)")
-                    self.onSignInSuccess?()
-                    return .success(payload)
-                case .failure(let error):
-                    
-                    switch error {
-                    case .noUser:
-                        // 신규 유저
-                        print("신규 유저 코디네이터 트리거")
-                        self.onFirstSignInSuccess?(payload.platform)
-                        return .failure(.noUser)
-                        
-                    default:
-                        return .failure(error)
-                    }
-                    
-                }
+
+                return .error(error)
             }
-        
-        return resolvedStream
+            .map { _ in () }
     }
 }

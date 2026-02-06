@@ -12,23 +12,29 @@ import UIKit
 
 //public protocol SignInRepositoryProtocol {
 //    // MARK: - Login
-//    func loginWithKakao() -> Observable<Result<String, LoginError>>
-//    func loginWithApple() -> Observable<Result<(String, String), LoginError>>
-//    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>>
+//    func loginWithKakao() -> Single<String>
+//    func loginWithApple() -> Single<(String, String)>
+//    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void>
 //    
 //    // MARK: - User
-//    func registerUserToRealtimeDatabase(user: User) -> Observable<Result<User, LoginError>>
-//    func fetchMyUser() -> Observable<Result<User, LoginError>>
-//    func fetchUser(uid: String) -> Observable<Result<User, LoginError>>
+//    func registerUserToRealtimeDatabase(user: User) -> Single<User>
+//    func fetchMyUser() -> Single<User>
+//    func fetchUser(uid: String) -> Single<User>
 //    
-//    func updateUser(user: User) -> Observable<Result<User, LoginError>>
-//    func deleteUser(uid: String) -> Observable<Result<Void, LoginError>>
+//    func updateUser(user: User) -> Single<User>
+//    func deleteUser(uid: String) -> Single<Void>
 //    
 //    // MARK: - Image
-//    func uploadImage(user: User, image: UIImage) -> Observable<Result<URL, LoginError>>
+//    func uploadImage(user: User, image: UIImage) -> Single<URL>
 //}
 
 
+/*
+ 값 그대로 + 부수효과 → do
+ 값 변환 → map
+ 값에 따라 성공/실패 결정 → flatMap
+ 에러 변환 → catch
+ */
 public final class SignInRepositoryImpl: SignInRepositoryProtocol {
     
     private let kakaoLoginManager: KakaoLoginManagerProtocol
@@ -52,42 +58,29 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
         self.userSession = userSession
     }
     
-    public func loginWithKakao() -> RxSwift.Observable<Result<String, LoginError>> {
-        kakaoLoginManager.login()
+    public func loginWithKakao() -> Single<String> {
+        return kakaoLoginManager.login()
     }
     
-    public func loginWithApple() -> RxSwift.Observable<Result<(String, String), LoginError>> {
-        appleLoginManager.login()
+    public func loginWithApple() -> Single<(String, String)> {
+        return appleLoginManager.login()
     }
     
-    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>> {
+    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void> {
         return firebaseAuthManager.authenticateUser(prividerID: prividerID,
                                                     idToken: idToken,
                                                     rawNonce: rawNonce)
-        /*
-        .map { .success(()) }
-        .catch { _ in
-            .just(.failure(.authError))
-        }
-         */
-        .asResult(failure: .authError)
     }
     
-    public func registerUserToRealtimeDatabase(user: User) -> Observable<Result<User, LoginError>> {
+    public func registerUserToRealtimeDatabase(user: User) -> Single<User> {
         return firebaseAuthManager
             .registerUserToRealtimeDatabase(user: user)
-            .map { user in
-                self.userSession.update(
-                    SessionUser(userId: user.uid, groupId: user.groupId)
-                )
-                return .success(user)
-            }
-            .catch { _ in
-                .just(.failure(.signUpError))
-            }
+            .do(onSuccess: { user in
+                self.userSession.update(SessionUser(userId: user.uid, groupId: user.groupId))
+            })
     }
     
-    public func fetchMyUser() -> Observable<Result<User, LoginError>> {
+    public func fetchMyUser() -> Single<User> {
         
         /*
         // 캐시 먼저 방출
@@ -106,54 +99,41 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
          */
         
         return firebaseAuthManager.fetchMyInfo()
-            .map { userOptional in
+            .flatMap { userOptional in
                 guard let user = userOptional else {
-                    return .failure(.noUser)
+                    return .error(LoginError.noUser)
                 }
-                
                 self.userSession.update(SessionUser(userId: user.uid, groupId: user.groupId))
-                return .success(user)
-            }
-            .catch { _ in
-                .just(.failure(.fetchUserError))
+                return .just(user)
             }
     }
     
-    public func fetchUser(uid: String) -> Observable<Result<User, LoginError>> {
+    public func fetchUser(uid: String) -> Single<User> {
         return firebaseAuthManager.fetchUser(uid: uid)
-            .map { userOptional in
+            .flatMap { userOptional in
                 guard let user = userOptional else {
-                    return .failure(.noUser)
+                    return .error(LoginError.noUser)
                 }
-                return .success(user)
-            }
-            .catch { _ in
-                .just(.failure(.fetchUserError))
+                return .just(user)
             }
     }
     
-    public func updateUser(user: User) -> Observable<Result<User, LoginError>> {
+    public func updateUser(user: User) -> Single<User> {
         return firebaseAuthManager.updateUser(user: user)
-            .map { .success(user) }
-            .catch { _ in
-                .just(.failure(.updateUserError))
-            }
+            .map { user } // 의도: updateUser는 성공시 Void이지만 매개변수를 다시 반환 용도
+            // MARK:  인프라로 변환 안함 .catch { _ in return .error(LoginError.updateUserError) }
     }
     
-    public func deleteUser(uid: String) -> Observable<Result<Void, LoginError>> {
+    public func deleteUser(uid: String) -> Single<Void> {
         return firebaseAuthManager.deleteUser(uid: uid)
-            .do(onNext: { [weak self] in
+            .do(onSuccess: { [weak self] in
                 self?.userSession.clear()
             })
-            .map { .success(()) }
-            .catch { _ in .just(.failure(.deleteUserError)) }
+            .map { () }
     }
     
-    public func uploadImage(user: User, image: UIImage) -> Observable<Result<URL, LoginError>> {
-        
+    public func uploadImage(user: User, image: UIImage) -> Single<URL> {
         let path = "users/\(user.uid)/profile.jpg"
         return firebaseStorageManager.uploadImage(image: image, path: path)
-            .map { .success($0)}
-            .catch { _ in .just(.failure(.uploadImageError)) }
     }
 }

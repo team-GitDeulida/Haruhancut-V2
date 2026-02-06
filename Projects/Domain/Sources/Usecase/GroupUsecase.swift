@@ -11,26 +11,26 @@ import UIKit
 
 public protocol GroupUsecaseProtocol {
     // Group
-    func createGroup(groupName: String) -> Observable<Result<(groupId: String, inviteCode: String), GroupError>>
-    func joinGroup(inviteCode: String) -> Observable<Result<HCGroup, GroupError>>
-    func updateGroup(path: String, post: Post) -> Observable<Result<Void, GroupError>>
-    func updateUserGroupId(groupId: String) -> Observable<Result<Void, GroupError>>
-    func fetchGroup(groupId: String) -> Observable<Result<HCGroup, GroupError>>
+    func createGroup(groupName: String) -> Single<(groupId: String, inviteCode: String)>
+    func joinGroup(inviteCode: String) -> Single<HCGroup>
+    func updateGroup(path: String, post: Post) -> Single<Void>
+    func updateUserGroupId(groupId: String) -> Single<Void>
+    func fetchGroup(groupId: String) -> Single<HCGroup>
     
     // Image
-    func uploadImage(image: UIImage, path: String) -> Observable<Result<URL, GroupError>>
-    func deleteImage(path: String) -> Observable<Result<Void, GroupError>>
+    func uploadImage(image: UIImage, path: String) -> Single<URL>
+    func deleteImage(path: String) -> Single<Void>
     
     // Comment
-    func addComment(path: String, value: Comment) -> Observable<Result<Void, GroupError>>
-    func deleteComment(path: String) -> Observable<Result<Void, GroupError>>
+    func addComment(path: String, value: Comment) -> Single<Void>
+    func deleteComment(path: String) -> Single<Void>
     
     // Other
-    func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<Result<T, GroupError>>
-    func deleteValue(path: String) -> Observable<Result<Void, GroupError>>
+    func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T>
+    func deleteValue(path: String) -> Single<Void>
     
-    // custom
-    // func joinAndUpdateGroup(inviteCode: String) -> Observable<Void>
+    // 시나리오
+    func joinAndUpdateGroup(inviteCode: String) -> Single<HCGroup>
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
@@ -41,53 +41,58 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     }
     
     // Group
-    public func createGroup(groupName: String) -> Observable<Result<(groupId: String, inviteCode: String), GroupError>> {
+    public func createGroup(groupName: String) -> Single<(groupId: String, inviteCode: String)> {
         return groupRepository.createGroup(groupName: groupName)
     }
-    public func joinGroup(inviteCode: String) -> Observable<Result<HCGroup, GroupError>> {
+    public func joinGroup(inviteCode: String) -> Single<HCGroup> {
         return groupRepository.joinGroup(inviteCode: inviteCode)
     }
     
-    public func updateGroup(path: String, post: Post) -> Observable<Result<Void, GroupError>> {
+    public func updateGroup(path: String, post: Post) -> Single<Void> {
         return groupRepository.updateGroup(path: path, post: post)
     }
     
-    public func updateUserGroupId(groupId: String) -> Observable<Result<Void, GroupError>> {
+    public func updateUserGroupId(groupId: String) -> Single<Void> {
         return groupRepository.updateUserGroupId(groupId: groupId)
     }
     
-    public func fetchGroup(groupId: String) -> Observable<Result<HCGroup, GroupError>> {
+    public func fetchGroup(groupId: String) -> Single<HCGroup> {
         return groupRepository.fetchGroup(groupId: groupId)
     }
     
     // Image
-    public func uploadImage(image: UIImage, path: String) -> Observable<Result<URL, GroupError>> {
+    public func uploadImage(image: UIImage, path: String) -> Single<URL> {
         return groupRepository.uploadImage(image: image, path: path)
     }
     
-    public func deleteImage(path: String) -> Observable<Result<Void, GroupError>> {
+    public func deleteImage(path: String) -> Single<Void> {
         return groupRepository.deleteImage(path: path)
     }
     
     // Comment
-    public func addComment(path: String, value: Comment) -> Observable<Result<Void, GroupError>> {
+    public func addComment(path: String, value: Comment) -> Single<Void> {
         return groupRepository.addComment(path: path, value: value)
     }
     
-    public func deleteComment(path: String) -> Observable<Result<Void, GroupError>> {
+    public func deleteComment(path: String) -> Single<Void> {
         return groupRepository.deleteComment(path: path)
     }
     
     // Other
-    public func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<Result<T, GroupError>> {
+    public func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T> {
         return groupRepository.observeValueStream(path: path, type: type)
     }
     
-    public func deleteValue(path: String) -> Observable<Result<Void, GroupError>> {
+    public func deleteValue(path: String) -> Single<Void> {
         return groupRepository.deleteValue(path: path)
     }
     
-//    public func joinAndUpdateGroup(inviteCode: String) -> Observable<Void> {
-//
-//    }
+    // 시나리오
+    public func joinAndUpdateGroup(inviteCode: String) -> Single<HCGroup> {
+        joinGroup(inviteCode: inviteCode)                      // Single<HCGroup>
+            .flatMap { group in
+                self.updateUserGroupId(groupId: group.groupId) // Single<Void>
+                    .map { group }
+            }
+    }
 }

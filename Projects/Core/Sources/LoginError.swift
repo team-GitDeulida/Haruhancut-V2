@@ -38,6 +38,7 @@ public enum LoginError: Error {
     // MARK: - Auth
     case authError
     case signUpError
+    case signInError
     case noUser
     case logoutError
     case updateUserError
@@ -73,6 +74,8 @@ public enum LoginError: Error {
             "⚠️ 유저 삭제 실패"
         case .uploadImageError:
             "⚠️ 이미지 업로드 실패"
+        case .signInError:
+            "⚠️ 파이어베이스 로그인 실패"
         }
     }
 }

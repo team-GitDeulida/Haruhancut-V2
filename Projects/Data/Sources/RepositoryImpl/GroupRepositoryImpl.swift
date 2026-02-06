@@ -25,74 +25,52 @@ public final class GroupRepositoryImpl: GroupRepositoryProtocol {
     }
     
     // Group
-    public func createGroup(groupName: String) -> Observable<Result<(groupId: String, inviteCode: String), GroupError>> {
+    public func createGroup(groupName: String) -> Single<(groupId: String, inviteCode: String)> {
         return firebaseAuthManager.createGroup(groupName: groupName)
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.createGroupError)) }
     }
     
-    public func joinGroup(inviteCode: String) -> Observable<Result<HCGroup, GroupError>> {
+    public func joinGroup(inviteCode: String) -> Single<HCGroup> {
         return firebaseAuthManager.joinGroup(inviteCode: inviteCode)
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.joinGroupError)) }
     }
     
-    public func updateGroup(path: String, post: Post) -> Observable<Result<Void, GroupError>> {
+    public func updateGroup(path: String, post: Post) -> Single<Void> {
         return firebaseAuthManager.updateGroup(path: path, post: post.toDTO())
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.updateGroupError)) }
     }
     
-    public func updateUserGroupId(groupId: String) -> Observable<Result<Void, GroupError>> {
+    public func updateUserGroupId(groupId: String) -> Single<Void> {
         return firebaseAuthManager.updateUserGroupId(groupId: groupId)
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.updateUserGroupIdError)) }
     }
     
-    public func fetchGroup(groupId: String) -> Observable<Result<HCGroup, GroupError>> {
+    public func fetchGroup(groupId: String) -> Single<HCGroup> {
         return firebaseAuthManager.fetchGroup(groupId: groupId)
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.fetchGroupError)) }
     }
     
     
     // Image
-    public func uploadImage(image: UIImage, path: String) -> Observable<Result<URL, GroupError>> {
+    public func uploadImage(image: UIImage, path: String) -> Single<URL> {
         return firebaseStorageManager.uploadImage(image: image, path: path)
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.fetchImageError)) }
     }
     
-    public func deleteImage(path: String) -> Observable<Result<Void, GroupError>> {
+    public func deleteImage(path: String) -> Single<Void> {
         return firebaseStorageManager.deleteImage(path: path)
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.deleteImageError)) }
     }
     
     // Comment
-    public func addComment(path: String, value: Comment) -> Observable<Result<Void, GroupError>> {
+    public func addComment(path: String, value: Comment) -> Single<Void> {
         return firebaseAuthManager.addComment(path: path, value: value.toDTO())
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.addCommentError)) }
     }
     
-    public func deleteComment(path: String) -> Observable<Result<Void, GroupError>> {
+    public func deleteComment(path: String) -> Single<Void> {
         return firebaseAuthManager.deleteValue(path: path)
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.deleteCommentError)) }
     }
     
     
     // Other
-    public func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<Result<T, GroupError>> {
+    public func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T> {
         return firebaseAuthManager.observeValueStream(path: path, type: type)
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.observeValueStreamError)) }
     }
     
-    public func deleteValue(path: String) -> Observable<Result<Void, GroupError>> {
+    public func deleteValue(path: String) -> Single<Void> {
         return firebaseAuthManager.deleteValue(path: path)
-            .map { .success($0) }
-            .catch { _ in .just(.failure(.deleteValueError)) }
     }
 }

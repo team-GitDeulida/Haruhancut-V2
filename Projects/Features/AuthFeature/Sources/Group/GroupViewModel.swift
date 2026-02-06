@@ -57,6 +57,7 @@ final class GroupViewModel: GroupViewModelType {
     
     struct Output {
         let step: Driver<Step>
+        
         let hostGroupNameValid: Driver<Bool>
         let joinInviteCodeValid: Driver<Bool>
         
@@ -88,14 +89,6 @@ final class GroupViewModel: GroupViewModelType {
             input.enterEndTapped
         ).asSignal(onErrorSignalWith: .empty())
         
-        // 각 분기 뷰에서 완료 버튼 누를 때
-        /*
-        let completed = Observable.merge(
-            input.hostEndTapped,
-            input.enterEndTapped
-        )
-         */
-        
         // 그룹 이름 유효성
         let isHostGroupNameValid = input.groupNameText
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2 }
@@ -107,6 +100,24 @@ final class GroupViewModel: GroupViewModelType {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }
             .distinctUntilChanged()
             .asDriver(onErrorJustReturn: false)
+        
+        // 그룹 생성 시나리오
+        input.hostEndTapped
+            .withLatestFrom(input.groupNameText)
+            .withUnretained(self)
+            .flatMapLatest { vm, groupName in
+                self.groupUsecase.createGroup(groupName: groupName)
+                    .map { _ in () }
+                    .asObservable()
+                    .catch { error in
+                        self.errorRelay.accept(error as! GroupError)
+                        return .empty()
+                    }
+            }
+            .subscribe(onNext: { [weak self] in
+                self?.onGroupMakeOrJoinSuccess?()
+            })
+            .disposed(by: disposeBag)
         
         // 그룹 생성 유효성
         let createGroupValid = input.hostEndTapped

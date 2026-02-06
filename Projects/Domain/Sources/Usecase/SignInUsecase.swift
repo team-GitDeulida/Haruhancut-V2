@@ -22,13 +22,12 @@ public enum SocialAuthPayload {
 }
 
 public protocol SignInUsecaseProtocol {
-
-    func signIn(with: User.LoginPlatform) -> Observable<Result<SocialAuthPayload, LoginError>>
-    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>>
-    func registerUserToRealtimeDatabase(user: User) -> RxSwift.Observable<Result<User, LoginError>>
-    func fetchUserInfo() -> Observable<Result<User, LoginError>>
-    func updateUser(user: User) -> Observable<Result<User, LoginError>>
-    func uploadImage(user: User, image: UIImage) -> Observable<Result<URL, LoginError>>
+    func signIn(with platform: User.LoginPlatform) -> Single<SocialAuthPayload>
+    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void>
+    func registerUserToRealtimeDatabase(user: User) -> Single<User>
+    func fetchUserInfo() -> Single<User>
+    func updateUser(user: User) -> Single<User>
+    func uploadImage(user: User, image: UIImage) -> Single<URL>
 }
 
 public final class SignInUsecaseImpl: SignInUsecaseProtocol {
@@ -39,18 +38,14 @@ public final class SignInUsecaseImpl: SignInUsecaseProtocol {
         self.repository = signInRepository
     }
     
-    public func signIn(with platform: User.LoginPlatform) -> Observable<Result<SocialAuthPayload, LoginError>> {
+    public func signIn(with platform: User.LoginPlatform) -> Single<SocialAuthPayload> {
         switch platform {
-        case .kakao: // Observable<Result<String, LoginError>>
-            return repository.loginWithKakao()
-                .map { result in
-                    result.map { token in // result: Result<String, LoginError>
-                        .kakao(token: token)
-                    }
-                }
+        case .kakao:
+            return repository.loginWithKakao() // Single<String>
+                .map { SocialAuthPayload.kakao(token: $0) }
         case .apple: // Observable<Result<(String, String), LoginError>>
             return repository.loginWithApple()
-                .map { $0.map(SocialAuthPayload.apple) }
+                .map { SocialAuthPayload.apple(idToken: $0.0, rawNonce: $0.1) }
         }
     }
     
@@ -59,27 +54,27 @@ public final class SignInUsecaseImpl: SignInUsecaseProtocol {
     ///   - prividerID: .kakao, .apple
     ///   - idToken: kakaoToken, appleToken
     /// - Returns: Result<Void, LoginError>
-    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Observable<Result<Void, LoginError>> {
+    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void> {
         return repository.authenticateUser(prividerID: prividerID, idToken: idToken, rawNonce: rawNonce)
     }
     
     /// Firebase Realtime Database에 유저 정보를 저장하고, 저장된 User를 반환
     /// - Parameter user: 저장할 User 객체
     /// - Returns: Result<User, LoginError>
-    public func registerUserToRealtimeDatabase(user: User) -> Observable<Result<User, LoginError>> {
+    public func registerUserToRealtimeDatabase(user: User) -> Single<User> {
         return repository.registerUserToRealtimeDatabase(user: user)
     }
     
     /// 본인 정보 불러오기
     /// - Returns: Observable<User?>
-    public func fetchUserInfo() -> Observable<Result<User, LoginError>> {
+    public func fetchUserInfo() -> Single<User> {
         return repository.fetchMyUser()
     }
     
     /// 유저 업데이트
     /// - Parameter user: 유저
     /// - Returns: 성공유무
-    public func updateUser(user: User) -> Observable<Result<User, LoginError>> {
+    public func updateUser(user: User) -> Single<User> {
         return repository.updateUser(user: user)
     }
     
@@ -88,37 +83,7 @@ public final class SignInUsecaseImpl: SignInUsecaseProtocol {
     ///   - user: 유저
     ///   - image: 이미지
     /// - Returns: 이미지url
-    public func uploadImage(user: User, image: UIImage) -> Observable<Result<URL, LoginError>> {
+    public func uploadImage(user: User, image: UIImage) -> Single<URL> {
         return repository.uploadImage(user: user, image: image)
     }
-    
-    
 }
-
-/*
-public final class StubSignInUsecaseImpl: SignInUsecaseProtocol {
-    
-    public init() {}
-    
-    public func signIn(with platform: User.LoginPlatform) -> Observable<Result<Void, LoginError>> {
-        switch platform {
-        case .kakao:
-            // 임시 기존 유저
-            return .just(Result.success(()))
-        case .apple:
-            return.just(.failure(.noUser))
-        }
-    }
-    
-    public func signInKakao(with: User.LoginPlatform) -> RxSwift.Observable<Result<String, LoginError>> {
-        .just(.success(""))
-    }
-    
-    /*
-    public func signIn(with: User.LoginPlatform) -> Observable<Result<Void, LoginError>> {
-        return .just(Result.success(()))
-    }
-     */
-}
-*/
-

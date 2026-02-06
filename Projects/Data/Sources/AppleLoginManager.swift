@@ -13,23 +13,18 @@ import AuthenticationServices
 import Core
 
 public protocol AppleLoginManagerProtocol {
-    func login() -> Observable<Result<(String, String), LoginError>>
+    func login() -> Single<(String, String)>
 }
 
 public final class AppleLoginManager: NSObject, AppleLoginManagerProtocol {
-    
-    /*
-    public static let shared = AppleLoginManager()
-    private override init() {
-        super.init()
-    }
-     */
+
     
     public override init() {}
 
     // 애플 로그인 결과를 외부에 전달하기 위한 통로
     // ASAuthorizationControllerDelegate는 콜백 기반 -> Rx방식(Observable 스트림)으로 변환을 위함
-    private var loginSubject: PublishSubject<Result<(String, String), LoginError>>?
+    // private var loginSubject: PublishSubject<Result<(String, String), LoginError>>?
+    private var singleObserver: ((SingleEvent<(String, String)>) -> Void)?
     private var currentNonce: String?
     
     /// 무작위 nonce 문자열 생성
@@ -71,53 +66,62 @@ public final class AppleLoginManager: NSObject, AppleLoginManagerProtocol {
     
     /// 애플 로그인 수행
     /// - Returns: 로그인 성공 시 AppleId 토큰 문자열, 실패 시 오류를 포함한 Observable
-    public func login() -> Observable<Result<(String, String), LoginError>> {
-        // 항상 새로운 subject로 초기화
-        let subject = PublishSubject<Result<(String, String), LoginError>>()
-        self.loginSubject = subject
-
-        let nonce = self.randomNonceString()
-        self.currentNonce = nonce
-        let hashedNonce = self.sha256(nonce)
-
-        let request = ASAuthorizationAppleIDProvider().createRequest()
-        request.requestedScopes = [.fullName, .email]
-        request.nonce = hashedNonce
-
-        let controller = ASAuthorizationController(authorizationRequests: [request])
-        controller.delegate = self
-        controller.presentationContextProvider = self
-        controller.performRequests()
-
-        return subject.asObservable()
+    public func login() -> Single<(String, String)> {
+        return Single.create { [weak self] single in
+            guard let self else {
+                single(.failure(LoginError.invalidCredential))
+                return Disposables.create()
+            }
+            
+            self.singleObserver = single
+            
+            let nonce = self.randomNonceString()
+            self.currentNonce = nonce
+            
+            let request = ASAuthorizationAppleIDProvider().createRequest()
+            request.requestedScopes = [.fullName, .email]
+            request.nonce = self.sha256(nonce)
+            
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            controller.performRequests()
+            
+            return Disposables.create {
+                self.singleObserver = nil
+            }
+        }
     }
 }
 
 // MARK: - ASAuthorizationControllerDelegate
 extension AppleLoginManager: ASAuthorizationControllerDelegate {
-    public func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
-        let credential = authorization.credential as? ASAuthorizationAppleIDCredential
-        let tokenData = credential?.identityToken
-        let tokenString = tokenData.flatMap { String(data: $0, encoding: .utf8) }
-        
-//        print("✅ Apple Credential: \(String(describing: credential))")
-//        print("✅ identityToken: \(String(describing: tokenData))")
-//        print("✅ tokenString: \(String(describing: tokenString))")
-//        print("✅ currentNonce: \(String(describing: currentNonce))")
-        
-        if let tokenString, let rawNonce = self.currentNonce {
-            self.loginSubject?.onNext(.success((tokenString, rawNonce)))
-        } else {
-            self.loginSubject?.onNext(.failure(.invalidCredential))
+
+    public func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithAuthorization authorization: ASAuthorization
+    ) {
+        guard
+            let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+            let tokenData = credential.identityToken,
+            let tokenString = String(data: tokenData, encoding: .utf8),
+            let rawNonce = currentNonce
+        else {
+            singleObserver?(.failure(LoginError.invalidCredential))
+            singleObserver = nil
+            return
         }
-        self.loginSubject?.onCompleted()
-        self.loginSubject = nil
+
+        singleObserver?(.success((tokenString, rawNonce)))
+        singleObserver = nil
     }
 
-    public func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
-        self.loginSubject?.onNext(.failure(.sdkApple(error)))
-        self.loginSubject?.onCompleted()
-        self.loginSubject = nil
+    public func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithError error: Error
+    ) {
+        singleObserver?(.failure(LoginError.sdkApple(error)))
+        singleObserver = nil
     }
 }
 
