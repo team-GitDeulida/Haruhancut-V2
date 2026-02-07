@@ -28,6 +28,9 @@ public protocol SignInUsecaseProtocol {
     func fetchUserInfo() -> Single<User>
     func updateUser(user: User) -> Single<User>
     func uploadImage(user: User, image: UIImage) -> Single<URL>
+    
+    // 일단 임시로 signup을 여기구현
+    func signUp(user: User, profileImage: UIImage?) -> Single<Void>
 }
 
 public final class SignInUsecaseImpl: SignInUsecaseProtocol {
@@ -86,4 +89,22 @@ public final class SignInUsecaseImpl: SignInUsecaseProtocol {
     public func uploadImage(user: User, image: UIImage) -> Single<URL> {
         return repository.uploadImage(user: user, image: image)
     }
+    
+    public func signUp(user: User, profileImage: UIImage?) -> Single<Void> {
+        registerUserToRealtimeDatabase(user: user)
+            .flatMap { registeredUser in
+                guard let image = profileImage else {
+                    return .just(registeredUser)
+                }
+
+                return self.uploadImage(user: registeredUser, image: image)
+                    .flatMap { url in
+                        var updated = registeredUser
+                        updated.profileImageURL = url.absoluteString
+                        return self.updateUser(user: updated)
+                    }
+            }
+            .map { _ in () }
+    }
+
 }

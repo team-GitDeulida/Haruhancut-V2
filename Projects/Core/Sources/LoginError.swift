@@ -22,6 +22,7 @@ public enum GroupError: Error {
     
     case observeValueStreamError
     case deleteValueError
+    case unknown(Error)
 }
 
 public enum LoginError: Error {

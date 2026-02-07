@@ -101,84 +101,49 @@ final class GroupViewModel: GroupViewModelType {
             .distinctUntilChanged()
             .asDriver(onErrorJustReturn: false)
         
-        // 그룹 생성 시나리오
-        input.hostEndTapped
-            .withLatestFrom(input.groupNameText)
-            .withUnretained(self)
-            .flatMapLatest { vm, groupName in
-                self.groupUsecase.createGroup(groupName: groupName)
-                    .map { _ in () }
-                    .asObservable()
-                    .catch { error in
-                        self.errorRelay.accept(error as! GroupError)
-                        return .empty()
-                    }
-            }
-            .subscribe(onNext: { [weak self] in
-                self?.onGroupMakeOrJoinSuccess?()
-            })
-            .disposed(by: disposeBag)
-        
         // 그룹 생성 유효성
         let createGroupValid = input.hostEndTapped
             .withLatestFrom(input.groupNameText)
             .withUnretained(self)
-            // 그룹 만들기
-            .flatMapLatest { vm, groupName -> Observable<Result<Void, GroupError>> in
-                return self.groupUsecase
-                    .createGroup(groupName: groupName)
-                    .mapToVoid()
+            .flatMapLatest { vm, groupName in
+                vm.groupUsecase.createAndUpdateGroup(groupName: groupName)
+                    .map { _ in () } // 제거하자
+                    .asObservable()
+                    // do: 에러를 UI로 전달시 사용
+                    // catch/catchAndReturn: .catchAndReturn(())
+                    .do(onError: { [weak self] error in
+                        self?.errorRelay.accept(error as! GroupError)
+                    })
+                    .catchAndReturn(()) // 스트림 유지
             }
         
         // 그룹 참가 유효성
         let joinGroupValid = input.enterEndTapped
             .withLatestFrom(input.invideCodeText)
             .withUnretained(self)
-            .flatMapLatest { vm, inviteCode -> Observable<Result<Void, GroupError>> in
-                return self.groupUsecase
-                    .joinGroup(inviteCode: inviteCode) // Observable<Result<HCGroup, GroupError>>
-                    // .mapToVoid()                       // Observable<Result<Void, GroupError>>
-                    .flatMapLatest { result -> Observable<Result<Void, GroupError>> in
-                        switch result {
-                        case .success(let group):
-                            return vm.groupUsecase
-                                .updateUserGroupId(groupId: group.groupId)
-                                .map { updateResult in
-                                    switch updateResult {
-                                    case .success:
-                                        // vm.updateLocalUser(group: group)
-                                        return .success(())
-                                    case .failure:
-                                        return .failure(.updateUserGroupIdError)
-                                    }
-                                }
-                            
-                        case .failure(let error):
-                            return .just(.failure(error))
-                        }
-                    }
+            .flatMapLatest { vm, inviteCode in
+                return vm.groupUsecase.joinAndUpdateGroup(inviteCode: inviteCode)
+
+                    .asObservable()
+                // 강조
+                    .do(onError: { [weak self] error in
+                        let groupError = error as? GroupError ?? .unknown(error)
+                        self?.errorRelay.accept(groupError)
+                    })
             }
         
         // 유효성 결과
-        let result = Observable                        // Observable<Result<Void, GroupError>>
+        let result = Observable
             .merge(createGroupValid, joinGroupValid)
             .share()
         
         // 코디네이터 이동(성공 이벤트만 흘리고 실패는 버린다)
         result
-            .compactMap(\.successVoid)
             .withUnretained(self)
             .bind(onNext: { vm, _ in
                 vm.onGroupMakeOrJoinSuccess?()
             })
             .disposed(by: disposeBag)
-        
-        // 에러 알림
-        result
-            .compactMap(\.failureError)
-            .bind(to: errorRelay)
-            .disposed(by: disposeBag)
-        
 
         return Output(step: step,
                       hostGroupNameValid: isHostGroupNameValid,

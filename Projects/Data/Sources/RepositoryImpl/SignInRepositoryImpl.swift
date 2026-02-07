@@ -10,25 +10,6 @@ import RxSwift
 import Core
 import UIKit
 
-//public protocol SignInRepositoryProtocol {
-//    // MARK: - Login
-//    func loginWithKakao() -> Single<String>
-//    func loginWithApple() -> Single<(String, String)>
-//    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void>
-//    
-//    // MARK: - User
-//    func registerUserToRealtimeDatabase(user: User) -> Single<User>
-//    func fetchMyUser() -> Single<User>
-//    func fetchUser(uid: String) -> Single<User>
-//    
-//    func updateUser(user: User) -> Single<User>
-//    func deleteUser(uid: String) -> Single<Void>
-//    
-//    // MARK: - Image
-//    func uploadImage(user: User, image: UIImage) -> Single<URL>
-//}
-
-
 /*
  값 그대로 + 부수효과 → do
  값 변환 → map
@@ -76,7 +57,8 @@ public final class SignInRepositoryImpl: SignInRepositoryProtocol {
         return firebaseAuthManager
             .registerUserToRealtimeDatabase(user: user)
             .do(onSuccess: { user in
-                self.userSession.update(SessionUser(userId: user.uid, groupId: user.groupId))
+                self.userSession.update(SessionUser(userId: user.uid,
+                                                    groupId: nil)) // 사용자 생성 시 그룹Id 없음
             })
     }
     

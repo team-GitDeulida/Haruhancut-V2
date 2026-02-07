@@ -30,7 +30,8 @@ public protocol GroupUsecaseProtocol {
     func deleteValue(path: String) -> Single<Void>
     
     // 시나리오
-    func joinAndUpdateGroup(inviteCode: String) -> Single<HCGroup>
+    func joinAndUpdateGroup(inviteCode: String) -> Single<Void>
+    func createAndUpdateGroup(groupName: String) -> Single<Void>
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
@@ -88,11 +89,17 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     }
     
     // 시나리오
-    public func joinAndUpdateGroup(inviteCode: String) -> Single<HCGroup> {
+    public func joinAndUpdateGroup(inviteCode: String) -> Single<Void> {
         joinGroup(inviteCode: inviteCode)                      // Single<HCGroup>
             .flatMap { group in
                 self.updateUserGroupId(groupId: group.groupId) // Single<Void>
-                    .map { group }
+            }
+    }
+    
+    public func createAndUpdateGroup(groupName: String) -> Single<Void> {
+        createGroup(groupName: groupName)
+            .flatMap { group in
+                self.updateUserGroupId(groupId: group.groupId)
             }
     }
 }

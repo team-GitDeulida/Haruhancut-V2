@@ -17,11 +17,15 @@ public final class GroupRepositoryImpl: GroupRepositoryProtocol {
 
     private let firebaseAuthManager: FirebaseAuthManagerProtocol
     private let firebaseStorageManager: FirebaseStorageManagerProtocol
+    private let userSession: UserSessionType
     
-    public init(firebaseAuthManager: FirebaseAuthManagerProtocol, firebaseStorageManager: FirebaseStorageManagerProtocol
+    public init(firebaseAuthManager: FirebaseAuthManagerProtocol,
+                firebaseStorageManager: FirebaseStorageManagerProtocol,
+                userSession: UserSessionType
     ) {
         self.firebaseAuthManager = firebaseAuthManager
         self.firebaseStorageManager = firebaseStorageManager
+        self.userSession = userSession
     }
     
     // Group
@@ -39,6 +43,9 @@ public final class GroupRepositoryImpl: GroupRepositoryProtocol {
     
     public func updateUserGroupId(groupId: String) -> Single<Void> {
         return firebaseAuthManager.updateUserGroupId(groupId: groupId)
+            .do(onSuccess: { user in
+                self.userSession.update(\.groupId, groupId)
+            })
     }
     
     public func fetchGroup(groupId: String) -> Single<HCGroup> {

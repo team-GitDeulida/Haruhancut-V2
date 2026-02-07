@@ -19,6 +19,8 @@ final class SignUpViewModel: SignUpViewModelType {
     
     // MARK: - Properties
     private let signInUsecase: SignInUsecaseProtocol
+    let errorRelay = PublishRelay<LoginError>()
+
     
     // ViewModel 내부
     private let stepRelay = BehaviorRelay<Step>(value: .nickname)
@@ -62,6 +64,7 @@ final class SignUpViewModel: SignUpViewModelType {
         // 공통
         let step: Driver<Step>       /// 현재 회원가입 단계
         let nickname: Driver<String> /// 확정된 닉네임
+        let error: Signal<LoginError>
     }
     
     init(signInUsecase: SignInUsecaseProtocol,
@@ -113,37 +116,64 @@ extension SignUpViewModel {
                     print("birthday 확정:", birtyday)
                     self.userBuilder.withBirthday(birtyday)
                     return .just(.profile)
-
+                    
                 case .profile:
-                    // print("profile 확정:", profile ?? "이미지 없음")
                     if let profile = profile {
                         self.userBuilder.withProfileImage(profile)
                     }
-                    
+
                     let user = self.userBuilder.build()
-                    
-                    // 1) FCM 토큰 발급
+
                     return self.generateFcmToken()
-                        
-                        // 2) User 모델에 토큰 저장
                         .flatMapLatest { token -> Observable<User> in
                             var userWithToken = user
                             userWithToken.fcmToken = token
                             return .just(userWithToken)
                         }
-                    
-                        // 3) 회원가입 + 이미지 업로드 로직(이미지 존재 시)
-                        .flatMapLatest { userWithToken -> Observable<Result<Void, LoginError>> in
-                            self.registerUserWithProfileIfNeeded(user: userWithToken, image: profile)
+                        .flatMapLatest { userWithToken in
+                            self.signInUsecase
+                                .signUp(user: userWithToken, profileImage: profile)
+                                .asObservable()
                         }
-                    
-                        // 4) 회원가입 성공시 화면 전환
-                        .do(onNext: { [weak self] result in
-                            if case .success = result {
-                                self?.onSignUpSuccess?()
-                            }
+                        .do(onNext: { [weak self] in
+                            self?.onSignUpSuccess?()
                         })
-                        .map { _ in Step.finish }
+                        .map { Step.finish }
+                        .do(onError: { [weak self] error in
+                            self?.errorRelay.accept(error as! LoginError)
+                        })
+                        .catchAndReturn(.profile) // 실패 시 현재 단계 유지
+
+//                case .profile:
+//                    // print("profile 확정:", profile ?? "이미지 없음")
+//                    if let profile = profile {
+//                        self.userBuilder.withProfileImage(profile)
+//                    }
+//                    
+//                    let user = self.userBuilder.build()
+//                    
+//                    // 1) FCM 토큰 발급
+//                    return self.generateFcmToken()
+//                        
+//                        // 2) User 모델에 토큰 저장
+//                        .flatMapLatest { token -> Observable<User> in
+//                            var userWithToken = user
+//                            userWithToken.fcmToken = token
+//                            return .just(userWithToken)
+//                        }
+//                    
+//                        // 3) 회원가입 + 이미지 업로드 로직(이미지 존재 시)
+//                        .flatMapLatest { userWithToken -> Observable<Result<Void, LoginError>> in
+//                            self.registerUserWithProfileIfNeeded(user: userWithToken, image: profile)
+//                        }
+//                    
+//                        // 4) 회원가입 성공시 화면 전환
+//                        .do(onNext: { [weak self] result in
+//                            if case .success = result {
+//                                self?.onSignUpSuccess?()
+//                            }
+//                        })
+//                        .map { _ in Step.finish }
                     
 
                 case .finish:
@@ -156,9 +186,12 @@ extension SignUpViewModel {
         
         return Output(isNicknameValid: isNicknameValid.asDriver(),
                       step: stepRelay.asDriver(),
-                      nickname: nicknameRelay.asDriver())
+                      nickname: nicknameRelay.asDriver(),
+                      error: errorRelay.asSignal())
     }
 }
+
+
 
 // MARK: - Usecase Wrapper
 extension SignUpViewModel {
@@ -185,6 +218,8 @@ extension SignUpViewModel {
         }
     }
     
+    
+    /*
     // legacy
     private func registerUser(user: User) -> Observable<Result<Void, LoginError>> {
         signInUsecase
@@ -221,5 +256,6 @@ extension SignUpViewModel {
                     }
             }
     }
+     */
 }
 

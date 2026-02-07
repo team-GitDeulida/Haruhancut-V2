@@ -31,7 +31,7 @@ extension SceneDelegate {
                                                     appleLoginManager: appleLoginManager,
                                                     firebaseAuthManager: firebaseAuthManager,
                                                     firebaseStorageManager: firebaseStorageManager, userSession: userSession)
-        let groupRepository = GroupRepositoryImpl(firebaseAuthManager: firebaseAuthManager, firebaseStorageManager: firebaseStorageManager)
+        let groupRepository = GroupRepositoryImpl(firebaseAuthManager: firebaseAuthManager, firebaseStorageManager: firebaseStorageManager, userSession: userSession)
         
         
         // usecase

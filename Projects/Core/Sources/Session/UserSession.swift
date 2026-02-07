@@ -13,7 +13,7 @@ import Foundation
 // - storage에 저장/복원될 수 있도록 Codable 채택
 public struct SessionUser: Codable, Equatable {
     public let userId: String
-    public let groupId: String?
+    public var groupId: String?
     
     public init(userId: String, groupId: String?) {
         self.userId = userId
@@ -64,6 +64,11 @@ public protocol UserSessionType {
     
     // 로그아웃/세션 초기화
     func clear()
+    
+    /// SessionUser의 특정 속성만 업데이트한다.
+    func update<Value>(_ keyPath: WritableKeyPath<SessionUser, Value>,
+                       _ value: Value
+    )
 }
 
 // MARK: - UserSession Implementation
@@ -164,5 +169,66 @@ public extension UserSession {
         cachedUser = nil
         storage.remove(Key.user)
         onSessionChanged?(nil)
+    }
+}
+
+extension UserSession {
+    
+    /// SessionUser에서 "변경을 허용하는 속성"만 명시적으로 관리
+    ///
+    /// - 목적:
+    ///   - userId 같은 불변 필드 수정 방지
+    ///   - KeyPath 기반 API의 무결성 확보
+    public func isAllowedKeyPath<Value>(
+        _ keyPath: WritableKeyPath<SessionUser, Value>
+    ) -> Bool {
+
+        switch keyPath {
+
+        // ✅ groupId는 세션 생명주기 중 변경 가능
+        case \SessionUser.groupId:
+            return true
+
+        // ❌ 그 외 모든 KeyPath는 차단
+        default:
+            return false
+        }
+    }
+    
+    /// SessionUser의 특정 속성만 업데이트한다.
+    ///
+    /// - Parameters:
+    ///   - keyPath: 수정하려는 SessionUser의 속성 KeyPath
+    ///   - value: 새로 설정할 값
+    ///
+    /// ⚠️ 주의
+    /// - 모든 KeyPath를 허용하지 않는다
+    /// - 반드시 `isAllowedKeyPath`를 통과해야 한다
+    /// - 변경은 storage 저장 + observer 알림까지 포함한다
+    public func update<Value>(
+        _ keyPath: WritableKeyPath<SessionUser, Value>,
+        _ value: Value
+    ) {
+        // 현재 로그인된 세션이 없으면 무시
+        guard var current = cachedUser else { return }
+
+        // 🔐 허용되지 않은 KeyPath 차단
+        guard isAllowedKeyPath(keyPath) else {
+            // 개발 중 실수 즉시 발견하기 위함
+            assertionFailure("❌ This SessionUser keyPath is not allowed to be updated.")
+            return
+        }
+
+        // 실제 값 변경 (여기서는 groupId만 통과 가능)
+        current[keyPath: keyPath] = value
+
+        // single source of truth 갱신
+        cachedUser = current
+
+        // 변경된 세션을 영속화
+        saveToStorage(current)
+
+        // 세션 변경 이벤트 전파
+        onSessionChanged?(current)
     }
 }
