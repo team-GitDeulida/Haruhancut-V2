@@ -21,57 +21,31 @@ public enum SocialAuthPayload {
     }
 }
 
+public enum SignInResult {
+    case existingUser(user: User)
+    case newUser(platform: User.LoginPlatform)
+}
+
 public protocol AuthUsecaseProtocol {
-    func signIn(with platform: User.LoginPlatform) -> Single<SocialAuthPayload>
-    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void>
-    func registerUserToRealtimeDatabase(user: User) -> Single<User>
-    func fetchUserInfo() -> Single<User>
+    // func fetchUserInfo() -> Single<User>
     func updateUser(user: User) -> Single<User>
     func uploadImage(user: User, image: UIImage) -> Single<URL>
     
-    // 일단 임시로 signup을 여기구현
+    // MARK: - Sign
+    func signIn(platform: User.LoginPlatform) -> Single<SignInResult>
     func signUp(user: User, profileImage: UIImage?) -> Single<Void>
 }
 
 public final class AuthUsecaseImpl: AuthUsecaseProtocol {
 
     private let repository: AuthRepositoryProtocol
+    private let userSession: UserSessionType
     
-    public init(authRepository: AuthRepositoryProtocol) {
+    public init(authRepository: AuthRepositoryProtocol,
+                userSession: UserSessionType
+    ) {
         self.repository = authRepository
-    }
-    
-    public func signIn(with platform: User.LoginPlatform) -> Single<SocialAuthPayload> {
-        switch platform {
-        case .kakao:
-            return repository.loginWithKakao() // Single<String>
-                .map { SocialAuthPayload.kakao(token: $0) }
-        case .apple: // Observable<Result<(String, String), LoginError>>
-            return repository.loginWithApple()
-                .map { SocialAuthPayload.apple(idToken: $0.0, rawNonce: $0.1) }
-        }
-    }
-    
-    /// Firebase Auth에 소셜 로그인으로 인증 요청
-    /// - Parameters:
-    ///   - prividerID: .kakao, .apple
-    ///   - idToken: kakaoToken, appleToken
-    /// - Returns: Result<Void, LoginError>
-    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void> {
-        return repository.authenticateUser(prividerID: prividerID, idToken: idToken, rawNonce: rawNonce)
-    }
-    
-    /// Firebase Realtime Database에 유저 정보를 저장하고, 저장된 User를 반환
-    /// - Parameter user: 저장할 User 객체
-    /// - Returns: Result<User, LoginError>
-    public func registerUserToRealtimeDatabase(user: User) -> Single<User> {
-        return repository.registerUserToRealtimeDatabase(user: user)
-    }
-    
-    /// 본인 정보 불러오기
-    /// - Returns: Observable<User?>
-    public func fetchUserInfo() -> Single<User> {
-        return repository.fetchMyUser()
+        self.userSession = userSession
     }
     
     /// 유저 업데이트
@@ -91,10 +65,11 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     }
     
     public func signUp(user: User, profileImage: UIImage?) -> Single<Void> {
-        registerUserToRealtimeDatabase(user: user)
+        repository.registerUserToRealtimeDatabase(user: user)
             .flatMap { registeredUser in
                 guard let image = profileImage else {
-                    return .just(registeredUser)
+                    // 이미지가 없다면 바로 성공(Void) 반환
+                    return .just(())
                 }
 
                 return self.uploadImage(user: registeredUser, image: image)
@@ -102,9 +77,81 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
                         var updated = registeredUser
                         updated.profileImageURL = url.absoluteString
                         return self.updateUser(user: updated)
+                            .mapToVoid()
                     }
+                    .do(onSuccess: {
+                        self.userSession.update(SessionUser(userId: user.uid, groupId: nil))
+                       //  self.userSession.update(\.userId, registeredUser.uid)
+                    })
             }
-            .map { _ in () }
     }
+    
+    public func signIn(platform: User.LoginPlatform) -> Single<SignInResult> {
+        self.loginWith(with: platform)
+            .flatMap { payload in
+                self.authenticate(payload: payload)
+            }
+            .flatMap { uid in
+                self.resolveUser(uid: uid, platform: platform)
+            }
+            .do { result in
+                if case .existingUser(let user) = result {
+                    self.userSession.update(SessionUser(userId: user.uid,
+                                                        groupId: user.groupId))
+                }
+            }
+    }
+}
 
+// MARK: - Sign in
+extension AuthUsecaseImpl {
+    
+    /// Firebase 인증
+    ///
+    /// - 인증 결과 값은 필요 없고
+    /// - 성공 / 실패 여부만 중요
+    /// → Completable 로 표현
+    private func authenticate(payload: SocialAuthPayload) -> Single<String> {
+        switch payload {
+        case .kakao(let token):
+            return repository.authenticateUser(providerID: "kakao",
+                                    idToken: token,
+                                    rawNonce: nil)
+            
+        case .apple(let idToken, let rawNonce):
+            return repository.authenticateUser(providerID: "apple",
+                                    idToken: idToken,
+                                    rawNonce: rawNonce)
+        }
+    }
+    
+    /// 기존 유저 / 신규 유저 판별
+    ///
+    /// - 기존 유저: 홈으로 이동
+    /// - 신규 유저: 온보딩으로 이동
+    /// - 분기 결과는 side-effect로만 처리
+    private func resolveUser(uid: String, platform: User.LoginPlatform) -> Single<SignInResult> {
+        self.repository.fetchUser(uid: uid)
+            .map { user in
+                if let user {
+                    return .existingUser(user: user)
+                } else {
+                    return .newUser(platform: platform)
+                }
+            }
+    }
+    
+    /// 소셜 로그인
+    /// - Parameter platform: 플랫폼
+    /// - Returns: SocialAuthPayload
+    private func loginWith(with platform: User.LoginPlatform) -> Single<SocialAuthPayload> {
+        switch platform {
+        case .kakao:
+            return repository.loginWithKakao() // Single<String>
+                .map { SocialAuthPayload.kakao(token: $0) }
+        case .apple: // Observable<Result<(String, String), LoginError>>
+            return repository.loginWithApple()
+                .map { SocialAuthPayload.apple(idToken: $0.0, rawNonce: $0.1) }
+        }
+    }
 }

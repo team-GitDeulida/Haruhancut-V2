@@ -30,15 +30,17 @@ extension SceneDelegate {
         let authRepository = AuthRepositoryImpl(kakaoLoginManager: kakaoLoginManager,
                                                     appleLoginManager: appleLoginManager,
                                                     firebaseAuthManager: firebaseAuthManager,
-                                                    firebaseStorageManager: firebaseStorageManager, userSession: userSession)
+                                                    firebaseStorageManager: firebaseStorageManager)
         let groupRepository = GroupRepositoryImpl(firebaseAuthManager: firebaseAuthManager, firebaseStorageManager: firebaseStorageManager, userSession: userSession)
         
         
         // usecase
-        let authUseCase = AuthUsecaseImpl(authRepository: authRepository)
+        let authUseCase = AuthUsecaseImpl(authRepository: authRepository,
+                                          userSession: userSession)
         DIContainer.shared.register(AuthUsecaseProtocol.self, dependency: authUseCase)
         
-        let groupUseCase = GroupUsecaseImpl(groupRepository: groupRepository)
+        let groupUseCase = GroupUsecaseImpl(groupRepository: groupRepository,
+                                            userSession: userSession)
         DIContainer.shared.register(GroupUsecaseProtocol.self, dependency: groupUseCase)
     }
 }

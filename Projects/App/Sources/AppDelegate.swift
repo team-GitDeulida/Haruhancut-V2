@@ -12,8 +12,8 @@ import FirebaseCore
 import FirebaseMessaging
 
 // kakao
-import RxKakaoSDKCommon
 import KakaoSDKAuth
+import RxKakaoSDKCommon
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -41,6 +41,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
         // Firebase
+        FirebaseConfiguration.shared.setLoggerLevel(.error)
         FirebaseApp.configure()
         
         // Kakao
@@ -76,3 +77,4 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 }
 
+// -MigrateManager.swift -AuthApiCommon.swift -Api.swift

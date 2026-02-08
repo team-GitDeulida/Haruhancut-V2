@@ -29,25 +29,25 @@ import RxSwift
              failure: .updateUserError
          )
  */
-public extension ObservableType {
-    func asResult<T, E: Error>(success value: T, failure error: E) -> Observable<Result<T, E>> {
-        self
-            .map { _ in .success(value) }
-            .catch { _ in .just(.failure(error)) }
-    }
-    
-    func mapTo<R>(_ value: R) -> Observable<R> {
-        map { _ in value }
-    }
-    
-    func asResult<E: Error>(
-        failure error: E
-    ) -> Observable<Result<Element, E>> {
-        self
-            .map { .success($0) }
-            .catch { _ in .just(.failure(error)) }
-    }
-}
+//public extension ObservableType {
+//    func asResult<T, E: Error>(success value: T, failure error: E) -> Observable<Result<T, E>> {
+//        self
+//            .map { _ in .success(value) }
+//            .catch { _ in .just(.failure(error)) }
+//    }
+//    
+//    func mapTo<R>(_ value: R) -> Observable<R> {
+//        map { _ in value }
+//    }
+//    
+//    func asResult<E: Error>(
+//        failure error: E
+//    ) -> Observable<Result<Element, E>> {
+//        self
+//            .map { .success($0) }
+//            .catch { _ in .just(.failure(error)) }
+//    }
+//}
 
 public extension ObservableType {
     /// Observable이 방출하는 각 `Result` 값을
@@ -71,8 +71,28 @@ public extension ObservableType {
     /// ```
     ///
     /// - 반환값: `Result<Void, Failure>`를 방출하는 Observable
-    func mapToVoid<Success, Failure>() -> Observable<Result<Void, Failure>>
-    where Element == Result<Success, Failure> {
-        self.map { $0.mapToVoid() }
+//    func mapToVoid<Success, Failure>() -> Observable<Result<Void, Failure>>
+//    where Element == Result<Success, Failure> {
+//        self.map { $0.mapToVoid() }
+//    }
+}
+
+public extension ObservableType {
+    func mapTo<T>(_ value: T) -> Observable<T> {
+        map { _ in value }
+    }
+    
+    func mapToVoid() -> Observable<Void> {
+        map { _ in () }
+    }
+}
+
+public extension PrimitiveSequence where Trait == SingleTrait {
+    func mapTo<T>(_ value: T) -> Single<T> {
+        map { _ in value }
+    }
+    
+    func mapToVoid() -> Single<Void> {
+        map { _ in () }
     }
 }

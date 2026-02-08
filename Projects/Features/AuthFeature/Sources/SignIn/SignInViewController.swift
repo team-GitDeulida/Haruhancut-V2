@@ -45,6 +45,12 @@ final class SignInViewController: UIViewController {
                                           appleLoginButtonTapped: customView.appleLoginButton.rx.tap.asObservable())
         
         let output = signInViewModel.transform(input: input)
+        output.loginError
+            .drive(onNext: { result in
+                 print("vc: 로그인 테스트 \(result)")
+            })
+            .disposed(by: disposeBag)
+            
 //        output.loginResult
 //            .drive(onNext: { result in
 //                // print("vc: 로그인 성공")

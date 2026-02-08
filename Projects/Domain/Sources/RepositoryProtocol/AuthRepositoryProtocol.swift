@@ -13,12 +13,12 @@ public protocol AuthRepositoryProtocol {
     // MARK: - Login
     func loginWithKakao() -> Single<String>
     func loginWithApple() -> Single<(String, String)>
-    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void>
+    func authenticateUser(providerID: String, idToken: String, rawNonce: String?) -> Single<String>
     
     // MARK: - User
     func registerUserToRealtimeDatabase(user: User) -> Single<User>
-    func fetchMyUser() -> Single<User>
-    func fetchUser(uid: String) -> Single<User>
+    // func fetchMyUser() -> Single<User>
+    func fetchUser(uid: String) -> Single<User?>
     
     func updateUser(user: User) -> Single<User>
     func deleteUser(uid: String) -> Single<Void>

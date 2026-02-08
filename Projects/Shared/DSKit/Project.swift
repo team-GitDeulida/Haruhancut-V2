@@ -14,7 +14,8 @@ let project = Project(
             sources: ["Sources/**"],
             resources: ["Resources/**"],
             dependencies: [
-                .project(target: "Core", path: "../../Core")
+                .project(target: "Core", path: "../../Core"),
+                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
             ],
             settings: .settings(
                 configurations: [
@@ -40,7 +41,8 @@ let project = Project(
             sources: ["Tests/Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "DSKit")
+                .target(name: "DSKit"),
+                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
             ]
         ),
         

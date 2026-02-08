@@ -11,10 +11,10 @@ import UIKit
 
 public protocol GroupUsecaseProtocol {
     // Group
-    func createGroup(groupName: String) -> Single<(groupId: String, inviteCode: String)>
-    func joinGroup(inviteCode: String) -> Single<HCGroup>
+    // func createGroup(groupName: String) -> Single<(groupId: String, inviteCode: String)>
+    // func joinGroup(inviteCode: String) -> Single<HCGroup>
     func updateGroup(path: String, post: Post) -> Single<Void>
-    func updateUserGroupId(groupId: String) -> Single<Void>
+    // func updateUserGroupId(groupId: String) -> Single<Void>
     func fetchGroup(groupId: String) -> Single<HCGroup>
     
     // Image
@@ -36,25 +36,18 @@ public protocol GroupUsecaseProtocol {
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     private let groupRepository: GroupRepositoryProtocol
+    private let userSession: UserSessionType
     
-    public init(groupRepository: GroupRepositoryProtocol) {
+    public init(groupRepository: GroupRepositoryProtocol,
+                userSession: UserSessionType
+    ) {
         self.groupRepository = groupRepository
+        self.userSession = userSession
     }
     
     // Group
-    public func createGroup(groupName: String) -> Single<(groupId: String, inviteCode: String)> {
-        return groupRepository.createGroup(groupName: groupName)
-    }
-    public func joinGroup(inviteCode: String) -> Single<HCGroup> {
-        return groupRepository.joinGroup(inviteCode: inviteCode)
-    }
-    
     public func updateGroup(path: String, post: Post) -> Single<Void> {
         return groupRepository.updateGroup(path: path, post: post)
-    }
-    
-    public func updateUserGroupId(groupId: String) -> Single<Void> {
-        return groupRepository.updateUserGroupId(groupId: groupId)
     }
     
     public func fetchGroup(groupId: String) -> Single<HCGroup> {
@@ -90,16 +83,16 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     
     // 시나리오
     public func joinAndUpdateGroup(inviteCode: String) -> Single<Void> {
-        joinGroup(inviteCode: inviteCode)                      // Single<HCGroup>
+        groupRepository.joinGroup(inviteCode: inviteCode)                      // Single<HCGroup>
             .flatMap { group in
-                self.updateUserGroupId(groupId: group.groupId) // Single<Void>
+                self.groupRepository.updateUserGroupId(groupId: group.groupId) // Single<Void>
             }
     }
     
     public func createAndUpdateGroup(groupName: String) -> Single<Void> {
-        createGroup(groupName: groupName)
+        groupRepository.createGroup(groupName: groupName)
             .flatMap { group in
-                self.updateUserGroupId(groupId: group.groupId)
+                self.groupRepository.updateUserGroupId(groupId: group.groupId)
             }
     }
 }

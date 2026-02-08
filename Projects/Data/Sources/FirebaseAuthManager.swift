@@ -95,13 +95,14 @@ public protocol FirebaseAuthManagerProtocol {
     
     // MARK: - 유저관련
     // Firebase Auth 인증
-    func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void>
+    // func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void>
+    func authenticateUser(providerID: String, idToken: String, rawNonce: String?) -> Single<String>
     
     // Realtime DB 유저 생성
     func registerUserToRealtimeDatabase(user: Domain.User) -> Single<Domain.User>
     
     // 내 정보 조회
-    func fetchMyInfo() -> Single<Domain.User?>
+    // func fetchMyInfo() -> Single<Domain.User?>
     
     // 특정 유저 조회
     func fetchUser(uid: String) -> Single<Domain.User?>
@@ -163,6 +164,7 @@ extension FirebaseAuthManager {
                 self.databaseRef.child(path).setValue(dict) { error, _ in
                     if let error = error {
                         print("🔥 setValue 실패: \(error.localizedDescription)")
+                        
                         single(.failure(FirebaseError.unknown(error)))
                     } else {
                         single(.success(()))
@@ -256,34 +258,109 @@ extension FirebaseAuthManager {
 // MARK: - 유저 관련
 extension FirebaseAuthManager {
     
+    private func waitForAuthUser_() -> Single<String> {
+        Single.create { single in
+            let handle = Auth.auth().addStateDidChangeListener { _, user in
+                if let user {
+                    single(.success(user.uid))
+                }
+            }
+
+            return Disposables.create {
+                Auth.auth().removeStateDidChangeListener(handle)
+            }
+        }
+    }
+    
+    private func waitForAuthUser() -> Single<String> {
+        Single.create { single in
+            let handle = Auth.auth().addStateDidChangeListener { _, user in
+                guard let user else { return }
+
+                // 🔑 핵심: currentUser가 실제로 세팅될 때까지 보장
+                if Auth.auth().currentUser?.uid == user.uid {
+                    single(.success(user.uid))
+                }
+            }
+
+            return Disposables.create {
+                Auth.auth().removeStateDidChangeListener(handle)
+            }
+        }
+    }
+
+    
     /// Firebase Auth에 소셜 로그인으로 인증 요청
     /// - Parameters:
     ///   - prividerID: .kakao, .apple
     ///   - idToken: kakaoToken, appleToken
     /// - Returns: Result<Void, LoginError>
-    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void> {
-        guard let provider = ProviderID(rawValue: prividerID) else {
-            return .error(FirebaseError.invalidData)
-        }
-        
-        let credential = OAuthProvider.credential(
-            providerID: provider.authProviderID,
-            idToken: idToken,
-            rawNonce: rawNonce ?? "")
-        
-        return Single.create { single in
-            Auth.auth().signIn(with: credential) { _, error in
-                
-                if let error = error {
-                    print("❌ Firebase 인증 실패: \(error.localizedDescription)")
-                    single(.failure(FirebaseError.unknown(error)))
-                } else {
-                    single(.success(()))
-                }
+//    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void> {
+//        guard let provider = ProviderID(rawValue: prividerID) else {
+//            return .error(FirebaseError.invalidData)
+//        }
+//        
+//        let credential = OAuthProvider.credential(
+//            providerID: provider.authProviderID,
+//            idToken: idToken,
+//            rawNonce: rawNonce ?? "")
+//        
+//        let signIn = Single<Void>.create { single in
+//            Auth.auth().signIn(with: credential) { _, error in
+//                
+//                if let error = error {
+//                    print("❌ Firebase 인증 실패: \(error.localizedDescription)")
+//                    single(.failure(FirebaseError.unknown(error)))
+//                } else {
+//                    print("✅ Firebase 인증 성공")
+//                    single(.success(()))
+//                }
+//            }
+//            return Disposables.create()
+//        }
+//        
+//        return signIn
+//            .flatMap {
+//                self.waitForAuthUser()
+//            }
+//            .mapToVoid()
+//    }
+    
+    public func authenticateUser(
+            providerID: String,
+            idToken: String,
+            rawNonce: String?
+        ) -> Single<String> {
+
+            guard let provider = ProviderID(rawValue: providerID) else {
+                return .error(FirebaseError.invalidData)
             }
-            return Disposables.create()
+
+            let credential = OAuthProvider.credential(
+                providerID: provider.authProviderID,
+                idToken: idToken,
+                rawNonce: rawNonce ?? ""
+            )
+
+            return Single<String>.create { single in
+                Auth.auth().signIn(with: credential) { _, error in
+                    if let error {
+                        single(.failure(FirebaseError.unknown(error)))
+                        return
+                    }
+
+                    // ❗️Auth 성공은 "uid 확보"로 확정
+                    guard let uid = Auth.auth().currentUser?.uid else {
+                        single(.failure(LoginError.authError))
+                        return
+                    }
+
+                    single(.success(uid))
+                }
+
+                return Disposables.create()
+            }
         }
-    }
     
     /// Firebase Realtime Database에 유저 정보를 저장하고, 저장된 User를 반환 - create
     /// - Parameter user: 저장할 User 객체
@@ -300,26 +377,6 @@ extension FirebaseAuthManager {
 
         return setValue(path: path, value: userDto)
             .map { userEntity }
-    }
-    
-    /// 나의 유저정보 불러오기 - read
-    /// - Returns: Observable<User?>
-    public func fetchMyInfo() -> Single<Domain.User?> {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            print("🔸 로그인된 유저 없음")
-            return Single.just(nil)
-        }
-        
-        let path = "users/\(uid)"
-            
-            return readValue(path: path, type: UserDTO.self)
-                .map { dto in
-                    return dto.toModel()
-                }
-                .catch { error in
-                    print("❌ 유저 정보 디코딩 실패 - nil반환: \(error.localizedDescription)")
-                    return Single.just(nil)
-                }
     }
     
     /// Uid기반 유저 정보 가져오기 - read

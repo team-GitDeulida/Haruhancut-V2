@@ -12,7 +12,7 @@ import Foundation
 // - Auth Context에서 사용되며
 // - storage에 저장/복원될 수 있도록 Codable 채택
 public struct SessionUser: Codable, Equatable {
-    public let userId: String
+    public var userId: String
     public var groupId: String?
     
     public init(userId: String, groupId: String?) {
@@ -92,8 +92,7 @@ public final class UserSession: UserSessionType {
     public init(storage: KeyValueStorage) {
         self.storage = storage
         self.cachedUser = self.loadFromStorage()
-        print(self.sessionUser ?? "")
-        // print("캐시 유저: \(String(describing: cachedUser))")
+        Logger.d("\(String(describing: self.sessionUser))")
     }
 }
 
@@ -159,6 +158,7 @@ public extension UserSession {
         self.cachedUser = user
         self.saveToStorage(user)
         self.onSessionChanged?(user) // 상태가 바뀌면 값을 만들어서 호출 -> 받는쪽:  bind로 등록한 외부 객체
+        Logger.d("\(String(describing: self.cachedUser ?? nil))")
     }
     
     // 로그아웃 / 세션 초기화
@@ -186,7 +186,7 @@ extension UserSession {
         switch keyPath {
 
         // ✅ groupId는 세션 생명주기 중 변경 가능
-        case \SessionUser.groupId:
+        case \SessionUser.groupId, \SessionUser.userId:
             return true
 
         // ❌ 그 외 모든 KeyPath는 차단
@@ -210,7 +210,10 @@ extension UserSession {
         _ value: Value
     ) {
         // 현재 로그인된 세션이 없으면 무시
-        guard var current = cachedUser else { return }
+        guard var current = cachedUser else {
+            Logger.d("세션 없음")
+            return
+        }
 
         // 🔐 허용되지 않은 KeyPath 차단
         guard isAllowedKeyPath(keyPath) else {

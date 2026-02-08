@@ -122,14 +122,12 @@ private extension AppCoordinator {
         let isLoggedIn =
         userSession.isLoggedIn &&
         Auth.auth().currentUser != nil
-        print("1")
         
         // 1️⃣ 로그인 안 됨
         guard isLoggedIn else {
             startLoginFlowCoordinator()
             return
         }
-        print("2")
 
         // 2️⃣ 로그인 됐는데 그룹 없음
         guard userSession.hasGroup else {
@@ -137,11 +135,9 @@ private extension AppCoordinator {
             print("그룹 플로우")
             return
         }
-        print("3")
 
         // 3️⃣ 로그인 + 그룹 있음
         startHomeFlowCoordinator()
-        print("4")
     }
     
     // MARK: - Bind Session

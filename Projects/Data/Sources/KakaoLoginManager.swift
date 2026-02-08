@@ -9,6 +9,8 @@ import RxSwift
 import KakaoSDKUser
 import RxKakaoSDKUser
 import Core
+import Foundation
+import KakaoSDKAuth
 
 /*
  Single<String>
@@ -25,20 +27,53 @@ public final class KakaoLoginManager: KakaoLoginManagerProtocol {
     
     public init() {}
     
+//    public func login() -> Single<String> {
+//        Logger.d("login 1-1")
+//        
+//        // 카카오 앱 설치되어 있으면 카카오 앱으로 로그인
+//        let loginSingle = UserApi.isKakaoTalkLoginAvailable()
+//        ? UserApi.shared.rx.loginWithKakaoTalk().asSingle()
+//        : UserApi.shared.rx.loginWithKakaoAccount().asSingle()
+//        
+//        return loginSingle
+//            // idToken만 뽑기
+//            .flatMap { token in
+//                Logger.d("login 1-2")
+//                guard let idToken = token.idToken else {
+//                    return .error(LoginError.noTokenKakao)
+//                }
+//                Logger.d("login 1-3: \(idToken)")
+//                return .just(idToken)
+//            }
+//            .catch { error in
+//                return .error(LoginError.sdkKakao(error))
+//            }
+//    }
+    
     public func login() -> Single<String> {
-        let loginSingle = UserApi.isKakaoTalkLoginAvailable()
-        ? UserApi.shared.rx.loginWithKakaoTalk().asSingle()
-        : UserApi.shared.rx.loginWithKakaoAccount().asSingle()
-        
-        return loginSingle
-            .flatMap { token in
-                guard let idToken = token.idToken else {
-                    return .error(LoginError.noTokenKakao)
+        return Single<String>.create { observer in
+
+            let completion: (OAuthToken?, Error?) -> Void = { token, error in
+                if let error {
+                    observer(.failure(LoginError.sdkKakao(error)))
+                    return
                 }
-                return .just(idToken)
+
+                guard let idToken = token?.idToken else {
+                    observer(.failure(LoginError.noTokenKakao))
+                    return
+                }
+
+                observer(.success(idToken))
             }
-            .catch { error in
-                return .error(LoginError.sdkKakao(error))
+
+            if UserApi.isKakaoTalkLoginAvailable() {
+                UserApi.shared.loginWithKakaoTalk(completion: completion)
+            } else {
+                UserApi.shared.loginWithKakaoAccount(completion: completion)
             }
+
+            return Disposables.create()
+        }
     }
 }

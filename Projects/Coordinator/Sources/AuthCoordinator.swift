@@ -27,6 +27,7 @@ public final class AuthCoordinator: Coordinator {
         
         // 기존 유저
         signIn.vm.onSignInSuccess = { [weak self] in
+            
             guard let self = self else { return }
             
             // Auth 플로우 종료
