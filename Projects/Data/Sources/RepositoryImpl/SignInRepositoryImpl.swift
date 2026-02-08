@@ -16,7 +16,7 @@ import UIKit
  값에 따라 성공/실패 결정 → flatMap
  에러 변환 → catch
  */
-public final class SignInRepositoryImpl: SignInRepositoryProtocol {
+public final class AuthRepositoryImpl: AuthRepositoryProtocol {
     
     private let kakaoLoginManager: KakaoLoginManagerProtocol
     private let appleLoginManager: AppleLoginManagerProtocol

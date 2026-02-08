@@ -19,19 +19,19 @@ let project = Project(
         ),
 
         // MARK: - Unit Tests
-        // .target(
-        //     name: "CoreTests",
-        //     destinations: .iOS,
-        //     product: .unitTests,
-        //     bundleId: "com.indextrown.Haruhancut.core.tests",
-        //     deploymentTargets: .iOS("17.0"),
-        //     sources: ["Tests/Sources/**"],
-        //     resources: [],
-        //     dependencies: [
-        //         .target(name: "Core"),
-        //         .target(name: "CoreTesting")
-        //     ]
-        // ),
+        .target(
+            name: "CoreTests",
+            destinations: .iOS,
+            product: .unitTests,
+            bundleId: "com.indextrown.Haruhancut.core.tests",
+            deploymentTargets: .iOS("17.0"),
+            sources: ["Tests/Sources/**"],
+            resources: [],
+            dependencies: [
+                .target(name: "Core"),
+                // .target(name: "CoreTesting")
+            ]
+        ),
 
         // MARK: - Testing
         // .target(

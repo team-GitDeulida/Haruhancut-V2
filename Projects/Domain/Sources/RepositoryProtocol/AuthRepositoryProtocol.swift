@@ -9,7 +9,7 @@ import UIKit
 import RxSwift
 import Core
 
-public protocol SignInRepositoryProtocol {
+public protocol AuthRepositoryProtocol {
     // MARK: - Login
     func loginWithKakao() -> Single<String>
     func loginWithApple() -> Single<(String, String)>

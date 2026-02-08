@@ -18,7 +18,7 @@ final class SignUpViewModel: SignUpViewModelType {
     private let disposeBag = DisposeBag()
     
     // MARK: - Properties
-    private let signInUsecase: SignInUsecaseProtocol
+    private let authUsecase: AuthUsecaseProtocol
     let errorRelay = PublishRelay<LoginError>()
 
     
@@ -67,10 +67,10 @@ final class SignUpViewModel: SignUpViewModelType {
         let error: Signal<LoginError>
     }
     
-    init(signInUsecase: SignInUsecaseProtocol,
+    init(authUsecase: AuthUsecaseProtocol,
          loginPlatform: User.LoginPlatform
     ) {
-        self.signInUsecase = signInUsecase
+        self.authUsecase = authUsecase
         self.userBuilder = UserBuilder(loginPlatform: loginPlatform)
     }
 }
@@ -131,7 +131,7 @@ extension SignUpViewModel {
                             return .just(userWithToken)
                         }
                         .flatMapLatest { userWithToken in
-                            self.signInUsecase
+                            self.authUsecase
                                 .signUp(user: userWithToken, profileImage: profile)
                                 .asObservable()
                         }

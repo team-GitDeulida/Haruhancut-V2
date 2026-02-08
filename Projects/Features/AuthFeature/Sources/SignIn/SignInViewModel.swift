@@ -16,7 +16,7 @@ final class SignInViewModel: SignInViewModelType {
     let disposeBag = DisposeBag()
     
     // MARK: - Properties
-    private let signInUsecase: SignInUsecaseProtocol
+    private let authUsecase: AuthUsecaseProtocol
 
     // MARK: - Coordinate Trigger
     var onSignInSuccess: (() -> Void)?
@@ -35,8 +35,8 @@ final class SignInViewModel: SignInViewModelType {
     }
     
     // MARK: - Init
-    public init(signInUsecase: SignInUsecaseProtocol) {
-        self.signInUsecase = signInUsecase
+    public init(authUsecase: AuthUsecaseProtocol) {
+        self.authUsecase = authUsecase
     }
 }
 
@@ -80,7 +80,7 @@ private extension SignInViewModel {
     /// 2. Firebase 인증 (성공 여부만 중요)
     /// 3. 기존 유저 / 신규 유저 분기
     func loginFlow(platform: User.LoginPlatform) -> Observable<Void> {
-        signInUsecase
+        authUsecase
             // 1. 선택된 플랫폼으로 "소셜 로그인" 요청
             //    - kakao → kakao token
             //    - apple → idToken + authorizationCode
@@ -102,13 +102,13 @@ private extension SignInViewModel {
     func authenticate(payload: SocialAuthPayload) -> Completable {
         switch payload {
         case .kakao(let token):
-            return signInUsecase.authenticateUser(prividerID: "kakao",
+            return authUsecase.authenticateUser(prividerID: "kakao",
                                                   idToken: token,
                                                   rawNonce: nil)
             .asCompletable()
         case .apple(let idToken, let rawNonce):
             print("디버깅: idToken: \(idToken), rawNonce:\(rawNonce)")
-            return signInUsecase.authenticateUser(prividerID: "apple",
+            return authUsecase.authenticateUser(prividerID: "apple",
                                                   idToken: idToken,
                                                   rawNonce: rawNonce)
             .asCompletable()
@@ -121,7 +121,7 @@ private extension SignInViewModel {
     /// - 신규 유저: 온보딩으로 이동
     /// - 분기 결과는 side-effect로만 처리
     func resolveUser(payload: SocialAuthPayload) -> Single<Void> {
-        signInUsecase.fetchUserInfo()
+        authUsecase.fetchUserInfo()
             .do(onSuccess: { [weak self] _ in
                 // 기존 유저
                 self?.onSignInSuccess?()

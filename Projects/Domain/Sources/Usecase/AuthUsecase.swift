@@ -21,7 +21,7 @@ public enum SocialAuthPayload {
     }
 }
 
-public protocol SignInUsecaseProtocol {
+public protocol AuthUsecaseProtocol {
     func signIn(with platform: User.LoginPlatform) -> Single<SocialAuthPayload>
     func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void>
     func registerUserToRealtimeDatabase(user: User) -> Single<User>
@@ -33,12 +33,12 @@ public protocol SignInUsecaseProtocol {
     func signUp(user: User, profileImage: UIImage?) -> Single<Void>
 }
 
-public final class SignInUsecaseImpl: SignInUsecaseProtocol {
+public final class AuthUsecaseImpl: AuthUsecaseProtocol {
 
-    private let repository: SignInRepositoryProtocol
+    private let repository: AuthRepositoryProtocol
     
-    public init(signInRepository: SignInRepositoryProtocol) {
-        self.repository = signInRepository
+    public init(authRepository: AuthRepositoryProtocol) {
+        self.repository = authRepository
     }
     
     public func signIn(with platform: User.LoginPlatform) -> Single<SocialAuthPayload> {

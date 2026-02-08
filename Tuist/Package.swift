@@ -45,7 +45,7 @@ let package = Package(
 
         .package(
             url: "https://github.com/firebase/firebase-ios-sdk.git",
-            .exact("11.14.0")
+            from: "11.14.0"
         ),
 
         .package(

@@ -31,8 +31,8 @@ public final class AuthFeatureBuilder {
 extension AuthFeatureBuilder: AuthFeatureBuildable {
     
     public func makeSignIn() -> SignInPresentable {
-        @Dependency var signInUsecase: SignInUsecaseProtocol
-        let vm = SignInViewModel(signInUsecase: signInUsecase)
+        @Dependency var authUsecase: AuthUsecaseProtocol
+        let vm = SignInViewModel(authUsecase: authUsecase)
         let vc = SignInViewController(signInViewModel: vm)
         return (vc, vm)
     }
@@ -40,8 +40,8 @@ extension AuthFeatureBuilder: AuthFeatureBuildable {
     public func makeSignUp(platform: User.LoginPlatform) -> SignUpPresentable {
         // @Dependency var signUpUsecase: SignUpUsecaseProtocol
         // let vm = SignUpViewModel(signUpUsecase: signUpUsecase)
-        @Dependency var signInUsecase: SignInUsecaseProtocol
-        let vm = SignUpViewModel(signInUsecase: signInUsecase, loginPlatform: platform)
+        @Dependency var authUsecase: AuthUsecaseProtocol
+        let vm = SignUpViewModel(authUsecase: authUsecase, loginPlatform: platform)
         let vc = SignUpViewController(viewModel: vm)
         return (vc, vm)
     }
