@@ -102,6 +102,11 @@ let package = Package(
         .package(
             url: "https://github.com/onevcat/Kingfisher.git",
             from: "8.6.2"
+        ),
+
+        .package(
+            url: "https://github.com/WenchaoD/FSCalendar.git", 
+            from: "2.8.4"
         )
     ]
 

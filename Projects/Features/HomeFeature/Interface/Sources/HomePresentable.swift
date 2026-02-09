@@ -11,6 +11,7 @@ import Core
 public protocol HomeRouteTrigger {
     var onImageTapped: (() -> Void)? { get set }
     var onLogoutTapped: (() -> Void)? { get set }
+    var onProfileTapped: (() -> Void)? { get set }
 }
 
 public typealias HomeViewModelType = ViewModelType & HomeRouteTrigger

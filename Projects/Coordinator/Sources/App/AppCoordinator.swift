@@ -76,7 +76,6 @@ public final class AppCoordinator: Coordinator {
         
         // 2. SignUpCoordinator 생성
         let signUpCoordinator = SignUpCoordinator(navigationController: navigationController,
-                                           
                                                   platform: platform)
         
         signUpCoordinator.parentCoordinator = self

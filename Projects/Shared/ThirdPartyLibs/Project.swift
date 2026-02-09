@@ -38,6 +38,8 @@ let project = Project(
                 .external(name: "Lottie"),
                 .external(name: "ScaleKit"),
                 .external(name: "Kingfisher"),
+                .external(name: "FSCalendar"),
+                
             ],
             settings: .settings(
                 base: [

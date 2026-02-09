@@ -13,8 +13,10 @@ final class HomeViewModel: HomeViewModelType {
     
     private let disposeBag = DisposeBag()
     
+    // MARK: - Coordinator Trigger
     var onLogoutTapped: (() -> Void)?
     var onImageTapped: (() -> Void)?
+    var onProfileTapped: (() -> Void)?
     
     struct Input {
         let logoutButtonTapped: Observable<Void>
@@ -28,7 +30,7 @@ final class HomeViewModel: HomeViewModelType {
         // bind: 값을 UI나 Binder로 꽂을 때
         // Driver는 UI용
         input.logoutButtonTapped
-            .subscribe(onNext: { [weak self] in
+            .bind(onNext: { [weak self] in
                 self?.onLogoutTapped?()
             })
             .disposed(by: disposeBag)

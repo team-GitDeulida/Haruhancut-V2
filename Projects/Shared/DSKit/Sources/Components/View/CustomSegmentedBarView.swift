@@ -8,7 +8,7 @@
 import UIKit
 
 public final class CustomSegmentedBarView: UIView {
-    let segmentedControl: UISegmentedControl
+    public let segmentedControl: UISegmentedControl
     private let underlineView = UIView()
     private var underlineLeadingConstraint: NSLayoutConstraint!
     private var underlineWidthConstraint: NSLayoutConstraint!
@@ -73,7 +73,7 @@ public final class CustomSegmentedBarView: UIView {
         moveUnderline(animated: true)
     }
 
-    func moveUnderline(animated: Bool) {
+    public func moveUnderline(animated: Bool) {
         layoutIfNeeded()
         let count = CGFloat(segmentedControl.numberOfSegments)
         let segmentWidth = bounds.width / max(count, 1)
