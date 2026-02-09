@@ -8,13 +8,59 @@ import PackageDescription
         // Customize the product types for specific package product
         // Default is .staticFramework
         // productTypes: ["Alamofire": .framework,]
+        // productTypes: [
+        //     "RxSwift": .framework,
+        //     "RxCocoa": .framework,
+        //     "RxRelay": .framework,
+        //     "Lottie": .framework,
+        //     "ScaleKit": .framework,
+        // ]
+
+        // productTypes: 이 SPM product를 Xcode에서 어떤 Mach-O 타입으로 빌드할까?
+        // - 즉 어떻게 링크할 지 강제한다
+        // - 여기 넣으면 워크스페이스 전역에서 (dynamic or static)으로 빌드해 준다는 말
+
+        // Dynamic Framework
+        // - 코드가 바이너리 밖에 따로 존재
+        // - 여러 타깃이 같은 코드 사본을 공유
+        // - 런타임 로딩 발생
+        // - UIKit / Obj-C runtime 영향 받음
+
+        // Static Framework
+        // - 각 타깃 바이너리에 코드 복사됨
+        // - 여러 모듈에서 쓰면 중복 포함
+        // - name mangling / demangle 문제 발생 가능
+        // - Firebase를 dynamic로하면 터지는 현상 발생하여 staticFramework으로 지정하였음
+
+        // 여기에 설정되지 않은 파일들은 기본 SPM 규칙으로 돌아간다
+        // - 기본 SPM 규칙: 필요한 타깃에서만 해당 product를 링크한다
+
+        // 그래서 안에 뭐를 넣느냐: 
+        // - Core / Feature / App / Tests 전부 사용하는 타입이 바뀌면 위험한 라이브러리
+        // - Static으로 쓰면 위험한 라이브러리
+        
+        // 그래서 안에 뭐를 안넣느냐:
+        // - UIKit / App lifecycle 전제 라이브러리
+        // - RxCocoa, SnapKit, Lottie, Kingfisher
         productTypes: [
+            // Rx → runtime 안정성
             "RxSwift": .framework,
-            "RxCocoa": .framework,
             "RxRelay": .framework,
+            "RxKakaoSDK": .framework,
+
+            // firebase
+            "FirebaseCore": .staticFramework,
+            "FirebaseMessaging": .staticFramework,
+            "FirebaseAuth": .staticFramework,
+            "FirebaseDatabase": .staticFramework,
+            "FirebaseStorage": .staticFramework,
+
+            // 기타 → 단순 라이브러리
             "Lottie": .framework,
+            "Kingfisher": .framework,
             "ScaleKit": .framework,
         ]
+
     )
 #endif
 

@@ -62,6 +62,7 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "AuthFeature"),
+                .project(target: "Domain", path: "../../Domain")
                 // .target(name: "AuthFeatureTesting")
             ],
             settings: .settings(

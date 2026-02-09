@@ -14,20 +14,28 @@ let project = Project(
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
+                // Rx
                 .external(name: "RxSwift"),
                 .external(name: "RxCocoa"),
                 .external(name: "RxRelay"),
                 // .external(name: "RxTest"),
                 // .external(name: "RxBlocking"),
-                .external(name: "Lottie"),
-                .external(name: "KakaoSDK"),
-                .external(name: "KakaoSDKCertCore"),
+
+                
+                // Kakao
                 .external(name: "RxKakaoSDK"),
+                // .external(name: "KakaoSDK"),
+                // .external(name: "KakaoSDKCertCore"),
+                
+                // Firebase
                 .external(name: "FirebaseAuth"),
                 .external(name: "FirebaseCore"),
                 .external(name: "FirebaseDatabase"),
                 .external(name: "FirebaseStorage"),
                 .external(name: "FirebaseMessaging"),
+
+                // UI / Utils
+                .external(name: "Lottie"),
                 .external(name: "ScaleKit"),
                 .external(name: "Kingfisher"),
             ],

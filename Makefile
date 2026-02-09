@@ -32,8 +32,32 @@ clean:
 # 4.115.0
 reset:
 	tuist clean
+	rm -rf .tuist
+	rm -rf Tuist/.build
+	rm -rf ~/.tuist-cache
+	tuist version
+	tuist install
+	tuist generate
+
+test:
+	killall Xcode || true
+	killall Simulator || true
+
+	sudo rm -rf /var/root/Library/Developer/Xcode
+	sudo rm -rf /var/root/.local/state/tuist
+
+	rm -rf ~/Library/Developer/Xcode/DerivedData
+	rm -rf ~/.local/state/tuist
+	rm -rf ~/.tuist
+
+	sudo chown -R kimdonghyeon:staff \
+	/Users/kimdonghyeon/2025/개발/앱출시/하루한컷
+
+	tuist clean
+	rm -rf .tuist
 	rm -rf Tuist/.build
 	rm -rf ~/.tuist-cache
 	tuist version
 	tuist install
 	tuist generate --no-open
+	tuist test CoreTests

@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import ThirdPartyLibs
+import Lottie
 
 public final class HCLottieView: UIView {
     private let animationView: LottieAnimationView
