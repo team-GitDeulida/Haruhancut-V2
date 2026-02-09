@@ -7,6 +7,8 @@
 
 import HomeFeatureInterface
 import UIKit
+import Core
+import Domain
 
 public protocol HomeFeatureBuildable {
     func makeHome() -> HomePresentable
@@ -21,7 +23,8 @@ public final class HomeFeatureBuilder {
 extension HomeFeatureBuilder: HomeFeatureBuildable {
     public func makeHome() -> HomePresentable {
         // return HomeInteractor()
-        let vm = HomeViewModel()
+        @Dependency var gropUsecase: GroupUsecaseProtocol
+        let vm = HomeViewModel(groupUsecase: gropUsecase)
         let vc = HomeViewController(viewModel: vm)
         return (vc, vm)
     }

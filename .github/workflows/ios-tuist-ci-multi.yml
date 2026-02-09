@@ -1,0 +1,237 @@
+name: 하루한컷 iOS Build & Test Multi
+
+on:
+  # UTC 22:00 = KST 07:00
+  schedule:
+    - cron: "0 22 * * *"
+
+  pull_request:
+    branches: [main, develop]
+
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+    inputs:
+      triggered_by_command:
+        description: "Triggered by PR command"
+        required: false
+        default: "false"
+      pr_number:
+        description: "PR number"
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+# =====================================================
+# 🔵 Build Job
+# =====================================================
+jobs:
+  build:
+    name: iOS Build (Debug)
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Shared.xcconfig
+        run: |
+          mkdir -p Projects/Shared/Configs
+          cat << 'EOF' > Projects/Shared/Configs/Shared.xcconfig
+          ${{ secrets.SHARED_XCCONFIG }}
+          EOF
+
+      - name: Select Xcode 16.4
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Cache Tuist & SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.tuist/Dependencies
+            ~/.tuist/Cache
+            ~/.swiftpm
+            Tuist/Dependencies/.build
+          key: tuist-${{ runner.os }}-${{ hashFiles('Tuist/Dependencies.swift', '**/Package.resolved') }}
+          restore-keys: tuist-${{ runner.os }}-
+
+      - name: Install Tuist
+        run: |
+          brew tap tuist/tuist
+          brew install tuist@4.115.0
+
+      - name: Tuist Generate
+        run: |
+          tuist install
+          tuist generate --no-open
+
+      - name: Resolve Build Simulator
+        run: |
+          SIM_NAME="iPhone 16"
+          SIM_OS="18.5"
+          UDID=$(xcrun simctl list devices available | \
+            grep "iOS ${SIM_OS}" -A 20 | \
+            grep "^ *${SIM_NAME} (" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          [ -z "$UDID" ] && exit 1
+          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
+
+      - name: Boot Build Simulator
+        run: xcrun simctl bootstatus "$SIM_UDID" -b
+
+      - name: Disable Swift Macro fingerprint validation
+        run: defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
+
+      - name: Build (Debug)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -workspace Haruhancut.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            | xcpretty
+
+  # =====================================================
+  # 🟢 Test Job
+  # =====================================================
+  test:
+    name: iOS Core Tests
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Shared.xcconfig
+        run: |
+          mkdir -p Projects/Shared/Configs
+          cat << 'EOF' > Projects/Shared/Configs/Shared.xcconfig
+          ${{ secrets.SHARED_XCCONFIG }}
+          EOF
+
+      - name: Select Xcode 16.4
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Cache Tuist & SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.tuist/Dependencies
+            ~/.tuist/Cache
+            ~/.swiftpm
+            Tuist/Dependencies/.build
+          key: tuist-${{ runner.os }}-${{ hashFiles('Tuist/Dependencies.swift', '**/Package.resolved') }}
+          restore-keys: tuist-${{ runner.os }}-
+
+      - name: Install Tuist
+        run: |
+          brew tap tuist/tuist
+          brew install tuist@4.115.0
+
+      - name: Tuist Generate
+        run: |
+          tuist install
+          tuist generate --no-open
+
+      - name: Resolve Test Simulator
+        run: |
+          SIM_NAME="iPhone 16 Pro"
+          SIM_OS="18.5"
+          UDID=$(xcrun simctl list devices available | \
+            grep "iOS ${SIM_OS}" -A 20 | \
+            grep "^ *${SIM_NAME} (" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          [ -z "$UDID" ] && exit 1
+          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
+
+      - name: Boot Test Simulator
+        run: xcrun simctl bootstatus "$SIM_UDID" -b
+
+      - name: Tuist Test Core
+        run: |
+          set -o pipefail
+          tuist test Core \
+            --configuration Debug \
+            --skip-ui-tests
+
+  # =====================================================
+  # 📣 Result Notify Job (Build + Test 결과 종합)
+  # =====================================================
+  notify:
+    name: Notify Result
+    runs-on: macos-15
+    needs: [build, test]
+    if: always()
+
+    steps:
+      # ✅ 성공 PR 코멘트
+      - name: Comment success
+        if: needs.build.result == 'success' && needs.test.result == 'success' &&
+          github.event.inputs.triggered_by_command == 'true' &&
+          github.event.inputs.pr_number != ''
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.inputs.pr_number }}
+          body: |
+            ✅ **하루한컷 iOS 빌드 & 테스트 성공**
+            - Build: ✅
+            - Test: ✅
+
+      # ❌ 실패 PR 코멘트
+      - name: Comment failure
+        if:
+          (needs.build.result != 'success' || needs.test.result != 'success') &&
+          github.event.inputs.triggered_by_command == 'true' &&
+          github.event.inputs.pr_number != ''
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.inputs.pr_number }}
+          body: |
+            ❌ **하루한컷 iOS CI 실패**
+            - Build: ${{ needs.build.result }}
+            - Test: ${{ needs.test.result }}
+
+      # ✅ 성공 메일
+      - name: Send email on success
+        if: needs.build.result == 'success' && needs.test.result == 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ✅ 하루한컷 iOS 빌드 & 테스트 성공
+          body: |
+            ✅ Build & Test 모두 성공했습니다.
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Actor: ${{ github.actor }}
+            URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: indextrown@gmail.com
+          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
+
+      # ❌ 실패 메일
+      - name: Send email on failure
+        if: needs.build.result != 'success' || needs.test.result != 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ❌ 하루한컷 iOS CI 실패
+          body: |
+            ❌ CI 실패 발생
+
+            Build: ${{ needs.build.result }}
+            Test: ${{ needs.test.result }}
+
+            URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: indextrown@gmail.com
+          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>

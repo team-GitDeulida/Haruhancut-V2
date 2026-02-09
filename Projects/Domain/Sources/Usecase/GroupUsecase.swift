@@ -9,13 +9,17 @@ import RxSwift
 import Core
 import UIKit
 
+enum DomainError: Error {
+    case missingGroupId
+}
+
 public protocol GroupUsecaseProtocol {
     // Group
     // func createGroup(groupName: String) -> Single<(groupId: String, inviteCode: String)>
     // func joinGroup(inviteCode: String) -> Single<HCGroup>
     func updateGroup(path: String, post: Post) -> Single<Void>
     // func updateUserGroupId(groupId: String) -> Single<Void>
-    func fetchGroup(groupId: String) -> Single<HCGroup>
+    func fetchGroup() -> Single<HCGroup>
     
     // Image
     func uploadImage(image: UIImage, path: String) -> Single<URL>
@@ -50,7 +54,10 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return groupRepository.updateGroup(path: path, post: post)
     }
     
-    public func fetchGroup(groupId: String) -> Single<HCGroup> {
+    public func fetchGroup() -> Single<HCGroup> {
+        guard let groupId = userSession.sessionUser?.groupId else {
+            return .error(DomainError.missingGroupId)
+        }
         return groupRepository.fetchGroup(groupId: groupId)
     }
     

@@ -84,9 +84,20 @@ public final class CustomSegmentedBarView: UIView {
             self.layoutIfNeeded()
         }
     }
-
+    
     public override func layoutSubviews() {
         super.layoutSubviews()
         moveUnderline(animated: false)
     }
+    
+    // sizeToFit() 호출될 때 크기
+    public override func sizeThatFits(_ size: CGSize) -> CGSize {
+        CGSize(width: size.width, height: 36)
+    }
+
+    // AutoLayout 계산시 크기
+    public override var intrinsicContentSize: CGSize {
+        CGSize(width: UIView.noIntrinsicMetric, height: 36)
+    }
 }
+

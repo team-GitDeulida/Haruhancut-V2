@@ -144,38 +144,6 @@ extension SignUpViewModel {
                         })
                         .catchAndReturn(.profile) // 실패 시 현재 단계 유지
 
-//                case .profile:
-//                    // print("profile 확정:", profile ?? "이미지 없음")
-//                    if let profile = profile {
-//                        self.userBuilder.withProfileImage(profile)
-//                    }
-//                    
-//                    let user = self.userBuilder.build()
-//                    
-//                    // 1) FCM 토큰 발급
-//                    return self.generateFcmToken()
-//                        
-//                        // 2) User 모델에 토큰 저장
-//                        .flatMapLatest { token -> Observable<User> in
-//                            var userWithToken = user
-//                            userWithToken.fcmToken = token
-//                            return .just(userWithToken)
-//                        }
-//                    
-//                        // 3) 회원가입 + 이미지 업로드 로직(이미지 존재 시)
-//                        .flatMapLatest { userWithToken -> Observable<Result<Void, LoginError>> in
-//                            self.registerUserWithProfileIfNeeded(user: userWithToken, image: profile)
-//                        }
-//                    
-//                        // 4) 회원가입 성공시 화면 전환
-//                        .do(onNext: { [weak self] result in
-//                            if case .success = result {
-//                                self?.onSignUpSuccess?()
-//                            }
-//                        })
-//                        .map { _ in Step.finish }
-                    
-
                 case .finish:
                     return .just(.finish)
                 }
@@ -217,45 +185,5 @@ extension SignUpViewModel {
             return Disposables.create()
         }
     }
-    
-    
-    /*
-    // legacy
-    private func registerUser(user: User) -> Observable<Result<Void, LoginError>> {
-        signInUsecase
-            .registerUserToRealtimeDatabase(user: user) // Result<User, LoginError>
-            .map { $0.mapToVoid() }
-    }
-    
-    private func registerUserWithProfileIfNeeded(user: User, image: UIImage?) -> Observable<Result<Void, LoginError>> {
-        signInUsecase
-            .registerUserToRealtimeDatabase(user: user) // Result<User, LoginError>
-            .flatMapLatest { result -> Observable<Result<Void, LoginError>> in
-                guard case .success(let registerUser) = result else {
-                    return .just(result.mapToVoid())
-                }
-                
-                // 이미지가 없으면 종료
-                guard let image = image else { return .just(.success(())) }
-                
-                // 이미지 업로드
-                return self.signInUsecase
-                    .uploadImage(user: registerUser, image: image)
-                    .flatMapLatest { uploadResult in
-                        switch uploadResult {
-                        case .success(let url):
-                            var updated = registerUser
-                            updated.profileImageURL = url.absoluteString
-                            
-                            return self.signInUsecase
-                                .updateUser(user: updated)
-                                .map { $0.mapToVoid() }
-                        case .failure(let error):
-                            return .just(.failure(error))
-                        }
-                    }
-            }
-    }
-     */
 }
 

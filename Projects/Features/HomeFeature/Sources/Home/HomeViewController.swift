@@ -151,16 +151,21 @@ final class HomeViewController: UIViewController {
                     .flatMap { $0.first }
                     .flatMap { vc.dataViewControllers.firstIndex(of: $0) }
                 ?? 0
-                
                 let direction: UIPageViewController.NavigationDirection = page >= currentIndex ? .forward : .reverse
-                
                 self.pageViewController.setViewControllers([self.dataViewControllers[page]],
                                                            direction: direction,
                                                            animated: true)
             })
             .disposed(by: disposeBag)
         
+        let refreshTapped = Observable.merge(feedVC.refreshTriggered) // , calendarVC.refreshTriggered
         
+        
+        let input = HomeViewModel.Input(viewDidLoad: .just(()),
+                                        refreshTapped: refreshTapped)
+        
+        let output = viewModel.transform(input: input)
+        feedVC.setOutput(output)
     }
 }
 
@@ -192,9 +197,9 @@ extension HomeViewController: UIPageViewControllerDataSource {
     }
 }
 
-#Preview {
-    HomeViewController(viewModel: HomeViewModel())
-}
+//#Preview {
+//    HomeViewController(viewModel: HomeViewModel())
+//}
 
 
 

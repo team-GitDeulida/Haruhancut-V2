@@ -10,17 +10,21 @@ import DSKit
 final class FeedView: UIView {
     
     // MARK: - UI Component
+    let refreshControl = UIRefreshControl()
     lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
-        layout.itemSize = layout.calculateItemSize(columns: 2)
+        // layout.itemSize = layout.calculateItemSize(columns: 2)
         layout.sectionInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
         layout.minimumInteritemSpacing = 16      // 좌우 셀 간격
         layout.minimumLineSpacing = 16           // 위아래 셀 간격
         
         let collectionView = UICollectionView(frame: .zero,
                                               collectionViewLayout: layout)
-        collectionView.register(FeedCell.self, forCellWithReuseIdentifier: FeedCell.reuseIdentifier)
+        collectionView.register(FeedCell.self,
+                                forCellWithReuseIdentifier: FeedCell.reuseIdentifier)
         collectionView.backgroundColor = .background
+        collectionView.refreshControl = refreshControl
+        collectionView.showsVerticalScrollIndicator = false
         return collectionView
     }()
     

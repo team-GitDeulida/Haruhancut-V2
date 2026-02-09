@@ -33,6 +33,8 @@ final class FeedCell: UICollectionViewCell {
     
     override init(frame: CGRect) {
         super.init(frame: frame)
+        setupUI()
+        setupConstraints()
     }
     
     required init?(coder: NSCoder) {
@@ -61,8 +63,8 @@ final class FeedCell: UICollectionViewCell {
             nicknameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
             
             // time
-            nicknameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 14),
-            nicknameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8)
+            timeLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 14),
+            timeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8)
         ])
     }
     

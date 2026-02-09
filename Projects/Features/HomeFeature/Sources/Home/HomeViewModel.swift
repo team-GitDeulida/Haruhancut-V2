@@ -4,14 +4,21 @@
 //
 //  Created by 김동현 on 1/16/26.
 //
+// https://ios-development.tistory.com/872
 
 import Foundation
 import HomeFeatureInterface
 import RxSwift
+import RxRelay
+import Domain
+import RxCocoa
 
 final class HomeViewModel: HomeViewModelType {
     
     private let disposeBag = DisposeBag()
+    
+    // MARK: - Properties
+    private let groupUsecase: GroupUsecaseProtocol
     
     // MARK: - Coordinator Trigger
     var onLogoutTapped: (() -> Void)?
@@ -19,22 +26,93 @@ final class HomeViewModel: HomeViewModelType {
     var onProfileTapped: (() -> Void)?
     
     struct Input {
-        let logoutButtonTapped: Observable<Void>
+        let viewDidLoad: Observable<Void>
+        let refreshTapped: Observable<Void>
     }
     
-    struct Output {}
+    struct Output {
+        let group: Driver<HCGroup>
+        let posts: Driver<[Post]>
+        let todayPosts: Driver<[Post]>
+        let error: Signal<Error>
+    }
     
-    public init() {}
+    public init(groupUsecase: GroupUsecaseProtocol) {
+        self.groupUsecase = groupUsecase
+    }
     
     func transform(input: Input) -> Output {
-        // bind: 값을 UI나 Binder로 꽂을 때
-        // Driver는 UI용
-        input.logoutButtonTapped
-            .bind(onNext: { [weak self] in
-                self?.onLogoutTapped?()
-            })
-            .disposed(by: disposeBag)
         
-        return Output()
+        // 최초로딩 / 재로딩
+        let loadTrigger = Observable.merge(input.viewDidLoad,
+                                           input.refreshTapped)
+        
+        // result: Observable<Event<HCGroup>>
+        let result = loadTrigger
+            .withUnretained(self)
+            .flatMapLatest { owner, _ in
+                owner.groupUsecase.fetchGroup()
+                    .asObservable()
+                    .materialize() // 에러 발생 시 스트림 이 끊기지 않도록 해준다
+            }
+            .share() // 아래서 group, error가 모두 result를 구독하는데 요청 1번만 하도록 하기 위함
+        
+        let group = result.compactMap { $0.element }
+        let error = result.compactMap { $0.error }
+        
+        let posts = group
+            .map { group in
+                let allPosts = group.postsByDate.flatMap { $0.value }
+                return allPosts.sorted { $0.createdAt < $1.createdAt }
+            }
+        
+        let todayPosts = posts
+            .map { $0.filter { $0.isToday } }
+            .asDriver(onErrorJustReturn: [])
+            
+        
+        return Output(group: group.asDriver(onErrorDriveWith: .empty()),
+                      posts: posts.asDriver(onErrorDriveWith: .empty()),
+                      todayPosts: todayPosts,
+                      error: error.asSignal(onErrorSignalWith: .empty()))
     }
 }
+
+
+
+
+
+
+
+
+// let logoutButtonTapped: Observable<Void>
+
+
+// bind: 값을 UI나 Binder로 꽂을 때
+// Driver는 UI용
+//        input.logoutButtonTapped
+//            .bind(onNext: { [weak self] in
+//                self?.onLogoutTapped?()
+//            })
+//            .disposed(by: disposeBag)
+
+
+
+
+//    func fetchGroup() {
+//        groupUsecase.fetchGroup()
+//            .observe(on: MainScheduler.instance)
+//            .subscribe(
+//                onSuccess: { [weak self] group in
+//                    self?.group.accept(group)
+//                    print("그룹 디버깅: \(group)")
+//
+//                    let allPosts = group.postsByDate.flatMap { $0.value }
+//                    let sortedPosts = allPosts.sorted(by: { $0.createdAt < $1.createdAt })
+//                    self?.posts.accept(sortedPosts)
+//                },
+//                onFailure: { error in
+//                    print("❌ fetchGroup error:", error)
+//                }
+//            )
+//            .disposed(by: disposeBag)
