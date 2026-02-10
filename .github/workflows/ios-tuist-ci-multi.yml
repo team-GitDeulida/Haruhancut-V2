@@ -31,7 +31,7 @@ permissions:
 # =====================================================
 jobs:
   build:
-    name: iOS Build (Debug)
+    name: iOS / Build
     runs-on: macos-15
 
     steps:
@@ -100,7 +100,7 @@ jobs:
   # 🟢 Core Test Job
   # =====================================================
   core-test:
-    name: iOS Core Tests
+    name: iOS / Core Tests
     runs-on: macos-15
 
     steps:
@@ -163,7 +163,7 @@ jobs:
   # 🟣 App Integration Test Job
   # =====================================================
   app-test:
-    name: iOS App Integration Tests
+    name: iOS / App Tests
     runs-on: macos-15
 
     steps:
