@@ -12,10 +12,15 @@ import RxSwift
 import RxRelay
 import Domain
 import RxCocoa
+import Core
 
 final class HomeViewModel: HomeViewModelType {
     
     private let disposeBag = DisposeBag()
+    @Dependency private var userSession: UserSessionType
+    var currentUserId: String? {
+        return userSession.sessionUser?.userId
+    }
     
     // MARK: - Properties
     private let groupUsecase: GroupUsecaseProtocol

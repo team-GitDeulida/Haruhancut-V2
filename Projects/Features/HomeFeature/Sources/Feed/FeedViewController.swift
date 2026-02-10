@@ -9,12 +9,14 @@ import UIKit
 import Domain
 import RxSwift
 import RxCocoa
+import Core
 
 final class FeedViewController: UIViewController {
     private let disposeBag = DisposeBag()
     private let homeViewModel: HomeViewModel
     private var customView = FeedView()
     private var output: HomeViewModel.Output?
+    private let longPressRelay = PublishRelay<Post>()
     
     // HomeVC가 구독할 refresh 이벤트
     var refreshTriggered: Observable<Void> {
@@ -38,6 +40,13 @@ final class FeedViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupLongPress()
+    }
+    
+    private func setupLongPress() {
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        longPress.minimumPressDuration = 0.4
+        customView.collectionView.addGestureRecognizer(longPress)
     }
     
     // MARK: - Bindings
@@ -84,6 +93,35 @@ final class FeedViewController: UIViewController {
                 self?.customView.refreshControl.endRefreshing()
             })
             .disposed(by: disposeBag)
+        
+        // 포스트 터치 바인딩
+        customView.collectionView.rx.modelSelected(Post.self)
+            .asDriver()
+            .drive(onNext: { [weak self] post in
+                guard let self = self else { return }
+                print("포스트 터지됨: \(post)")
+            })
+            .disposed(by: disposeBag)
+        
+        longPressRelay
+            .subscribe(onNext: { post in
+                Logger.d("🔥 Long Press OK (Rx)")
+            })
+            .disposed(by: disposeBag)
+    }
+    
+    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        // Logger.d("👆 handleLongPress called, state = \(gesture.state.rawValue)")
+        guard gesture.state == .began else { return }
+        let location = gesture.location(in: customView.collectionView)
+        guard
+            let indexPath = customView.collectionView.indexPathForItem(at: location),
+            let post = try? customView.collectionView.rx.model(at: indexPath) as Post,
+            let uid = homeViewModel.currentUserId,
+            post.userId != uid
+        else { return }
+        
+        longPressRelay.accept(post)
     }
 }
 
@@ -102,6 +140,7 @@ extension FeedViewController: UICollectionViewDelegateFlowLayout {
             return CGSize(width: itemWidth, height: itemWidth)
         }
 }
+
 
 
 
