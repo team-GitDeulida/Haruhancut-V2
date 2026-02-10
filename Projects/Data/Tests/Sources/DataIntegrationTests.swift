@@ -51,4 +51,3 @@ extension DataIntegrationTests {
         XCTAssertEqual(user?.uid, uid)
     }
 }
-

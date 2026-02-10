@@ -48,6 +48,7 @@ let project = Project(
             sources: ["Tests/**"],
             dependencies: [
                 .target(name: "Data"),
+                .project(target: "App", path: "../App"),
                 .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs") 
             ],
             settings: .settings(
@@ -65,19 +66,16 @@ let project = Project(
             name: "Data",
             shared: true,
             buildAction: .buildAction(targets: ["Data"]),
-            testAction: .targets(
-                ["DataTests"],
-                configuration: "Debug"
-            )
+            testAction: .targets(["DataTests"], configuration: "Debug")
         ),
 
         // 🔥 Firebase Integration 전용
-        .scheme(
-            name: "DataIntegration",
-            shared: true,
-            buildAction: .buildAction(targets: ["Haruhancut", "DataIntegrationTests"]),
-            testAction: .targets(["DataIntegrationTests"])
-        )
+        // .scheme(
+        //     name: "DataIntegration",
+        //     shared: true,
+        //     buildAction: .buildAction(targets: ["Haruhancut", "DataIntegrationTests"]),
+        //     testAction: .targets(["DataIntegrationTests"])
+        // )
     ]
 )
 
