@@ -46,14 +46,14 @@ import PackageDescription
             // Rx → runtime 안정성
             "RxSwift": .framework,
             "RxRelay": .framework,
-            "RxKakaoSDK": .framework,
+            // "RxKakaoSDK": .framework,
 
             // firebase
-            "FirebaseCore": .staticFramework,
-            "FirebaseMessaging": .staticFramework,
-            "FirebaseAuth": .staticFramework,
-            "FirebaseDatabase": .staticFramework,
-            "FirebaseStorage": .staticFramework,
+            // "FirebaseCore": .staticFramework,
+            // "FirebaseMessaging": .staticFramework,
+            // "FirebaseAuth": .staticFramework,
+            // "FirebaseDatabase": .staticFramework,
+            // "FirebaseStorage": .staticFramework,
 
             // 기타 → 단순 라이브러리
             "Lottie": .framework,

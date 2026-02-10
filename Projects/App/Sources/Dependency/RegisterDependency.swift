@@ -8,6 +8,7 @@
 import Core
 import Data
 import Domain
+import FirebaseDatabase
 
 extension SceneDelegate {
     var container: DIContainer {

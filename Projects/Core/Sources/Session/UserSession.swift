@@ -21,21 +21,17 @@ public struct SessionUser: Codable, Equatable {
     }
     
     public var description: String {
-            """
-            SessionUser(
-              userId: \(userId),
-              groupId: \(groupId ?? "nil")
-            )
-            """
+        """
+        
+        SessionUser(
+          userId: \(userId),
+          groupId: \(groupId ?? "nil")
+        )
+        """
     }
 }
 
 // MARK: - UserSession Interface
-// UserSession이 제공해야 하는 최소한의 기능 정의
-// - 세션 조회
-// - 로그인 여부 판단
-// - 세션 변경 감지
-// - 세션 갱신 / 초기화
 public protocol UserSessionType {
     
     // 세션 변경 시 호출되는 콜백 타입
@@ -52,58 +48,53 @@ public protocol UserSessionType {
     // 그룹 여부
     var hasGroup: Bool { get }
     
-    // 세션 상태를 구독
-    // - bind 즉시 현재 상태를 한 번 전달
+    // 세션 상태를 구독(bind 즉시 현재 상태를 한 번 전달)
     func bind(_ handler: @escaping SessionChangeHandler)
     
-    /// 상태 변경만 감지 (초기 호출 ❌)
+    // 상태 변경만 감지 (초기 호출 ❌)
     func observe(_ handler: @escaping SessionChangeHandler)
     
     // 로그인/세션 갱신
     func update(_ user: SessionUser)
     
+    // SessionUser의 특정 속성만 업데이트한다.
+    func update<Value>(_ keyPath: WritableKeyPath<SessionUser, Value>,
+                       _ value: Value)
+    
     // 로그아웃/세션 초기화
     func clear()
-    
-    /// SessionUser의 특정 속성만 업데이트한다.
-    func update<Value>(_ keyPath: WritableKeyPath<SessionUser, Value>,
-                       _ value: Value
-    )
 }
 
-// MARK: - UserSession Implementation
-// 앱 전역에서 사용되는 세션 컨텍스트 객체
-// - 메모리 캐시 + 로컬 storage를 함께 관리
-// - single source of truth는 cachedUser
+// 앱 전역에서 사용되는 세션 컨텍스트 객체(메모리 캐시 + 로컬 storage를 함께 관리 == single source of truth는 cachedUser)
 public final class UserSession: UserSessionType {
 
     // 로컬 저장소 (UserDefaults, Keychain 등 추상화)
-    private let storage: KeyValueStorage
+    private let storage: UserDefaultsStorageProtocol
     
-    // 세션 변경을 감지하는 외부 콜백
-    // 현재 구조에서는 하나의 observer만 유지
+    // 세션 변경을 감지하는 외부 콜백(현재 구조에서는 하나의 observer만 유지)
     private var onSessionChanged: (SessionChangeHandler)?
-    private var cachedUser: SessionUser? // 캐시
+    private var cachedUser: SessionUser?
     
+    // MARK: - Keys
     private enum Key {
         static let user = "session.user"
     }
     
-    public init(storage: KeyValueStorage) {
+    public init(storage: UserDefaultsStorageProtocol) {
         self.storage = storage
-        self.cachedUser = self.loadFromStorage()
-        Logger.d("\(String(describing: self.sessionUser))")
+        self.cachedUser = self.loadFromStorage() // 저장된 세션 불러오기(decoding)
+        Logger.d(cachedUser?.description ?? "nil")
     }
 }
 
-// MARK: - Private
+// MARK: - Private get/set
 private extension UserSession {
     
     // storage에서 SessionUser를 로드
     // - 데이터가 없거나 디코딩 실패 시 nil 반환
     // - init 시점에 한 번만 호출됨
     func loadFromStorage() -> SessionUser? {
-        guard let data = storage.data(forKey: Key.user) else { return nil }
+        guard let data: Data = storage.get(forKey: Key.user) else { return nil }
         return try? JSONDecoder().decode(SessionUser.self, from: data)
     }
     
@@ -122,27 +113,21 @@ public extension UserSession {
     // 외부에 노출되는 세션 유저
     // - cachedUser를 그대로 반환하는 read-only facade
     // - 내부 구현(storage, cache)을 숨김
-    var sessionUser: SessionUser? {
-        cachedUser
-    }
+    var sessionUser: SessionUser? { cachedUser }
     
     // 로그인 여부 판단
     // - 계산 속성은 facade(sessionUser)가 아닌
     // - single source of truth(cachedUser)를 기준으로 판단
-    var isLoggedIn: Bool {
-        self.cachedUser != nil
-    }
+    var isLoggedIn: Bool { self.cachedUser != nil }
     
-    var hasGroup: Bool {
-        self.cachedUser?.groupId != nil
-    }
+    var hasGroup: Bool { self.cachedUser?.groupId != nil }
     
     // 세션 변경 구독
     // - handler를 등록하고
     // - 현재 상태를 즉시 한 번 전달
     func bind(_ handler: @escaping SessionChangeHandler) {
         self.onSessionChanged = handler
-        handler(sessionUser)
+        handler(sessionUser) // 현재 세션 상태를 외부로 바로 알려준다
     }
     
     // 이후 변화 감지
@@ -172,6 +157,7 @@ public extension UserSession {
     }
 }
 
+// MARK: - KeyPath
 extension UserSession {
     
     /// SessionUser에서 "변경을 허용하는 속성"만 명시적으로 관리
@@ -179,7 +165,7 @@ extension UserSession {
     /// - 목적:
     ///   - userId 같은 불변 필드 수정 방지
     ///   - KeyPath 기반 API의 무결성 확보
-    public func isAllowedKeyPath<Value>(
+    private func isAllowedKeyPath<Value>(
         _ keyPath: WritableKeyPath<SessionUser, Value>
     ) -> Bool {
 
@@ -217,21 +203,20 @@ extension UserSession {
 
         // 🔐 허용되지 않은 KeyPath 차단
         guard isAllowedKeyPath(keyPath) else {
-            // 개발 중 실수 즉시 발견하기 위함
             assertionFailure("❌ This SessionUser keyPath is not allowed to be updated.")
             return
         }
 
-        // 실제 값 변경 (여기서는 groupId만 통과 가능)
+        // 실제 값 변경
         current[keyPath: keyPath] = value
 
-        // single source of truth 갱신
+        // single source of truth 갱신(메모리 저장)
         cachedUser = current
 
-        // 변경된 세션을 영속화
+        // 변경된 세션을 영속화(userdefault 저장)
         saveToStorage(current)
 
-        // 세션 변경 이벤트 전파
+        // 세션 변경 이벤트 전파 (상태가 바뀌면 값을 만들어서 호출 -> 받는쪽:  bind로 등록한 외부 객체)
         onSessionChanged?(current)
     }
 }

@@ -21,11 +21,8 @@ let project = Project(
                 // .external(name: "RxTest"),
                 // .external(name: "RxBlocking"),
 
-                
                 // Kakao
                 .external(name: "RxKakaoSDK"),
-                // .external(name: "KakaoSDK"),
-                // .external(name: "KakaoSDKCertCore"),
                 
                 // Firebase
                 .external(name: "FirebaseAuth"),
