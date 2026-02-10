@@ -20,34 +20,47 @@ let project = Project(
         ),
 
         // MARK: - Unit Tests
+        // .target(
+        //     name: "DataTests",
+        //     destinations: .iOS,
+        //     product: .unitTests,
+        //     bundleId: "com.indextrown.Haruhancut",
+        //     deploymentTargets: .iOS("17.0"),
+        //     infoPlist: .extendingDefault(with: [
+        //         // 🔥 Firebase Messaging Swizzling 완전 차단
+        //         "FirebaseAppDelegateProxyEnabled": false,
+
+        //         // 🔥 XCTest 환경에서 Notification 접근 방지
+        //         "UIApplicationSceneManifest": [:]
+        //     ]),
+        //     sources: ["Tests/Sources/**"],
+        //     dependencies: [
+        //     ]
+        // ),
+
+        // MARK: - Unit Tests
         .target(
             name: "DataTests",
             destinations: .iOS,
             product: .unitTests,
             bundleId: "com.indextrown.Haruhancut",
             deploymentTargets: .iOS("17.0"),
-            infoPlist: .extendingDefault(with: [
-                // 🔥 Firebase Messaging Swizzling 완전 차단
-                "FirebaseAppDelegateProxyEnabled": false,
-
-                // 🔥 XCTest 환경에서 Notification 접근 방지
-                "UIApplicationSceneManifest": [:]
-            ]),
-            sources: ["Tests/Sources/**"],
-            resources: [
-                "../Shared/Firebase/GoogleService-Info.plist"
-            ],
+            sources: ["Tests/**"],
             dependencies: [
                 .target(name: "Data"),
-                // .external(name: "FirebaseCore"),
-                // .external(name: "FirebaseAuth"),
-                // .external(name: "FirebaseDatabase"),
-                // .external(name: "FirebaseStorage"),
-                // .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs")
-            ]
-        ),
+                .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs") 
+            ],
+            settings: .settings(
+                base: [
+                    // Firebase 필요하니까 App Host 유지
+                    "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/Haruhancut.app/Haruhancut",
+                    "BUNDLE_LOADER": "$(TEST_HOST)"
+                ]
+            )
+        )
     ],
     schemes: [
+        // 🔹 유닛 테스트
         .scheme(
             name: "Data",
             shared: true,
@@ -56,6 +69,14 @@ let project = Project(
                 ["DataTests"],
                 configuration: "Debug"
             )
+        ),
+
+        // 🔥 Firebase Integration 전용
+        .scheme(
+            name: "DataIntegration",
+            shared: true,
+            buildAction: .buildAction(targets: ["Haruhancut", "DataIntegrationTests"]),
+            testAction: .targets(["DataIntegrationTests"])
         )
     ]
 )
