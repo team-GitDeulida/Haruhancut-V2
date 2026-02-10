@@ -97,9 +97,9 @@ jobs:
             | xcpretty
 
   # =====================================================
-  # 🟢 Core Test Job
+  # 🟢 Test Job
   # =====================================================
-  core-test:
+  test:
     name: iOS Core Tests
     runs-on: macos-15
 
@@ -139,7 +139,7 @@ jobs:
           tuist install
           tuist generate --no-open
 
-      - name: Resolve Core Test Simulator
+      - name: Resolve Test Simulator
         run: |
           SIM_NAME="iPhone 16 Pro"
           SIM_OS="18.5"
@@ -149,7 +149,7 @@ jobs:
           [ -z "$UDID" ] && exit 1
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
-      - name: Boot Core Test Simulator
+      - name: Boot Test Simulator
         run: xcrun simctl bootstatus "$SIM_UDID" -b
 
       - name: Tuist Test Core
@@ -160,99 +160,32 @@ jobs:
             --skip-ui-tests
 
   # =====================================================
-  # 🟣 App Integration Test Job
-  # =====================================================
-  app-test:
-    name: iOS App Integration Tests
-    runs-on: macos-15
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create Shared.xcconfig
-        run: |
-          mkdir -p Projects/Shared/Configs
-          cat << 'EOF' > Projects/Shared/Configs/Shared.xcconfig
-          ${{ secrets.SHARED_XCCONFIG }}
-          EOF
-
-      - name: Select Xcode 16.4
-        run: |
-          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
-          xcodebuild -version
-
-      - name: Cache Tuist & SwiftPM
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.tuist/Dependencies
-            ~/.tuist/Cache
-            ~/.swiftpm
-            Tuist/Dependencies/.build
-          key: tuist-${{ runner.os }}-${{ hashFiles('Tuist/Dependencies.swift', '**/Package.resolved') }}
-          restore-keys: tuist-${{ runner.os }}-
-
-      - name: Install Tuist
-        run: |
-          brew tap tuist/tuist
-          brew install tuist@4.115.0
-
-      - name: Tuist Generate
-        run: |
-          tuist install
-          tuist generate --no-open
-
-      - name: Resolve App Test Simulator
-        run: |
-          SIM_NAME="iPhone 16 Pro Max"
-          SIM_OS="18.5"
-          UDID=$(xcrun simctl list devices available | \
-            grep "iOS ${SIM_OS}" -A 20 | \
-            grep "^ *${SIM_NAME} (" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
-          [ -z "$UDID" ] && exit 1
-          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
-
-      - name: Boot App Test Simulator
-        run: xcrun simctl bootstatus "$SIM_UDID" -b
-
-      - name: Tuist Test App (Integration)
-        run: |
-          set -o pipefail
-          tuist test App \
-            --configuration Debug \
-            --skip-ui-tests
-
-  # =====================================================
-  # 📣 Notify Job
+  # 📣 Result Notify Job (Build + Test 결과 종합)
   # =====================================================
   notify:
     name: Notify Result
     runs-on: macos-15
-    needs: [build, core-test, app-test]
+    needs: [build, test]
     if: always()
 
     steps:
       # ✅ 성공 PR 코멘트
       - name: Comment success
-        if: needs.build.result == 'success' &&
-          needs.core-test.result == 'success' &&
-          needs.app-test.result == 'success' &&
+        if: needs.build.result == 'success' && needs.test.result == 'success' &&
           github.event.inputs.triggered_by_command == 'true' &&
           github.event.inputs.pr_number != ''
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.inputs.pr_number }}
           body: |
-            ✅ **하루한컷 iOS CI 성공**
+            ✅ **하루한컷 iOS 빌드 & 테스트 성공**
             - Build: ✅
-            - Core Tests: ✅
-            - App Integration Tests: ✅
+            - Test: ✅
 
       # ❌ 실패 PR 코멘트
       - name: Comment failure
-        if: (needs.build.result != 'success' ||
-          needs.core-test.result != 'success' ||
-          needs.app-test.result != 'success') &&
+        if:
+          (needs.build.result != 'success' || needs.test.result != 'success') &&
           github.event.inputs.triggered_by_command == 'true' &&
           github.event.inputs.pr_number != ''
         uses: peter-evans/create-or-update-comment@v4
@@ -261,23 +194,20 @@ jobs:
           body: |
             ❌ **하루한컷 iOS CI 실패**
             - Build: ${{ needs.build.result }}
-            - Core Tests: ${{ needs.core-test.result }}
-            - App Integration Tests: ${{ needs.app-test.result }}
+            - Test: ${{ needs.test.result }}
 
       # ✅ 성공 메일
       - name: Send email on success
-        if: needs.build.result == 'success' &&
-          needs.core-test.result == 'success' &&
-          needs.app-test.result == 'success'
+        if: needs.build.result == 'success' && needs.test.result == 'success'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
-          subject: ✅ 하루한컷 iOS CI 성공
+          subject: ✅ 하루한컷 iOS 빌드 & 테스트 성공
           body: |
-            ✅ Build / Core Tests / App Integration Tests 모두 성공했습니다.
+            ✅ Build & Test 모두 성공했습니다.
 
             Repository: ${{ github.repository }}
             Branch: ${{ github.ref_name }}
@@ -288,9 +218,7 @@ jobs:
 
       # ❌ 실패 메일
       - name: Send email on failure
-        if: needs.build.result != 'success' ||
-          needs.core-test.result != 'success' ||
-          needs.app-test.result != 'success'
+        if: needs.build.result != 'success' || needs.test.result != 'success'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -302,8 +230,7 @@ jobs:
             ❌ CI 실패 발생
 
             Build: ${{ needs.build.result }}
-            Core Tests: ${{ needs.core-test.result }}
-            App Integration Tests: ${{ needs.app-test.result }}
+            Test: ${{ needs.test.result }}
 
             URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           to: indextrown@gmail.com

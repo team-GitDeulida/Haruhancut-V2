@@ -39,9 +39,9 @@ let project = Project(
             ],
             dependencies: [
                 .target(name: "Data"),
-                .external(name: "FirebaseCore"),
-                .external(name: "FirebaseAuth"),
-                .external(name: "FirebaseDatabase"),
+                // .external(name: "FirebaseCore"),
+                // .external(name: "FirebaseAuth"),
+                // .external(name: "FirebaseDatabase"),
                 // .external(name: "FirebaseStorage"),
                 // .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs")
             ]

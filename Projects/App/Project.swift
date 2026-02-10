@@ -65,22 +65,10 @@ let project = Project(
             resources: ["Resources/**"],
             entitlements: .file(path: "App.entitlements"),
             dependencies: [
-                // // Feature 의존성은 나중에 추가
-                // .project(target: "AuthFeature", path: "../Features/AuthFeature"),
-                // .project(target: "OnboardingFeature", path: "../Features/OnboardingFeature"),
-                // .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
-                // // .project(target: "DSKit", path: "../UI/DSKit")
-                // .project(target: "Core", path: "../Core"),
-                // .project(target: "Data", path: "../Data"),
-
                 .project(target: "Coordinator", path: "../Coordinator"),
                 .project(target: "Data", path: "../Data"),
                 .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs"),
-                // .external(name: "FirebaseCore"),
-                // .external(name: "FirebaseAuth"),
-                // .external(name: "FirebaseDatabase"),
-                // .external(name: "FirebaseStorage"),
-                // .external(name: "FirebaseMessaging")
+
             ],
             settings: .settings(
                 configurations: [
@@ -92,6 +80,25 @@ let project = Project(
                 //     "DEVELOPMENT_TEAM": "LGX4B4WC66" // ← 여기에 Team ID
                 // ]
             )
+        ),
+        .target(
+            name: "AppTests",
+            destinations: [.iPhone],
+            product: .unitTests,
+            bundleId: "com.indextrown.Haruhancut.app.tests",
+            deploymentTargets: .iOS("17.0"),
+            infoPlist: .default,
+            sources: ["Tests/**"],
+            dependencies: [
+                .target(name: "App") // 🔥 핵심
+            ],
+            settings: .settings(
+                base: [
+                    // AppDelegate / UIApplication 사용 가능하게
+                    "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/Haruhancut.app/Haruhancut",
+                    "BUNDLE_LOADER": "$(TEST_HOST)"
+                ]
+            )
         )
     ],
     schemes: [
@@ -100,6 +107,10 @@ let project = Project(
             shared: true,
             buildAction: .buildAction(
                 targets: ["App"]
+            ),
+            testAction: .targets(
+                ["AppTests"],
+                configuration: "Debug"
             ),
             runAction: .runAction(
                 configuration: .debug,
@@ -111,3 +122,22 @@ let project = Project(
         )
     ]
 )
+
+// testAction: .targets(
+//     ["AppTests"],
+//     configuration: "Debug"
+// )
+
+
+                // // Feature 의존성은 나중에 추가
+                // .project(target: "AuthFeature", path: "../Features/AuthFeature"),
+                // .project(target: "OnboardingFeature", path: "../Features/OnboardingFeature"),
+                // .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
+                // // .project(target: "DSKit", path: "../UI/DSKit")
+                // .project(target: "Core", path: "../Core"),
+                // .project(target: "Data", path: "../Data"),
+                                // .external(name: "FirebaseCore"),
+                // .external(name: "FirebaseAuth"),
+                // .external(name: "FirebaseDatabase"),
+                // .external(name: "FirebaseStorage"),
+                // .external(name: "FirebaseMessaging")
