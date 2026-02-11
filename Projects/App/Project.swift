@@ -5,7 +5,7 @@ let project = Project(
     targets: [
         .target(
             name: "App",
-            destinations: [.iPhone, .iPad],
+            destinations: [.iPhone],
             product: .app,
             productName: "Haruhancut",
             bundleId: "com.indextrown.Haruhancut",
@@ -28,6 +28,11 @@ let project = Project(
                             ]
                         ]
                     ]
+                ],
+
+                // Landscape Left, right, upsidwDown 제거
+                "UISupportedInterfaceOrientations": [
+                    "UIInterfaceOrientationPortrait"
                 ],
 
                 // URL Schemes 

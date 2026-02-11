@@ -67,45 +67,52 @@ final class FeedViewController: UIViewController {
                 cellType: FeedCell.self
             )) { _, post, cell in
                 cell.configure(post: post)
-                print(post)
             }
             .disposed(by: disposeBag)
         
         // posts 상태에 따른 Empty UI 처리
         output.todayPosts
-            .drive(onNext: { [weak self] posts in
+            .drive(with: self, onNext: { owner, posts in
                 let isEmpty = posts.isEmpty
-                self?.customView.emptyLabel.isHidden = !isEmpty
-                self?.customView.collectionView.isHidden = isEmpty
+                owner.customView.emptyLabel.isHidden = !isEmpty
+                owner.customView.collectionView.isHidden = isEmpty
             })
             .disposed(by: disposeBag)
         
         // refresh 종료 (성공)
         output.todayPosts
-            .drive(onNext: { [weak self] _ in
-                self?.customView.refreshControl.endRefreshing()
+            .drive(with: self, onNext: { owner, _ in
+                owner.customView.refreshControl.endRefreshing()
             })
             .disposed(by: disposeBag)
         
         // refresh 종료 (에러)
         output.error
-            .emit(onNext: { [weak self] _ in
-                self?.customView.refreshControl.endRefreshing()
+            .emit(with: self, onNext: { owner, _ in
+                owner.customView.refreshControl.endRefreshing()
             })
             .disposed(by: disposeBag)
         
         // 포스트 터치 바인딩
         customView.collectionView.rx.modelSelected(Post.self)
             .asDriver()
-            .drive(onNext: { [weak self] post in
-                guard let self = self else { return }
-                print("포스트 터지됨: \(post)")
+            .drive(with: self, onNext: { owner, post in
+                owner.homeViewModel.onImageTapped?(post)
             })
             .disposed(by: disposeBag)
         
+        // 포스트 롱프레스 바인딩
         longPressRelay
-            .subscribe(onNext: { post in
+            .subscribe(with: self, onNext: { owner, post in
                 Logger.d("🔥 Long Press OK (Rx)")
+            })
+            .disposed(by: disposeBag)
+        
+        // 카메라 터치 바인딩
+        customView.cameraBtn.rx.tap
+            .asDriver()
+            .drive(with: self, onNext: { owner, _ in
+                print("사진 추가하기")
             })
             .disposed(by: disposeBag)
     }

@@ -57,6 +57,39 @@ xcodebuild build \
   # | xcpretty
 echo "✅ [Build] 앱 빌드 성공"
 
+# =========================
+# Tuist Tests
+# =========================
+echo "🧪 [Test] Core Tests 시작"
+tuist test Core \
+  --configuration Debug \
+  --skip-ui-tests \
+  --derived-data-path DerivedData \
+  --destination "id=$SIMULATOR_UDID"
+echo "✅ [Test] Core Tests 완료"
+echo
+
+echo "🧪 [Test] Data Tests 시작"
+tuist test Data \
+  --configuration Debug \
+  --skip-ui-tests \
+  --derived-data-path DerivedData \
+  --destination "id=$SIMULATOR_UDID"
+echo "✅ [Test] Data Tests 완료"
+echo
+
+echo "🧪 [Test] App Tests 시작"
+tuist test App \
+  --configuration Debug \
+  --derived-data-path DerivedData \
+  --destination "id=$SIMULATOR_UDID"
+echo "✅ [Test] App Tests 완료"
+echo
+
+
+# =========================
+# Finish
+# =========================
 echo "🚀 [Xcode] 워크스페이스 열기"
 open Haruhancut.xcworkspace
 echo

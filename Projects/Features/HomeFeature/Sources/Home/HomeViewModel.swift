@@ -14,7 +14,7 @@ import Domain
 import RxCocoa
 import Core
 
-final class HomeViewModel: HomeViewModelType {
+public final class HomeViewModel: HomeViewModelType {
     
     private let disposeBag = DisposeBag()
     @Dependency private var userSession: UserSessionType
@@ -26,16 +26,16 @@ final class HomeViewModel: HomeViewModelType {
     private let groupUsecase: GroupUsecaseProtocol
     
     // MARK: - Coordinator Trigger
-    var onLogoutTapped: (() -> Void)?
-    var onImageTapped: (() -> Void)?
-    var onProfileTapped: (() -> Void)?
+    public var onLogoutTapped: (() -> Void)?
+    public var onImageTapped: ((Post) -> Void)?
+    public var onProfileTapped: (() -> Void)?
     
-    struct Input {
+    public struct Input {
         let viewDidLoad: Observable<Void>
         let refreshTapped: Observable<Void>
     }
     
-    struct Output {
+    public struct Output {
         let group: Driver<HCGroup>
         let posts: Driver<[Post]>
         let todayPosts: Driver<[Post]>
@@ -46,7 +46,7 @@ final class HomeViewModel: HomeViewModelType {
         self.groupUsecase = groupUsecase
     }
     
-    func transform(input: Input) -> Output {
+    public func transform(input: Input) -> Output {
         
         // 최초로딩 / 재로딩
         let loadTrigger = Observable.merge(input.viewDidLoad,

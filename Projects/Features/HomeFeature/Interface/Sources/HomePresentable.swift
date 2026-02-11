@@ -7,9 +7,10 @@
 
 import UIKit
 import Core
+import Domain
 
 public protocol HomeRouteTrigger {
-    var onImageTapped: (() -> Void)? { get set }
+    var onImageTapped: ((Post) -> Void)? { get set }
     var onLogoutTapped: (() -> Void)? { get set }
     var onProfileTapped: (() -> Void)? { get set }
 }

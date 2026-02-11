@@ -30,6 +30,7 @@ final class CalendarCell: FSCalendarCell {
     override init!(frame: CGRect) {
         super.init(frame: frame)
         makeUI()
+        layoutSubviews()
     }
 
     required init!(coder: NSCoder!) {

@@ -39,6 +39,7 @@ public final class HomeCoordinator: Coordinator {
             self.parentCoordinator?.childDidFinish(self)
         }
         
+        // 프로필은 홈 자식이 아니므로 코디네이터를 따로 둠(poppable)
         home.vm.onProfileTapped = { [weak self] in
             guard let self = self else { return }
             
@@ -53,6 +54,14 @@ public final class HomeCoordinator: Coordinator {
             
             // 2. HomeCoordinator 종료 X
             // self.parentCoordinator?.childDidFinish(self)
+        }
+        
+        // FeedDetail은 홈의 자식으로 간주하였음(poppable)
+        home.vm.onImageTapped = { [weak self] post in
+            guard let self = self else { return }
+            let builder = FeedDetailBuilder()
+            let vc = builder.makeFeed(vm: home.vm, post: post)
+            self.navigationController.pushViewController(vc, animated: true)
         }
                 
         // 홈은 루트 플로우 → 스택 교체
