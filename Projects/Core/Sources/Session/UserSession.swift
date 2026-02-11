@@ -14,18 +14,27 @@ import Foundation
 public struct SessionUser: Codable, Equatable {
     public var userId: String
     public var groupId: String?
+    public var nickname: String
+    public var proprofileImageURL: String?
     
-    public init(userId: String, groupId: String?) {
+    public init(userId: String,
+                groupId: String?,
+                nickname: String,
+                proprofileImageURL: String?) {
         self.userId = userId
         self.groupId = groupId
+        self.nickname = nickname
+        self.proprofileImageURL = proprofileImageURL
     }
     
     public var description: String {
         """
         
         SessionUser(
-          userId: \(userId),
-          groupId: \(groupId ?? "nil")
+        - userId:          \(userId),
+        - groupId:         \(groupId ?? "nil"),
+        - nickname:        \(nickname),
+        - profileImageURL: \(proprofileImageURL ?? "nil")
         )
         """
     }
@@ -63,6 +72,9 @@ public protocol UserSessionType {
     
     // 로그아웃/세션 초기화
     func clear()
+    
+    var userId: String? { get }
+    var groupId: String? { get }
 }
 
 // 앱 전역에서 사용되는 세션 컨텍스트 객체(메모리 캐시 + 로컬 storage를 함께 관리 == single source of truth는 cachedUser)
@@ -109,6 +121,14 @@ private extension UserSession {
 
 // MARK: - Public
 public extension UserSession {
+    
+    var userId: String? {
+        cachedUser?.userId
+    }
+    
+    var groupId: String? {
+        cachedUser?.groupId
+    }
     
     // 외부에 노출되는 세션 유저
     // - cachedUser를 그대로 반환하는 read-only facade

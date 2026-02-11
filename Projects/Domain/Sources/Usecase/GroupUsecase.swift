@@ -55,7 +55,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     }
     
     public func fetchGroup() -> Single<HCGroup> {
-        guard let groupId = userSession.sessionUser?.groupId else {
+        guard let groupId = userSession.groupId else {
             return .error(DomainError.missingGroupId)
         }
         return groupRepository.fetchGroup(groupId: groupId)
@@ -101,5 +101,15 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             .flatMap { group in
                 self.groupRepository.updateUserGroupId(groupId: group.groupId)
             }
+    }
+    
+    public func addComment(post: Post, text: String) -> Single<Void> {
+        guard let userId = userSession.userId,
+              let groupId = userSession.groupId else {
+            return .deferred { .just(()) }
+        }
+        let commendId = UUID().uuidString
+        
+        return .just(())
     }
 }

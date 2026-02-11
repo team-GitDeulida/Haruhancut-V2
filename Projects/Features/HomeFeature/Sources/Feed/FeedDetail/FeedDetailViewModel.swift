@@ -12,6 +12,7 @@ import RxRelay
 import RxCocoa
 import Core
 import Data
+import HomeFeatureInterface
 
 public final class FeedDetailViewModel: FeedDetailViewModelType {
     public var onCommentTapped: (() -> Void)?

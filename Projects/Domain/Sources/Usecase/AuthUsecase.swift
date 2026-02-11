@@ -80,7 +80,10 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
                             .mapToVoid()
                     }
                     .do(onSuccess: {
-                        self.userSession.update(SessionUser(userId: user.uid, groupId: nil))
+                        self.userSession.update(SessionUser(userId: user.uid,
+                                                            groupId: nil,
+                                                            nickname: user.nickname,
+                                                            proprofileImageURL: user.profileImageURL))
                        //  self.userSession.update(\.userId, registeredUser.uid)
                     })
             }
@@ -89,15 +92,20 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     public func signIn(platform: User.LoginPlatform) -> Single<SignInResult> {
         self.loginWith(with: platform)
             .flatMap { payload in
-                self.authenticate(payload: payload)
+                Logger.d("인증 진행")
+                return self.authenticate(payload: payload)
             }
             .flatMap { uid in
-                self.resolveUser(uid: uid, platform: platform)
+                Logger.d("firebase 진행")
+                return self.resolveUser(uid: uid, platform: platform)
             }
             .do { result in
                 if case .existingUser(let user) = result {
+                    Logger.d("기존 사용자")
                     self.userSession.update(SessionUser(userId: user.uid,
-                                                        groupId: user.groupId))
+                                                        groupId: user.groupId,
+                                                        nickname: user.nickname,
+                                                        proprofileImageURL: user.profileImageURL))
                 }
             }
     }
