@@ -30,7 +30,7 @@ struct UserSessionTests {
     // update(user) 테스트
     @Test("Update user sets session and marks logged in")
     func updateUser() {
-        let user = SessionUser(userId: "user-1", groupId: nil)
+        let user = SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil)
 
         session.update(user)
 
@@ -65,7 +65,7 @@ struct UserSessionTests {
     // update(user) → observe 호출됨
     @Test("Update user notifies observer")
     func updateNotifiesObserver() async {
-        let user = SessionUser(userId: "user-1", groupId: nil)
+        let user = SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil)
 
         await confirmation { confirm in
             session.observe { received in
@@ -80,7 +80,7 @@ struct UserSessionTests {
     // KeyPath update 테스트
     @Test("Update keyPath updates only target field")
     func updateKeyPath() {
-        let user = SessionUser(userId: "user-1", groupId: nil)
+        let user = SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil)
         session.update(user)
 
         session.update(\.groupId, "group-1")
@@ -92,7 +92,7 @@ struct UserSessionTests {
     // clear 테스트
     @Test("Clear removes session and notifies observer")
     func clearRemovesSession() async {
-        session.update(SessionUser(userId: "user-1", groupId: nil))
+        session.update(SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil))
 
         await confirmation { confirm in
             session.observe { user in
@@ -110,7 +110,7 @@ struct UserSessionTests {
     // storage 복원 테스트 (가장 중요)
     @Test("Init restores session from storage")
     func restoreFromStorage() {
-        let storedUser = SessionUser(userId: "stored", groupId: "group")
+        let storedUser = SessionUser(userId: "stored", groupId: "group", nickname: "user-1-nickname", proprofileImageURL: nil)
         let data = try! JSONEncoder().encode(storedUser)
 
         storage.set(data, forKey: "session.user")

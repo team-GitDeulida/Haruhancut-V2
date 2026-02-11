@@ -33,7 +33,7 @@ final class UserSession2Tests: XCTestCase {
 
     // update(user) 테스트
     func test_updateUser_setsSessionAndMarksLoggedIn() {
-        let user = SessionUser(userId: "user-1", groupId: nil)
+        let user = SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil)
 
         session.update(user)
 
@@ -68,7 +68,7 @@ final class UserSession2Tests: XCTestCase {
     // update(user) → observe 호출됨
     func test_updateUser_notifiesObserver() {
         let exp = expectation(description: "observer called")
-        let user = SessionUser(userId: "user-1", groupId: nil)
+        let user = SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil)
 
         session.observe { received in
             XCTAssertEqual(received, user)
@@ -82,7 +82,7 @@ final class UserSession2Tests: XCTestCase {
 
     // KeyPath update 테스트
     func test_updateKeyPath_updatesOnlyTargetField() {
-        let user = SessionUser(userId: "user-1", groupId: nil)
+        let user = SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil)
         session.update(user)
 
         session.update(\.groupId, "group-1")
@@ -95,7 +95,7 @@ final class UserSession2Tests: XCTestCase {
     func test_clear_removesSessionAndNotifies() {
         let exp = expectation(description: "observer called with nil")
 
-        session.update(SessionUser(userId: "user-1", groupId: nil))
+        session.update(SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil))
 
         session.observe { user in
             XCTAssertNil(user)
@@ -112,7 +112,7 @@ final class UserSession2Tests: XCTestCase {
 
     // storage 복원 테스트 (가장 중요)
     func test_init_restoresSessionFromStorage() {
-        let storedUser = SessionUser(userId: "stored", groupId: "group")
+        let storedUser = SessionUser(userId: "stored", groupId: "group", nickname: "user-1-nickname", proprofileImageURL: nil)
 
         let data = try! JSONEncoder().encode(storedUser)
         storage.set(data, forKey: "session.user")
