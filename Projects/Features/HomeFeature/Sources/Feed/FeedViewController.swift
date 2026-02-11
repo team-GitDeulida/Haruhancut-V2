@@ -76,6 +76,15 @@ final class FeedViewController: UIViewController {
                 let isEmpty = posts.isEmpty
                 owner.customView.emptyLabel.isHidden = !isEmpty
                 owner.customView.collectionView.isHidden = isEmpty
+                
+                // 포스트가 비어있지 않으면서 && 내가 작성한 포스트가 하나라도 있다면
+                if !posts.isEmpty && posts.contains(where: { $0.userId == owner.homeViewModel.currentUserId }) {
+                    // bubble
+                    owner.customView.bubbleView.text = "오늘 사진 추가 완료"
+                    owner.customView.bubbleView.alpha = 0.6
+                } else {
+                    self.customView.bubbleView.text = "사진 추가하기"
+                }
             })
             .disposed(by: disposeBag)
         
@@ -115,6 +124,20 @@ final class FeedViewController: UIViewController {
                 print("사진 추가하기")
             })
             .disposed(by: disposeBag)
+        
+        // 카메라 버튼 활성화 / 비활성화
+        output.didTodayUpload
+            .map { !$0 } // 오늘 올렸으면 버튼은 false
+            .drive(customView.cameraBtn.rx.isEnabled)
+            .disposed(by: disposeBag)
+        
+        // 카메라 버튼 투명도 조절
+        output.didTodayUpload
+            .map { $0 ? 0.3 : 1.0 }
+            .asDriver(onErrorJustReturn: 1.0)
+            .drive(customView.cameraBtn.rx.alpha)
+            .disposed(by: disposeBag)
+                
     }
     
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {

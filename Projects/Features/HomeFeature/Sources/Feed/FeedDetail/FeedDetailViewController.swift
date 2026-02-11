@@ -13,18 +13,18 @@ import RxRelay
 import Core
 
 final class FeedDetailViewController: UIViewController, PopableViewController {
-    var onPop: (() -> Void)?
     
+    var onPop: (() -> Void)?
     private let disposeBag = DisposeBag()
-    private let homeViewModel: any HomeViewModelType
+    private let viewModel: FeedDetailViewModel
     private let customView: FeedDetailView
     
     // 이미지 탭 이벤트(UIKit → Rx 브릿지)
     private let imageTapRelay = PublishRelay<UIImage>()
     
-    init(homeViewModel: any HomeViewModelType, post: Post) {
-        self.homeViewModel = homeViewModel
-        self.customView = FeedDetailView(post: post)
+    init(viewModel: FeedDetailViewModel) {
+        self.viewModel = viewModel
+        self.customView = FeedDetailView(post: viewModel.currentPost)
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -39,7 +39,7 @@ final class FeedDetailViewController: UIViewController, PopableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        bindViewModel()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -48,5 +48,16 @@ final class FeedDetailViewController: UIViewController, PopableViewController {
         if isMovingFromParent {
             onPop?()
         }
+    }
+
+    
+    // MARK: - Bindings
+    private func bindViewModel() {
+        customView.commentButton.rx.tap
+            .asDriver()
+            .drive(with: self, onNext: { owner, _ in
+                owner.viewModel.onCommentTapped?()
+            })
+            .disposed(by: disposeBag)
     }
 }

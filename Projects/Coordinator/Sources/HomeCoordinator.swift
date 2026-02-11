@@ -32,8 +32,6 @@ public final class HomeCoordinator: Coordinator {
             // 로그인 화면으로 이동
             (self.parentCoordinator as? AppCoordinator)?
                 .logoutWithRotation()
-                //.userSession
-                // .clear()
             
             // HomeCoordinator 종료
             self.parentCoordinator?.childDidFinish(self)
@@ -60,10 +58,19 @@ public final class HomeCoordinator: Coordinator {
         home.vm.onImageTapped = { [weak self] post in
             guard let self = self else { return }
             let builder = FeedDetailBuilder()
-            let vc = builder.makeFeed(vm: home.vm, post: post)
-            self.navigationController.pushViewController(vc, animated: true)
-        }
+            var feedDetail = builder.makeFeed(post: post)
+            
+            // FeedComment 띄우기
+            feedDetail.vm.onCommentTapped = { [weak self] in
+                guard let self = self else { return }
+                guard let vm = feedDetail.vm as? FeedDetailViewModel else { return }
                 
+                let commentVc = builder.makeComment(vm: vm)
+                commentVc.modalPresentationStyle = .pageSheet
+                self.navigationController.present(commentVc, animated: true)
+            }
+            self.navigationController.pushViewController(feedDetail.vc, animated: true)
+        }
         // 홈은 루트 플로우 → 스택 교체
         navigationController.setViewControllers([home.vc], animated: true)
     }

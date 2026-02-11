@@ -39,6 +39,7 @@ public final class HomeViewModel: HomeViewModelType {
         let group: Driver<HCGroup>
         let posts: Driver<[Post]>
         let todayPosts: Driver<[Post]>
+        var didTodayUpload: Driver<Bool>
         let error: Signal<Error>
     }
     
@@ -72,13 +73,22 @@ public final class HomeViewModel: HomeViewModelType {
             }
         
         let todayPosts = posts
-            .map { $0.filter { $0.isToday } }
+            .map { posts in
+                posts
+                    .filter { $0.userId == self.currentUserId }
+                    .filter { $0.isToday }
+            }
             .asDriver(onErrorJustReturn: [])
-            
+        
+        let didTodayUpload = todayPosts
+            .map { !$0.isEmpty }
+            .distinctUntilChanged()
+        
         
         return Output(group: group.asDriver(onErrorDriveWith: .empty()),
                       posts: posts.asDriver(onErrorDriveWith: .empty()),
                       todayPosts: todayPosts,
+                      didTodayUpload: didTodayUpload,
                       error: error.asSignal(onErrorSignalWith: .empty()))
     }
 }

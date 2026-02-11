@@ -9,9 +9,11 @@ import Foundation
 import HomeFeatureInterface
 import Domain
 import UIKit
+import Core
 
 public protocol FeedDetailBuildable {
-    func makeFeed(vm: any HomeViewModelType, post: Post) -> UIViewController
+    func makeFeed(post: Post) -> FeedDetailPresentable
+    func makeComment(vm: FeedDetailViewModel) -> UIViewController
 }
 
 public final class FeedDetailBuilder {
@@ -19,9 +21,15 @@ public final class FeedDetailBuilder {
 }
 
 extension FeedDetailBuilder: FeedDetailBuildable {
-    public func makeFeed(vm: any HomeViewModelType, post: Post) -> UIViewController {
-        let vc = FeedDetailViewController(homeViewModel: vm,
-                                          post: post)
+    public func makeFeed(post: Post) -> FeedDetailPresentable {
+        @Dependency var groupUsecase: GroupUsecaseProtocol
+        let vm = FeedDetailViewModel(groupUsecase: groupUsecase, post: post)
+        let vc = FeedDetailViewController(viewModel: vm)
+        return (vc, vm)
+    }
+    
+    public func makeComment(vm: FeedDetailViewModel) -> UIViewController {
+        let vc = FeedCommentViewController(feedDetailViewModel: vm)
         return vc
     }
 }
