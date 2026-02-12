@@ -39,10 +39,10 @@ public protocol AuthUsecaseProtocol {
 public final class AuthUsecaseImpl: AuthUsecaseProtocol {
 
     private let repository: AuthRepositoryProtocol
-    private let userSession: UserSessionType
+    private let userSession: UserSession
     
     public init(authRepository: AuthRepositoryProtocol,
-                userSession: UserSessionType
+                userSession: UserSession
     ) {
         self.repository = authRepository
         self.userSession = userSession
@@ -83,7 +83,7 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
                         self.userSession.update(SessionUser(userId: user.uid,
                                                             groupId: nil,
                                                             nickname: user.nickname,
-                                                            proprofileImageURL: user.profileImageURL))
+                                                            profileImageURL: user.profileImageURL))
                        //  self.userSession.update(\.userId, registeredUser.uid)
                     })
             }
@@ -105,7 +105,7 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
                     self.userSession.update(SessionUser(userId: user.uid,
                                                         groupId: user.groupId,
                                                         nickname: user.nickname,
-                                                        proprofileImageURL: user.profileImageURL))
+                                                        profileImageURL: user.profileImageURL))
                 }
             }
     }

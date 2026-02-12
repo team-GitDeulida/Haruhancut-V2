@@ -17,13 +17,13 @@ import Core
 public final class HomeViewModel: HomeViewModelType {
     
     private let disposeBag = DisposeBag()
-    @Dependency private var userSession: UserSessionType
-    var currentUserId: String? {
-        return userSession.sessionUser?.userId
-    }
+    @Dependency private var userSession: UserSession
     
     // MARK: - Properties
     private let groupUsecase: GroupUsecaseProtocol
+    public var userId: String? {
+        userSession.userId
+    }
     
     // MARK: - Coordinator Trigger
     public var onLogoutTapped: (() -> Void)?
@@ -75,7 +75,7 @@ public final class HomeViewModel: HomeViewModelType {
         let todayPosts = posts
             .map { posts in
                 posts
-                    .filter { $0.userId == self.currentUserId }
+                    .filter { $0.userId == self.userSession.userId }
                     .filter { $0.isToday }
             }
             .asDriver(onErrorJustReturn: [])

@@ -78,7 +78,7 @@ final class FeedViewController: UIViewController {
                 owner.customView.collectionView.isHidden = isEmpty
                 
                 // 포스트가 비어있지 않으면서 && 내가 작성한 포스트가 하나라도 있다면
-                if !posts.isEmpty && posts.contains(where: { $0.userId == owner.homeViewModel.currentUserId }) {
+                if !posts.isEmpty && posts.contains(where: { $0.userId == owner.homeViewModel.userId }) {
                     // bubble
                     owner.customView.bubbleView.text = "오늘 사진 추가 완료"
                     owner.customView.bubbleView.alpha = 0.6
@@ -147,7 +147,7 @@ final class FeedViewController: UIViewController {
         guard
             let indexPath = customView.collectionView.indexPathForItem(at: location),
             let post = try? customView.collectionView.rx.model(at: indexPath) as Post,
-            let uid = homeViewModel.currentUserId,
+            let uid = homeViewModel.userId,
             post.userId != uid
         else { return }
         

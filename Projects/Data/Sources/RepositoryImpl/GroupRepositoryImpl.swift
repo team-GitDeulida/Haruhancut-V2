@@ -17,11 +17,11 @@ public final class GroupRepositoryImpl: GroupRepositoryProtocol {
 
     private let firebaseAuthManager: FirebaseAuthManagerProtocol
     private let firebaseStorageManager: FirebaseStorageManagerProtocol
-    private let userSession: UserSessionType
+    private let userSession: UserSession
     
     public init(firebaseAuthManager: FirebaseAuthManagerProtocol,
                 firebaseStorageManager: FirebaseStorageManagerProtocol,
-                userSession: UserSessionType
+                userSession: UserSession
     ) {
         self.firebaseAuthManager = firebaseAuthManager
         self.firebaseStorageManager = firebaseStorageManager

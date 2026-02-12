@@ -40,10 +40,10 @@ public protocol GroupUsecaseProtocol {
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     private let groupRepository: GroupRepositoryProtocol
-    private let userSession: UserSessionType
+    private let userSession: UserSession
     
     public init(groupRepository: GroupRepositoryProtocol,
-                userSession: UserSessionType
+                userSession: UserSession
     ) {
         self.groupRepository = groupRepository
         self.userSession = userSession
@@ -103,13 +103,22 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             }
     }
     
+    /*
     public func addComment(post: Post, text: String) -> Single<Void> {
         guard let userId = userSession.userId,
-              let groupId = userSession.groupId else {
+              let groupId = userSession.groupId,
+              let nickname = userSession.
+        else {
             return .deferred { .just(()) }
         }
         let commendId = UUID().uuidString
+        let newComment = Comment(commentId: commendId,
+                                 userId: userId,
+                                 nickname: <#T##String#>,
+                                 text: <#T##String#>,
+                                 createdAt: <#T##Date#>)
         
         return .just(())
     }
+     */
 }

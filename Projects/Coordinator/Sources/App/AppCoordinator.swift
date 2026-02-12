@@ -29,7 +29,7 @@ public final class AppCoordinator: Coordinator {
     public var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
     public var navigationController: UINavigationController
-    @Dependency var userSession: UserSessionType
+    @Dependency var userSession: UserSession
     
     public init(navigationController: UINavigationController) {
         self.navigationController = navigationController
@@ -119,7 +119,7 @@ private extension AppCoordinator {
     // 앱 최초 실행 시 진입할 플로우를 결정한다
     func routeBySession() {
         let isLoggedIn =
-        userSession.isLoggedIn &&
+        userSession.hasSession &&
         Auth.auth().currentUser != nil
         
         // 1️⃣ 로그인 안 됨

@@ -17,13 +17,13 @@ import HomeFeatureInterface
 public final class FeedDetailViewModel: FeedDetailViewModelType {
     public var onCommentTapped: (() -> Void)?
     
-    @Dependency private var userSession: UserSessionType
-    private var currentUserId: String? {
-        return userSession.sessionUser?.userId
-    }
-    private var currentGroupId: String? {
-        return userSession.sessionUser?.groupId
-    }
+    @Dependency private var userSession: UserSession
+//    private var currentUserId: String? {
+//        return userSession.sessionUser?.userId
+//    }
+//    private var currentGroupId: String? {
+//        return userSession.sessionUser?.groupId
+//    }
     public var currentPost: Post {
         postRelay.value
     }
@@ -81,8 +81,9 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
         return Output(comments: comments, sendResult: sendResult, deleteResult: .just(false))
     }
     
+    
     func addComment(post: Post, text: String) -> Driver<Bool> {
-        guard let userId = currentUserId, let groupId = currentGroupId else {
+        guard let userId = userSession.userId, let groupId = userSession.groupId else {
             return .just(false)
         }
         let commentId = UUID().uuidString

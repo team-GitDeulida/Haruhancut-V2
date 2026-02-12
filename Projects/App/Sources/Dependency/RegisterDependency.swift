@@ -19,8 +19,8 @@ extension SceneDelegate {
         
         // session
         let storage = UserDefaultsStorage()
-        let userSession = UserSession(storage: storage)
-        DIContainer.shared.register(UserSessionType.self, dependency: userSession)
+        let userSession = UserSession(storage: storage, storageKey: "session.user")
+        DIContainer.shared.register(UserSession.self, dependency: userSession)
         
         let kakaoLoginManager = KakaoLoginManager()
         let appleLoginManager = AppleLoginManager()
