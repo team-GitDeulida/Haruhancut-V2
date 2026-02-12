@@ -14,6 +14,9 @@ let project = Project(
                 // 앱 이름 설정
                 "CFBundleDisplayName": "하루한컷",
 
+                // 다크 모드 강제
+                "UIUserInterfaceStyle": "Dark",
+
                 // Storyboard 미사용
                 "UILaunchScreen": [:],
 

@@ -10,6 +10,7 @@ import Domain
 import RxSwift
 import RxCocoa
 import Core
+import DSKit
 
 final class FeedViewController: UIViewController {
     private let disposeBag = DisposeBag()
@@ -76,7 +77,7 @@ final class FeedViewController: UIViewController {
                 let isEmpty = posts.isEmpty
                 owner.customView.emptyLabel.isHidden = !isEmpty
                 owner.customView.collectionView.isHidden = isEmpty
-                
+            
                 // 포스트가 비어있지 않으면서 && 내가 작성한 포스트가 하나라도 있다면
                 if !posts.isEmpty && posts.contains(where: { $0.userId == owner.homeViewModel.userId }) {
                     // bubble
@@ -114,6 +115,15 @@ final class FeedViewController: UIViewController {
         longPressRelay
             .subscribe(with: self, onNext: { owner, post in
                 Logger.d("🔥 Long Press OK (Rx)")
+                let alert = AlertFactory.makeAlert(title: "삭제 확인",
+                                       message: "이 사진을 삭제하시겠습니까?",
+                                       actions: [
+                                        UIAlertAction(title: "삭제", style: .destructive) { _ in
+                                            print("삭제")
+                                        },
+                                        UIAlertAction(title: "취소", style: .cancel)
+                                       ])
+                owner.present(alert, animated: true)
             })
             .disposed(by: disposeBag)
         
@@ -122,6 +132,18 @@ final class FeedViewController: UIViewController {
             .asDriver()
             .drive(with: self, onNext: { owner, _ in
                 print("사진 추가하기")
+                let alert = AlertFactory.makeAlert(title: nil,
+                                                   message: nil,
+                                                   preferredStyle: .actionSheet,
+                                                   actions: [
+                                                    UIAlertAction(title: "카메라로 찍기", style: .default) { _ in
+                                                        print("카메라로 찍기")
+                                                    },
+                                                    UIAlertAction(title: "앨범에서 선택", style: .default) { _ in
+                                                        print("앨범에서 선택")
+                                                    }
+                                                   ])
+                owner.present(alert, animated: true)
             })
             .disposed(by: disposeBag)
         
@@ -148,7 +170,7 @@ final class FeedViewController: UIViewController {
             let indexPath = customView.collectionView.indexPathForItem(at: location),
             let post = try? customView.collectionView.rx.model(at: indexPath) as Post,
             let uid = homeViewModel.userId,
-            post.userId != uid
+            post.userId == uid
         else { return }
         
         longPressRelay.accept(post)
@@ -170,16 +192,3 @@ extension FeedViewController: UICollectionViewDelegateFlowLayout {
             return CGSize(width: itemWidth, height: itemWidth)
         }
 }
-
-
-
-
-//    private func bindViewModel() {
-//        /// 포스트 터치 바인딩
-//        customView.collectionView.rx.modelSelected(Post.self)
-//            .asDriver()
-//            .drive(onNext: { [weak self] post in
-//                guard let self = self else { return }
-//            })
-//            .disposed(by: disposeBag)
-//    }
