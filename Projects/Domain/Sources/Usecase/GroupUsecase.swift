@@ -26,7 +26,7 @@ public protocol GroupUsecaseProtocol {
     func deleteImage(path: String) -> Single<Void>
     
     // Comment
-    func addComment(path: String, value: Comment) -> Single<Void>
+    // func addComment(path: String, value: Comment) -> Single<Void>
     func deleteComment(path: String) -> Single<Void>
     
     // Other
@@ -37,6 +37,7 @@ public protocol GroupUsecaseProtocol {
     func joinAndUpdateGroup(inviteCode: String) -> Single<Void>
     func createAndUpdateGroup(groupName: String) -> Single<Void>
     func loadAndFetchGroup() -> Observable<HCGroup>
+    func addComment(post: Post, text: String) -> Single<Void>
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
@@ -75,7 +76,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     }
     
     // Comment
-    public func addComment(path: String, value: Comment) -> Single<Void> {
+    private func addComment(path: String, value: Comment) -> Single<Void> {
         return groupRepository.addComment(path: path, value: value)
     }
     
@@ -126,24 +127,32 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
 
         // 3. 캐시 -> 서버 순서로 방출
         return Observable.concat(cached, remote)
+            .enumerated()
+            .do(onNext: { index, group in
+                Logger.d("\n[\(index)]번째 방출: \(group.description)")
+            })
+            .map { $0.element }
     }
     
-    /*
+    
     public func addComment(post: Post, text: String) -> Single<Void> {
         guard let userId = userSession.userId,
               let groupId = userSession.groupId,
-              let nickname = userSession.
+              let nickname = userSession.nickname,
+              let profileImageURL = userSession.profileImageURL
         else {
             return .deferred { .just(()) }
         }
-        let commendId = UUID().uuidString
-        let newComment = Comment(commentId: commendId,
+        let commentId = UUID().uuidString
+        let newComment = Comment(commentId: commentId,
                                  userId: userId,
-                                 nickname: <#T##String#>,
-                                 text: <#T##String#>,
-                                 createdAt: <#T##Date#>)
-        
-        return .just(())
+                                 nickname: nickname,
+                                 profileImageURL: profileImageURL,
+                                 text: text,
+                                 createdAt: Date())
+        let dateKey = post.createdAt.toDateKey()
+        let path = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)/comments/\(commentId)"
+        return self.groupRepository.addComment(path: path, value: newComment)
     }
-     */
+    
 }

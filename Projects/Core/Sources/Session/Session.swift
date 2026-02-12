@@ -1,5 +1,5 @@
 //
-//  GroupSession.swift
+//  Session.swift
 //  Core
 //
 //  Created by 김동현 on 1/25/26.
@@ -14,8 +14,9 @@ public protocol SessionType {
     var session: Model? { get }
     var hasSession: Bool { get }
     
-    func bind(_ handler: @escaping SessionChangeHandler)
-    func observe(_ handler: @escaping SessionChangeHandler)
+    func bind(_ handler: @escaping SessionChangeHandler) -> UUID
+    func observe(_ handler: @escaping SessionChangeHandler) -> UUID
+    func removeObserver(_ id: UUID)
     func update(_ model: Model)
     func update<Value>(
         _ keyPath: WritableKeyPath<Model, Value>,
@@ -29,7 +30,9 @@ public final class SessionContext<Model: Codable & Equatable & CustomStringConve
     private let storage: UserDefaultsStorageProtocol
     private let storageKey: String
     private var cached: Model?
-    private var onSessionChanged: SessionChangeHandler?
+    // private var onSessionChanged: SessionChangeHandler?
+    // 여려 구독자 지원
+    private var observers: [UUID: SessionChangeHandler] = [:]
     
     public init(
         storage: UserDefaultsStorageProtocol = UserDefaultsStorage(),
@@ -61,25 +64,34 @@ public extension SessionContext {
     var session: Model? { cached }
     var hasSession: Bool { cached != nil }
 
-    func bind(_ handler: @escaping SessionChangeHandler) {
-        onSessionChanged = handler
+    @discardableResult
+    func bind(_ handler: @escaping SessionChangeHandler) -> UUID {
+        let id = observe(handler)
         handler(session)
+        return id
     }
 
-    func observe(_ handler: @escaping SessionChangeHandler) {
-        onSessionChanged = handler
+    @discardableResult
+    func observe(_ handler: @escaping SessionChangeHandler) -> UUID {
+        let id = UUID()
+        observers[id] = handler
+        return id
+    }
+    
+    func removeObserver(_ id: UUID) {
+        observers.removeValue(forKey: id)
     }
 
     func update(_ model: Model) {
         cached = model
         saveToStorage(model)
-        onSessionChanged?(model)
+        observers.values.forEach { $0(model) }
     }
 
     func clear() {
         cached = nil
         storage.remove(storageKey)
-        onSessionChanged?(nil)
+        observers.values.forEach { $0(nil) }
     }
 }
 
@@ -95,7 +107,7 @@ public extension SessionContext {
         cached = current
 
         saveToStorage(current)
-        onSessionChanged?(current)
+        observers.values.forEach { $0(current) }
     }
 }
 

@@ -8,7 +8,7 @@
 import Foundation
 import Core
 
-public struct HCGroup: Encodable {
+public struct HCGroup: Encodable, CustomStringConvertible {
     public let groupId: String
     public let groupName: String
     public let createdAt: Date
@@ -16,6 +16,16 @@ public struct HCGroup: Encodable {
     public let inviteCode: String
     public var members: [String: String] // [uid: joinedAt]
     public var postsByDate: [String: [Post]]
+    public var description: String {
+        """
+        SessionGroup(
+        - groupId: \(groupId)
+        - groupName: \(groupName)
+        - members: \(members.count)
+        - posts count: \(postsByDate.values.flatMap { $0 }.count)
+        )
+        """
+    }
     
     public init(groupId: String, groupName: String, createdAt: Date, hostUserId: String, inviteCode: String, members: [String : String], postsByDate: [String : [Post]]) {
         self.groupId = groupId

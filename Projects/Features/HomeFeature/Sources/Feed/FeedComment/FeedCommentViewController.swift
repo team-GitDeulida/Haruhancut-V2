@@ -36,6 +36,11 @@ final class FeedCommentViewController: UIViewController {
     }
     
     func bindViewModel() {
+        
+        customView.tableView.rx
+            .setDelegate(self)
+            .disposed(by: disposeBag)
+        
         // 댓글 전송
         let sendTap = customView.chattingView.sendButton.rx.tap // ControlEvent<Void>
             .map { [weak self] in
@@ -47,11 +52,15 @@ final class FeedCommentViewController: UIViewController {
         
         // 댓글 삭제
         let deleteTap = customView.tableView.rx
-            .itemDeleted
-            .withLatestFrom(customView.tableView.rx.modelSelected(Comment.self)) { indexPath, comment in
-                return comment.commentId
-            }
-        
+            .modelDeleted(Comment.self)
+            .map { $0.commentId }
+
+//        let deleteTap = customView.tableView.rx
+//            .itemDeleted
+//            .withLatestFrom(customView.tableView.rx.modelSelected(Comment.self)) { indexPath, comment in
+//                return comment.commentId
+//            }
+//        
         
         let input = FeedDetailViewModel.Input(sendTap: sendTap, deleteTap: deleteTap)
         let output = feedDetailViewModel.transform(input: input)
@@ -170,3 +179,18 @@ extension FeedCommentViewController {
         modalPresentationStyle = .pageSheet
     }
 }
+
+extension FeedCommentViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView,
+                   trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath)
+    -> UISwipeActionsConfiguration? {
+
+        let delete = UIContextualAction(style: .destructive,
+                                         title: "삭제") { _, _, completion in
+            completion(true)
+        }
+
+        return UISwipeActionsConfiguration(actions: [delete])
+    }
+}
+
