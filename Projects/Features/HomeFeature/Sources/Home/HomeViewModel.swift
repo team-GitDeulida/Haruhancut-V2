@@ -57,8 +57,7 @@ public final class HomeViewModel: HomeViewModelType {
         let result = loadTrigger
             .withUnretained(self)
             .flatMapLatest { owner, _ in
-                owner.groupUsecase.fetchGroup()
-                    .asObservable()
+                owner.groupUsecase.loadAndFetchGroup()
                     .materialize() // 에러 발생 시 스트림 이 끊기지 않도록 해준다
             }
             .share() // 아래서 group, error가 모두 result를 구독하는데 요청 1번만 하도록 하기 위함

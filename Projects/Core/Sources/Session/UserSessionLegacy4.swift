@@ -5,10 +5,60 @@
 //  Created by 김동현 on 1/25/26.
 //
 
+/*
 import Foundation
 
+// User, Group, etc...
+public protocol SessionModel: Codable, Equatable, CustomStringConvertible { }
+public typealias UserSession = SessionContext<SessionUser>
+
+
+
+public struct SessionGroup: SessionModel {
+    public let groupId: String
+    public let groupName: String
+    public let createdAt: Date
+    public let hostUserId: String
+    public let inviteCode: String
+    public var members: [String: String]
+    public var description: String {
+        ""
+    }
+}
+
+public struct SessionUser: SessionModel {
+    public var userId: String
+    public var groupId: String?
+    public var nickname: String
+    public var profileImageURL: String?
+    
+    public init(
+        userId: String,
+        groupId: String?,
+        nickname: String,
+        profileImageURL: String?
+    ) {
+        self.userId = userId
+        self.groupId = groupId
+        self.nickname = nickname
+        self.profileImageURL = profileImageURL
+    }
+    
+    public var description: String {
+        """
+        
+        SessionUser(
+        - userId:          \(userId),
+        - groupId:         \(groupId ?? "nil"),
+        - nickname:        \(nickname),
+        - profileImageURL: \(profileImageURL ?? "nil")
+        )
+        """
+    }
+}
+
 public protocol SessionType {
-    associatedtype Model: Codable & Equatable & CustomStringConvertible
+    associatedtype Model: SessionModel
     typealias SessionChangeHandler = (Model?) -> Void
     
     var session: Model? { get }
@@ -24,7 +74,7 @@ public protocol SessionType {
     func clear()
 }
 
-public final class SessionContext<Model: Codable & Equatable & CustomStringConvertible>: SessionType {
+public final class SessionContext<Model: SessionModel>: SessionType {
     public typealias SessionChangeHandler = (Model?) -> Void
     private let storage: UserDefaultsStorageProtocol
     private let storageKey: String
@@ -99,3 +149,12 @@ public extension SessionContext {
     }
 }
 
+public extension SessionContext where Model == SessionUser {
+    var userId: String? { session?.userId }
+    var groupId: String? { session?.groupId }
+    var nickname: String? { session?.nickname }
+    var profileImageURL: String? { session?.profileImageURL }
+    var hasGroup: Bool { groupId != nil }
+}
+
+*/

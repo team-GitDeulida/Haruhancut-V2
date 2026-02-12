@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Post: Encodable {
+public struct Post: Codable, Equatable {
     public let postId: String
     public let userId: String           // 작성자 ID
     public let nickname: String         // 작성자 닉네임

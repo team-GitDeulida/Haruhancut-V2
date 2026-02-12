@@ -7,15 +7,28 @@
 import XCTest
 @testable import Core
 
+private struct DummySession: Codable, Equatable, CustomStringConvertible {
+    var id: String
+    var name: String
+    
+    var description: String {
+        "DummySession(id: \(id), name: \(name))"
+    }
+}
+
+
 final class UserSession2Tests: XCTestCase {
     
     private var storage: FakeUserDefaultsStorage!
-    private var session: UserSession!
+    private var session: SessionContext<DummySession>!
     
     override func setUp() {
         super.setUp()
         storage = FakeUserDefaultsStorage()
-        session = UserSession(storage: storage)
+        session = SessionContext<DummySession>(
+                    storage: storage,
+                    storageKey: "test.session"
+                )
     }
     
     override func tearDown() {
@@ -26,20 +39,17 @@ final class UserSession2Tests: XCTestCase {
     
     // 초기 상태 테스트
     func test_init_withoutStoredSession_hasNoSession() {
-        XCTAssertNil(session.sessionUser)
-        XCTAssertFalse(session.isLoggedIn)
-        XCTAssertFalse(session.hasGroup)
+        XCTAssertNil(session.session)
+        XCTAssertFalse(session.hasSession)
     }
 
     // update(user) 테스트
-    func test_updateUser_setsSessionAndMarksLoggedIn() {
-        let user = SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil)
+    func test_update_setsSessionAndPersists() {
+        let model = DummySession(id: "1", name: "apple")
+        session.update(model)
 
-        session.update(user)
-
-        XCTAssertEqual(session.sessionUser, user)
-        XCTAssertTrue(session.isLoggedIn)
-        XCTAssertFalse(session.hasGroup)
+        XCTAssertEqual(session.session, model)
+        XCTAssertTrue(session.hasSession)
     }
     
     // bind는 즉시 1회 호출된다
@@ -65,63 +75,66 @@ final class UserSession2Tests: XCTestCase {
         XCTAssertEqual(callCount, 0)
     }
 
-    // update(user) → observe 호출됨
-    func test_updateUser_notifiesObserver() {
+    // update → observe 호출됨
+    func test_update_notifiesObserver() {
         let exp = expectation(description: "observer called")
-        let user = SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil)
+        let model = DummySession(id: "1", name: "apple")
 
         session.observe { received in
-            XCTAssertEqual(received, user)
+            XCTAssertEqual(received, model)
             exp.fulfill()
         }
 
-        session.update(user)
+        session.update(model)
 
         wait(for: [exp], timeout: 0.1)
     }
 
     // KeyPath update 테스트
     func test_updateKeyPath_updatesOnlyTargetField() {
-        let user = SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil)
-        session.update(user)
+            let model = DummySession(id: "1", name: "apple")
+            session.update(model)
 
-        session.update(\.groupId, "group-1")
+            session.update(\.name, "banana")
 
-        XCTAssertEqual(session.sessionUser?.groupId, "group-1")
-        XCTAssertEqual(session.sessionUser?.userId, "user-1")
-    }
+            XCTAssertEqual(session.session?.name, "banana")
+            XCTAssertEqual(session.session?.id, "1")
+        }
 
     // clear 테스트
     func test_clear_removesSessionAndNotifies() {
         let exp = expectation(description: "observer called with nil")
 
-        session.update(SessionUser(userId: "user-1", groupId: nil, nickname: "user-1-nickname", proprofileImageURL: nil))
+        let model = DummySession(id: "1", name: "apple")
+        session.update(model)
 
-        session.observe { user in
-            XCTAssertNil(user)
+        session.observe { value in
+            XCTAssertNil(value)
             exp.fulfill()
         }
 
         session.clear()
 
-        XCTAssertNil(session.sessionUser)
-        XCTAssertFalse(session.isLoggedIn)
+        XCTAssertNil(session.session)
+        XCTAssertFalse(session.hasSession)
 
         wait(for: [exp], timeout: 0.1)
     }
 
     // storage 복원 테스트 (가장 중요)
     func test_init_restoresSessionFromStorage() {
-        let storedUser = SessionUser(userId: "stored", groupId: "group", nickname: "user-1-nickname", proprofileImageURL: nil)
+        let stored = DummySession(id: "stored", name: "banana")
 
-        let data = try! JSONEncoder().encode(storedUser)
-        storage.set(data, forKey: "session.user")
+        let data = try! JSONEncoder().encode(stored)
+        storage.set(data, forKey: "test.session")
 
-        let newSession = UserSession(storage: storage)
+        let newSession = SessionContext<DummySession>(
+            storage: storage,
+            storageKey: "test.session"
+        )
 
-        XCTAssertEqual(newSession.sessionUser, storedUser)
-        XCTAssertTrue(newSession.isLoggedIn)
-        XCTAssertTrue(newSession.hasGroup)
+        XCTAssertEqual(newSession.session, stored)
+        XCTAssertTrue(newSession.hasSession)
     }
 
 }

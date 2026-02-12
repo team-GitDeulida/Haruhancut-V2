@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Comment: Encodable {
+public struct Comment: Codable, Equatable {
     public let commentId: String
     public let userId: String
     public let nickname: String

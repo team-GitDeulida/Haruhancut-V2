@@ -20,7 +20,9 @@ extension SceneDelegate {
         // session
         let storage = UserDefaultsStorage()
         let userSession = UserSession(storage: storage, storageKey: "session.user")
+        let groupSession = GroupSession(storage: storage, storageKey: "session.group")
         DIContainer.shared.register(UserSession.self, dependency: userSession)
+        DIContainer.shared.register(GroupSession.self, dependency: groupSession)
         
         let kakaoLoginManager = KakaoLoginManager()
         let appleLoginManager = AppleLoginManager()
@@ -32,7 +34,9 @@ extension SceneDelegate {
                                                     appleLoginManager: appleLoginManager,
                                                     firebaseAuthManager: firebaseAuthManager,
                                                     firebaseStorageManager: firebaseStorageManager)
-        let groupRepository = GroupRepositoryImpl(firebaseAuthManager: firebaseAuthManager, firebaseStorageManager: firebaseStorageManager, userSession: userSession)
+        let groupRepository = GroupRepositoryImpl(firebaseAuthManager: firebaseAuthManager,
+                                                  firebaseStorageManager: firebaseStorageManager,
+                                                  userSession: userSession)
         
         
         // usecase
@@ -41,7 +45,8 @@ extension SceneDelegate {
         DIContainer.shared.register(AuthUsecaseProtocol.self, dependency: authUseCase)
         
         let groupUseCase = GroupUsecaseImpl(groupRepository: groupRepository,
-                                            userSession: userSession)
+                                            userSession: userSession,
+                                            groupSession: groupSession)
         DIContainer.shared.register(GroupUsecaseProtocol.self, dependency: groupUseCase)
     }
 }

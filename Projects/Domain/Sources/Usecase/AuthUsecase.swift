@@ -80,11 +80,8 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
                             .mapToVoid()
                     }
                     .do(onSuccess: {
-                        self.userSession.update(SessionUser(userId: user.uid,
-                                                            groupId: nil,
-                                                            nickname: user.nickname,
-                                                            profileImageURL: user.profileImageURL))
-                       //  self.userSession.update(\.userId, registeredUser.uid)
+                        // groupId = nil
+                        self.userSession.update(user.toSession())
                     })
             }
     }
@@ -102,10 +99,7 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
             .do { result in
                 if case .existingUser(let user) = result {
                     Logger.d("기존 사용자")
-                    self.userSession.update(SessionUser(userId: user.uid,
-                                                        groupId: user.groupId,
-                                                        nickname: user.nickname,
-                                                        profileImageURL: user.profileImageURL))
+                    self.userSession.update(user.toSession())
                 }
             }
     }

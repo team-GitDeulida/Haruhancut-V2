@@ -7,6 +7,7 @@
 
 import Foundation
 import Domain
+import Core
 
 // MARK: - DTO
 public struct UserDTO: Codable { /// Json -> Swift 객체(서버 응답용)
@@ -88,4 +89,3 @@ extension User {
             groupId: groupId)
     }
 }
-

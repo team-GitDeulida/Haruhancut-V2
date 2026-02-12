@@ -19,7 +19,7 @@ public protocol GroupUsecaseProtocol {
     // func joinGroup(inviteCode: String) -> Single<HCGroup>
     func updateGroup(path: String, post: Post) -> Single<Void>
     // func updateUserGroupId(groupId: String) -> Single<Void>
-    func fetchGroup() -> Single<HCGroup>
+    // func fetchGroup() -> Single<HCGroup>
     
     // Image
     func uploadImage(image: UIImage, path: String) -> Single<URL>
@@ -36,17 +36,21 @@ public protocol GroupUsecaseProtocol {
     // 시나리오
     func joinAndUpdateGroup(inviteCode: String) -> Single<Void>
     func createAndUpdateGroup(groupName: String) -> Single<Void>
+    func loadAndFetchGroup() -> Observable<HCGroup>
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     private let groupRepository: GroupRepositoryProtocol
     private let userSession: UserSession
+    private let groupSession: GroupSession
     
     public init(groupRepository: GroupRepositoryProtocol,
-                userSession: UserSession
+                userSession: UserSession,
+                groupSession: GroupSession
     ) {
         self.groupRepository = groupRepository
         self.userSession = userSession
+        self.groupSession = groupSession
     }
     
     // Group
@@ -54,7 +58,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return groupRepository.updateGroup(path: path, post: post)
     }
     
-    public func fetchGroup() -> Single<HCGroup> {
+    private func fetchGroup() -> Single<HCGroup> {
         guard let groupId = userSession.groupId else {
             return .error(DomainError.missingGroupId)
         }
@@ -101,6 +105,27 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             .flatMap { group in
                 self.groupRepository.updateUserGroupId(groupId: group.groupId)
             }
+    }
+    
+    public func loadAndFetchGroup() -> Observable<HCGroup> {
+        guard let groupId = userSession.groupId else {
+            return .error(DomainError.missingGroupId)
+        }
+        
+        // 1. 캐시 먼저 방출
+        let cached = groupSession.entity
+            .map { Observable.just($0) } ?? .empty()
+        
+        // 2. 서버
+        let remote = groupRepository.fetchGroup(groupId: groupId)
+            .do(onSuccess: { [weak self] group in
+                // 서버 결과 세션에 캐시
+                self?.groupSession.update(group.toSession())
+            })
+            .asObservable()
+
+        // 3. 캐시 -> 서버 순서로 방출
+        return Observable.concat(cached, remote)
     }
     
     /*

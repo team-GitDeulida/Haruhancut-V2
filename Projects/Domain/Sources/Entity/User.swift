@@ -6,7 +6,7 @@
 //
 
 import Foundation
-
+import Core
 
 public struct User: Encodable {
     
@@ -76,4 +76,59 @@ extension User: CustomStringConvertible {
 
         """
     }
+}
+
+
+
+// MARK: - User Session
+public typealias UserSession = SessionContext<SessionUser>
+public struct SessionUser: Codable, Equatable, CustomStringConvertible {
+    public var userId: String
+    public var groupId: String?
+    public var nickname: String
+    public var profileImageURL: String?
+    public var description: String {
+        """
+        
+        SessionUser(
+        - userId:          \(userId),
+        - groupId:         \(groupId ?? "nil"),
+        - nickname:        \(nickname),
+        - profileImageURL: \(profileImageURL ?? "nil")
+        )
+        """
+    }
+
+    public init(
+        userId: String,
+        groupId: String?,
+        nickname: String,
+        profileImageURL: String?
+    ) {
+        self.userId = userId
+        self.groupId = groupId
+        self.nickname = nickname
+        self.profileImageURL = profileImageURL
+    }
+
+    public init(user: User) {
+        self.userId = user.uid
+        self.groupId = user.groupId
+        self.nickname = user.nickname
+        self.profileImageURL = user.profileImageURL
+    }
+}
+
+extension User {
+    public func toSession() -> SessionUser {
+        return SessionUser(user: self)
+    }
+}
+
+public extension SessionContext where Model == SessionUser {
+    var userId: String? { session?.userId }
+    var groupId: String? { session?.groupId }
+    var nickname: String? { session?.nickname }
+    var profileImageURL: String? { session?.profileImageURL }
+    var hasGroup: Bool { groupId != nil }
 }
