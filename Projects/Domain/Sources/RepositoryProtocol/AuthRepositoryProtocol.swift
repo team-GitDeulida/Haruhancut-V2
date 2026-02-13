@@ -25,4 +25,7 @@ public protocol AuthRepositoryProtocol {
     
     // MARK: - Image
     func uploadImage(user: User, image: UIImage) -> Single<URL>
+    
+    // MARK: - Fcm
+    func generateFcmToken() -> Single<String>
 }

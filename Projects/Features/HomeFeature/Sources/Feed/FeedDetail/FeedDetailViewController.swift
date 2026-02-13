@@ -11,6 +11,7 @@ import HomeFeatureInterface
 import Domain
 import RxRelay
 import Core
+import RxCocoa
 
 final class FeedDetailViewController: UIViewController, PopableViewController {
     
@@ -49,15 +50,40 @@ final class FeedDetailViewController: UIViewController, PopableViewController {
             onPop?()
         }
     }
-
     
     // MARK: - Bindings
     private func bindViewModel() {
-        customView.commentButton.rx.tap
-            .asDriver()
-            .drive(with: self, onNext: { owner, _ in
-                owner.viewModel.onCommentTapped?()
-            })
+        
+
+        let input = FeedDetailViewModel.DetailInput(imageTapped: customView.imageView.rx.tap.asObservable(),
+                                                    commentButtonTapped: customView.commentButton.rx.tap.asObservable())
+        let output = viewModel.transform(input: input)
+        
+        // 게시물 업데이트 감지 후 댓글 수 반영을 한다
+        output.commentCount
+            .drive(with: self) { owner, count in
+                owner.customView.commentButton.setCount(count)
+            }
             .disposed(by: disposeBag)
+    }
+}
+
+extension Reactive where Base: UIView {
+    /*
+     [이 확장이 없다면 해야하는 방식]
+     var imageTapped: Observable<Void> {
+         let tapGesture = UITapGestureRecognizer()
+         customView.imageView.isUserInteractionEnabled = true
+         customView.imageView.addGestureRecognizer(tapGesture)
+         return tapGesture.rx.event
+             .map { _ in () }
+     }
+     */
+    var tap: ControlEvent<Void> {
+        let gesture = UITapGestureRecognizer()
+        base.addGestureRecognizer(gesture)
+        base.isUserInteractionEnabled = true
+        let source = gesture.rx.event.map { _ in () }
+        return ControlEvent(events: source)
     }
 }

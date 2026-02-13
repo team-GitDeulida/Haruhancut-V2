@@ -19,13 +19,6 @@ final class FeedViewController: UIViewController {
     private var output: HomeViewModel.Output?
     private let longPressRelay = PublishRelay<Post>()
     
-    // HomeVC가 구독할 refresh 이벤트
-    var refreshTriggered: Observable<Void> {
-        customView.refreshControl.rx
-            .controlEvent(.valueChanged)
-            .asObservable()
-    }
-    
     init(homeViewModel: HomeViewModel) {
         self.homeViewModel = homeViewModel
         super.init(nibName: nil, bundle: nil)
@@ -50,15 +43,37 @@ final class FeedViewController: UIViewController {
         customView.collectionView.addGestureRecognizer(longPress)
     }
     
+    // MARK: - Input
+    var refreshTriggered: Observable<Void> {
+        customView.refreshControl.rx
+            .controlEvent(.valueChanged)
+            .asObservable()
+    }
+    
+    var imageTapped: Observable<Post> {
+        customView.collectionView.rx
+            .modelSelected(Post.self)
+            .asObservable()
+    }
+    
+    var longPressed: Observable<Post> {
+        longPressRelay.asObservable()
+    }
+    
+    var cameraButtonTapped: Observable<Void> {
+        customView.cameraBtn.rx.tap
+            .asObservable()
+    }
+    
     // MARK: - Bindings
     func setOutput(_ output: HomeViewModel.Output) {
         customView.collectionView.rx.setDelegate(self)
                 .disposed(by: disposeBag)
         self.output = output
-        bindIfPossible()
+        bindViewModel()
     }
     
-    private func bindIfPossible() {
+    private func bindViewModel() {
         guard let output else { return }
         
         // posts → CollectionView 셀 렌더링
@@ -103,18 +118,22 @@ final class FeedViewController: UIViewController {
             })
             .disposed(by: disposeBag)
         
-        // 포스트 터치 바인딩
-        customView.collectionView.rx.modelSelected(Post.self)
-            .asDriver()
-            .drive(with: self, onNext: { owner, post in
-                owner.homeViewModel.onImageTapped?(post)
-            })
+        // 카메라 버튼 활성화 / 비활성화
+        output.didTodayUpload
+            .map { !$0 } // 오늘 올렸으면 버튼은 false
+            .drive(customView.cameraBtn.rx.isEnabled)
             .disposed(by: disposeBag)
         
-        // 포스트 롱프레스 바인딩
-        longPressRelay
-            .subscribe(with: self, onNext: { owner, post in
-                Logger.d("🔥 Long Press OK (Rx)")
+        // 카메라 버튼 투명도 조절
+        output.didTodayUpload
+            .map { $0 ? 0.3 : 1.0 }
+            .asDriver(onErrorJustReturn: 1.0)
+            .drive(customView.cameraBtn.rx.alpha)
+            .disposed(by: disposeBag)
+        
+        // 포스트 롱프레스 알림(삭제)
+        output.showLongPressedAlert
+            .emit(with: self, onNext: { owner, _ in
                 let alert = AlertFactory.makeAlert(title: "삭제 확인",
                                        message: "이 사진을 삭제하시겠습니까?",
                                        actions: [
@@ -127,11 +146,9 @@ final class FeedViewController: UIViewController {
             })
             .disposed(by: disposeBag)
         
-        // 카메라 터치 바인딩
-        customView.cameraBtn.rx.tap
-            .asDriver()
-            .drive(with: self, onNext: { owner, _ in
-                print("사진 추가하기")
+        // 카메라 버튼 알림
+        output.showCameraAlert
+            .emit(with: self, onNext: { owner, _ in
                 let alert = AlertFactory.makeAlert(title: nil,
                                                    message: nil,
                                                    preferredStyle: .actionSheet,
@@ -146,20 +163,6 @@ final class FeedViewController: UIViewController {
                 owner.present(alert, animated: true)
             })
             .disposed(by: disposeBag)
-        
-        // 카메라 버튼 활성화 / 비활성화
-        output.didTodayUpload
-            .map { !$0 } // 오늘 올렸으면 버튼은 false
-            .drive(customView.cameraBtn.rx.isEnabled)
-            .disposed(by: disposeBag)
-        
-        // 카메라 버튼 투명도 조절
-        output.didTodayUpload
-            .map { $0 ? 0.3 : 1.0 }
-            .asDriver(onErrorJustReturn: 1.0)
-            .drive(customView.cameraBtn.rx.alpha)
-            .disposed(by: disposeBag)
-                
     }
     
     @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {

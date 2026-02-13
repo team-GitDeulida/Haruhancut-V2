@@ -6,6 +6,7 @@
 //
 import FirebaseAuth
 import FirebaseDatabase
+import FirebaseMessaging
 import RxSwift
 import RxCocoa
 import Core
@@ -66,6 +67,9 @@ public enum FirebaseError: Error {
     case permissionDenied
     case pathNotFound
     case invalidData
+    
+    // Firebase FCM
+    case noFCMToken
     case unknown(Error)
 }
 
@@ -141,6 +145,7 @@ public protocol FirebaseAuthManagerProtocol {
     // MARK: - Realtime Observe
     // 실시간 스냅샷 스트림
     func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T>
+    func generateFcmToken() -> Single<String>
 }
 
 public final class FirebaseAuthManager: FirebaseAuthManagerProtocol {
@@ -288,43 +293,6 @@ extension FirebaseAuthManager {
             }
         }
     }
-
-    
-    /// Firebase Auth에 소셜 로그인으로 인증 요청
-    /// - Parameters:
-    ///   - prividerID: .kakao, .apple
-    ///   - idToken: kakaoToken, appleToken
-    /// - Returns: Result<Void, LoginError>
-//    public func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void> {
-//        guard let provider = ProviderID(rawValue: prividerID) else {
-//            return .error(FirebaseError.invalidData)
-//        }
-//        
-//        let credential = OAuthProvider.credential(
-//            providerID: provider.authProviderID,
-//            idToken: idToken,
-//            rawNonce: rawNonce ?? "")
-//        
-//        let signIn = Single<Void>.create { single in
-//            Auth.auth().signIn(with: credential) { _, error in
-//                
-//                if let error = error {
-//                    print("❌ Firebase 인증 실패: \(error.localizedDescription)")
-//                    single(.failure(FirebaseError.unknown(error)))
-//                } else {
-//                    print("✅ Firebase 인증 성공")
-//                    single(.success(()))
-//                }
-//            }
-//            return Disposables.create()
-//        }
-//        
-//        return signIn
-//            .flatMap {
-//                self.waitForAuthUser()
-//            }
-//            .mapToVoid()
-//    }
     
     public func authenticateUser(
             providerID: String,
@@ -617,4 +585,24 @@ extension FirebaseAuthManager {
     }
 }
 
-
+extension FirebaseAuthManager {
+    public func generateFcmToken() -> Single<String> {
+        return Single.create { single in
+            Messaging.messaging().token { token, error in
+                if let error = error {
+                    print("⚠️ FCM 토큰 발급 실패: \(error.localizedDescription)")
+                    print("⚠️ FCM 토큰을 받을 수 없는 기기라서 넘아갑니다.")
+                    single(.failure(FirebaseError.unknown(error)))
+                }
+                
+                guard let token = token else {
+                    single(.failure(FirebaseError.noFCMToken))
+                    return
+                }
+                
+                single(.success(token))
+            }
+            return Disposables.create()
+        }
+    }
+}

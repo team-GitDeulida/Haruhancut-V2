@@ -11,6 +11,7 @@ import UIKit
 
 public protocol FeedDetailTrigger {
     var onCommentTapped: (() -> Void)? { get set }
+    var onImagePreviewTapped: ((String) -> Void)? { get set }
 }
 
 public typealias FeedDetailViewModelType = ViewModelType & FeedDetailTrigger

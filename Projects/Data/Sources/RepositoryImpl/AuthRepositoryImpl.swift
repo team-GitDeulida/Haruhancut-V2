@@ -82,4 +82,8 @@ public final class AuthRepositoryImpl: AuthRepositoryProtocol {
         let path = "users/\(user.uid)/profile.jpg"
         return firebaseStorageManager.uploadImage(image: image, path: path)
     }
+    
+    public func generateFcmToken() -> Single<String> {
+        return firebaseAuthManager.generateFcmToken()
+    }
 }

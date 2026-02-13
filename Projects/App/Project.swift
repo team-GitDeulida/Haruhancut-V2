@@ -14,6 +14,12 @@ let project = Project(
                 // 앱 이름 설정
                 "CFBundleDisplayName": "하루한컷",
 
+                // 사진 저장 권한
+                "NSPhotoLibraryAddUsageDescription": "사진을 사용자의 앨범에 저장하기 위해 접근합니다.",
+                
+                // 앨범 불러오기 권한
+                "NSPhotoLibraryUsageDescription": "사진을 불러오기 위해 사진 보관함 접근 권한이 필요합니다.",
+
                 // 다크 모드 강제
                 "UIUserInterfaceStyle": "Dark",
 

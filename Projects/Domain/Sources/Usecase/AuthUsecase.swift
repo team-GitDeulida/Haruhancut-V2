@@ -27,13 +27,16 @@ public enum SignInResult {
 }
 
 public protocol AuthUsecaseProtocol {
-    // func fetchUserInfo() -> Single<User>
+
     func updateUser(user: User) -> Single<User>
     func uploadImage(user: User, image: UIImage) -> Single<URL>
     
     // MARK: - Sign
     func signIn(platform: User.LoginPlatform) -> Single<SignInResult>
     func signUp(user: User, profileImage: UIImage?) -> Single<Void>
+    
+    // MARK: - FCM
+    
 }
 
 public final class AuthUsecaseImpl: AuthUsecaseProtocol {
@@ -102,6 +105,20 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
                     self.userSession.update(user.toSession())
                 }
             }
+    }
+    
+    public func syncFcmIfNeeded() -> Single<Void> {
+        let localToken = userSession.fcmToken
+        let serverToken = userSession.fcmToken
+        
+        // 1. 로컬 토큰 없음 -> 새로 발급
+        
+        // 2. 다르면 업대이트
+        
+        // 3. 같으면 아무것도 안함
+        
+        //
+        return .just(())
     }
 }
 

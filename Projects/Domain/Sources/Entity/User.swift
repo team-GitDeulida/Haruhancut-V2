@@ -87,6 +87,7 @@ public struct SessionUser: Codable, Equatable, CustomStringConvertible {
     public var groupId: String?
     public var nickname: String
     public var profileImageURL: String?
+    public var fcmToken: String?
     public var description: String {
         """
         
@@ -103,12 +104,14 @@ public struct SessionUser: Codable, Equatable, CustomStringConvertible {
         userId: String,
         groupId: String?,
         nickname: String,
-        profileImageURL: String?
+        profileImageURL: String?,
+        fcmToken: String?
     ) {
         self.userId = userId
         self.groupId = groupId
         self.nickname = nickname
         self.profileImageURL = profileImageURL
+        self.fcmToken = fcmToken
     }
 
     public init(user: User) {
@@ -116,6 +119,7 @@ public struct SessionUser: Codable, Equatable, CustomStringConvertible {
         self.groupId = user.groupId
         self.nickname = user.nickname
         self.profileImageURL = user.profileImageURL
+        self.fcmToken = user.fcmToken
     }
 }
 
@@ -130,5 +134,6 @@ public extension SessionContext where Model == SessionUser {
     var groupId: String? { session?.groupId }
     var nickname: String? { session?.nickname }
     var profileImageURL: String? { session?.profileImageURL }
+    var fcmToken: String? { session?.fcmToken }
     var hasGroup: Bool { groupId != nil }
 }

@@ -13,17 +13,15 @@ import RxCocoa
 import Core
 import Data
 import HomeFeatureInterface
+import UIKit
 
 public final class FeedDetailViewModel: FeedDetailViewModelType {
+    
+    // MARK: - Coordinator Trigger
     public var onCommentTapped: (() -> Void)?
+    public var onImagePreviewTapped: ((String) -> Void)?
     
     @Dependency private var userSession: UserSession
-//    private var currentUserId: String? {
-//        return userSession.sessionUser?.userId
-//    }
-//    private var currentGroupId: String? {
-//        return userSession.sessionUser?.groupId
-//    }
     public var currentPost: Post {
         postRelay.value
     }
@@ -154,7 +152,40 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
 //                    .asDriver(onErrorJustReturn: false)
 //            }
         
-        return Output(comments: comments, sendResult: sendResult, deleteResult: .just(false))
+        return Output(comments: comments,
+                      sendResult: sendResult,
+                      deleteResult: Driver.just(false))
     }
 
+}
+
+extension FeedDetailViewModel {
+    public struct DetailInput {
+        let imageTapped: Observable<Void>
+        let commentButtonTapped: Observable<Void>
+    }
+    
+    public struct DetailOutput {
+        let commentCount: Driver<Int>
+    }
+    
+    public func transform(input: DetailInput) -> DetailOutput {
+        
+        input.imageTapped
+            .bind(with: self, onNext: { owner, _ in
+                print("출력")
+                owner.onImagePreviewTapped?(owner.currentPost.imageURL)
+            }).disposed(by: disposeBag)
+        
+        input.commentButtonTapped
+            .bind(with: self, onNext: { owner, _ in
+                owner.onCommentTapped?()
+            }).disposed(by: disposeBag)
+        
+        let commentCount = postRelay
+            .map { $0.comments.count }
+            .asDriver(onErrorJustReturn: 0)
+        
+        return DetailOutput(commentCount: commentCount)
+    }
 }

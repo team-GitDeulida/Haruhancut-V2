@@ -34,6 +34,11 @@ public final class HomeViewModel: HomeViewModelType {
     public struct Input {
         let viewDidLoad: Observable<Void>
         let refreshTapped: Observable<Void>
+        
+        // feedVC
+        let imageTapped: Observable<Post>
+        let longPressed: Observable<Post>
+        let cameraButtonTapped: Observable<Void>
     }
     
     public struct Output {
@@ -42,6 +47,10 @@ public final class HomeViewModel: HomeViewModelType {
         let todayPosts: Driver<[Post]>
         var didTodayUpload: Driver<Bool>
         let error: Signal<Error>
+        
+        // feedVC
+        let showLongPressedAlert: Signal<Post>
+        let showCameraAlert: Signal<Void>
     }
     
     public init(groupUsecase: GroupUsecaseProtocol) {
@@ -61,10 +70,7 @@ public final class HomeViewModel: HomeViewModelType {
                 owner.groupUsecase.loadAndFetchGroup()
                     .materialize() // 에러 발생 시 스트림 이 끊기지 않도록 해준다
             }
-            .share() // 아래서 group, error가 모두 result를 구독하는데 요청 1번만 하도록 하기 위함
-        
-        // let group = result.compactMap { $0.element }
-        // let error = result.compactMap { $0.error }
+            .share() /// 아래서 group, error가 모두 result를 구독하는데 요청 1번만 하도록 하기 위함
         
         let group = Observable<HCGroup>.create { observer in
             let id = self.groupSession.bind { session in
@@ -77,7 +83,23 @@ public final class HomeViewModel: HomeViewModelType {
                 self.groupSession.removeObserver(id)
             }
         }
-        .share() // Rx는 기본적으로 Cold Observable이다 구독자가 2명 이상이면 블록이 2번이상 실행됨.. 중복방지를위함
+        .share() /// Rx는 기본적으로 Cold Observable이다 구독자가 2명 이상이면 블록이 2번이상 실행됨.. 중복방지를위함
+        
+        
+        
+        
+        // MARK: - Feed
+        input.imageTapped
+            .bind(onNext: { [weak self] post in
+                self?.onImageTapped?(post)
+            })
+            .disposed(by: disposeBag)
+        
+        let showLongPressedAlert = input.longPressed
+            .asSignal(onErrorSignalWith: .empty())
+        
+        let showCameraAlert = input.cameraButtonTapped
+            .asSignal(onErrorSignalWith: .empty())
         
         let posts = group
             .map { group in
@@ -102,9 +124,26 @@ public final class HomeViewModel: HomeViewModelType {
                       posts: posts.asDriver(onErrorDriveWith: Driver.empty()),
                       todayPosts: todayPosts,
                       didTodayUpload: didTodayUpload,
-                      error: error.asSignal(onErrorSignalWith: Signal.empty()))
+                      error: error.asSignal(onErrorSignalWith: Signal.empty()),
+                      showLongPressedAlert: showLongPressedAlert,
+                      showCameraAlert: showCameraAlert)
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

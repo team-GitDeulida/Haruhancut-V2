@@ -161,11 +161,14 @@ final class HomeViewController: UIViewController {
         
         
         // MARK: - FeedVC
-        let refreshTapped = Observable.merge(feedVC.refreshTriggered) // , calendarVC.refreshTriggered
-        
-        
+        // , calendarVC.refreshTriggered도 추가예정
+        let refreshTapped = Observable.merge(feedVC.refreshTriggered)
+
         let input = HomeViewModel.Input(viewDidLoad: .just(()),
-                                        refreshTapped: refreshTapped)
+                                        refreshTapped: refreshTapped,
+                                        imageTapped: feedVC.imageTapped,
+                                        longPressed: feedVC.longPressed,
+                                        cameraButtonTapped: feedVC.cameraButtonTapped)
         
         let output = viewModel.transform(input: input)
         feedVC.setOutput(output)
@@ -199,12 +202,6 @@ extension HomeViewController: UIPageViewControllerDataSource {
         return dataViewControllers[index + 1]
     }
 }
-
-//#Preview {
-//    HomeViewController(viewModel: HomeViewModel())
-//}
-
-
 
 /*
 class HomeViewController: UIViewController {

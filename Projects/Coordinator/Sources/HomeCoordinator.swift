@@ -69,6 +69,19 @@ public final class HomeCoordinator: Coordinator {
                 commentVc.modalPresentationStyle = .pageSheet
                 self.navigationController.present(commentVc, animated: true)
             }
+            
+            feedDetail.vm.onImagePreviewTapped = { [weak self] imageURL in
+                guard let self = self else { return }
+                
+                let previewCoordinator = ImagePreviewCoordinator(
+                    navigationController: self.navigationController,
+                    imageURL: imageURL)
+                
+                previewCoordinator.parentCoordinator = self
+                self.childCoordinators.append(previewCoordinator)
+                previewCoordinator.start()
+            }
+            
             self.navigationController.pushViewController(feedDetail.vc, animated: true)
         }
         // 홈은 루트 플로우 → 스택 교체
