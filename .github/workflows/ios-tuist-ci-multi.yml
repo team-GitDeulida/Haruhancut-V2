@@ -406,9 +406,12 @@ permissions:
   issues: write
   pull-requests: write
 
+# =====================================================
+# 1. Build For Testing
+# =====================================================
 jobs:
-  ci:
-    name: iOS / Modular Tests
+  build:
+    name: Build For Testing
     runs-on: macos-15
 
     steps:
@@ -452,30 +455,72 @@ jobs:
           tuist install
           tuist generate --no-open
 
-      # 🔵 모듈별 테스트 병렬 실행
-      - name: Run Modular Tests (Parallel)
+      # 🏗 Build For Testing
+      - name: Build For Testing
         run: |
-          set -e
+          xcodebuild build-for-testing \
+            -workspace Haruhancut.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -derivedDataPath DerivedData
 
-          tuist test Core --configuration Debug &
-          tuist test Data --configuration Debug &
-          tuist test App --configuration Debug &
-
-          wait
+      # 📦 DerivedData 업로드
+      - name: Upload DerivedData
+        uses: actions/upload-artifact@v4
+        with:
+          name: derived-data
+          path: DerivedData
 
   # =====================================================
-  # 📣 Notify Job
+  # 2. Matrix Test (병렬)
+  # =====================================================
+  test:
+    name: Test / ${{ matrix.module }}
+    runs-on: macos-15
+    needs: build
+
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [Core, Data, App]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 🛠 Xcode 선택
+      - name: Select Xcode 16.4
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+
+      # 📥 DerivedData 다운로드
+      - name: Download DerivedData
+        uses: actions/download-artifact@v4
+        with:
+          name: derived-data
+          path: DerivedData
+
+      # 🧪 Test Without Building
+      - name: Run Tests
+        run: |
+          xcodebuild test-without-building \
+            -workspace Haruhancut.xcworkspace \
+            -scheme ${{ matrix.module }} \
+            -configuration Debug \
+            -derivedDataPath DerivedData
+
+  # =====================================================
+  # 3. Notify
   # =====================================================
   notify:
     name: Notify Result
     runs-on: macos-15
-    needs: ci
+    needs: test
     if: always()
 
     steps:
       # ✅ 성공 PR 코멘트
       - name: Comment success
-        if: needs.ci.result == 'success' &&
+        if: needs.test.result == 'success' &&
           github.event.inputs.triggered_by_command == 'true' &&
           github.event.inputs.pr_number != ''
         uses: peter-evans/create-or-update-comment@v4
@@ -483,13 +528,11 @@ jobs:
           issue-number: ${{ github.event.inputs.pr_number }}
           body: |
             ✅ **하루한컷 iOS CI 성공**
-            - Core Tests: ✅
-            - Data Tests: ✅
-            - App Tests: ✅
+            - Core / Data / App 테스트 모두 성공 🎉
 
       # ❌ 실패 PR 코멘트
       - name: Comment failure
-        if: needs.ci.result != 'success' &&
+        if: needs.test.result != 'success' &&
           github.event.inputs.triggered_by_command == 'true' &&
           github.event.inputs.pr_number != ''
         uses: peter-evans/create-or-update-comment@v4
@@ -497,11 +540,11 @@ jobs:
           issue-number: ${{ github.event.inputs.pr_number }}
           body: |
             ❌ **하루한컷 iOS CI 실패**
-            - Result: ${{ needs.ci.result }}
+            - 일부 모듈 테스트 실패
 
       # ✅ 성공 메일
       - name: Send email on success
-        if: needs.ci.result == 'success'
+        if: needs.test.result == 'success'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -510,7 +553,7 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: ✅ 하루한컷 iOS CI 성공
           body: |
-            ✅ Core / Data / App 테스트 모두 성공했습니다.
+            ✅ 모든 모듈 테스트 성공
 
             Repository: ${{ github.repository }}
             Branch: ${{ github.ref_name }}
@@ -521,7 +564,7 @@ jobs:
 
       # ❌ 실패 메일
       - name: Send email on failure
-        if: needs.ci.result != 'success'
+        if: needs.test.result != 'success'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -530,9 +573,8 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: ❌ 하루한컷 iOS CI 실패
           body: |
-            ❌ CI 실패 발생
+            ❌ 일부 모듈 테스트 실패
 
-            Result: ${{ needs.ci.result }}
             URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           to: indextrown@gmail.com
           from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
