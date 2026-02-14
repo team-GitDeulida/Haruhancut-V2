@@ -417,7 +417,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 🔐 Shared Config
       - name: Create Shared.xcconfig
         run: |
           mkdir -p Projects/Shared/Configs
@@ -425,46 +424,44 @@ jobs:
           ${{ secrets.SHARED_XCCONFIG }}
           EOF
 
-      # 🛠 Xcode 선택
       - name: Select Xcode 16.4
         run: |
           sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
           xcodebuild -version
 
-      # ⚡ Cache
-      - name: Cache Tuist & SwiftPM
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.tuist/Dependencies
-            ~/.tuist/Cache
-            ~/.swiftpm
-            Tuist/Dependencies/.build
-          key: tuist-${{ runner.os }}-${{ hashFiles('Tuist/Dependencies.swift', '**/Package.resolved') }}
-          restore-keys: tuist-${{ runner.os }}-
-
-      # 📦 Tuist 설치
       - name: Install Tuist
         run: |
           brew tap tuist/tuist
           brew install tuist@4.115.0
 
-      # 🧩 Generate
-      - name: Generate Project
+      - name: Generate
         run: |
           tuist install
           tuist generate --no-open
 
-      # 🏗 Build For Testing
+      # ✅ UUID Resolve
+      - name: Resolve Simulator UUID
+        run: |
+          SIM_NAME="iPhone 16"
+          SIM_OS="18.5"
+          UDID=$(xcrun simctl list devices available | \
+            grep "iOS ${SIM_OS}" -A 20 | \
+            grep "^ *${SIM_NAME} (" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          [ -z "$UDID" ] && echo "Simulator not found" && exit 1
+          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
+
+      - name: Boot Simulator
+        run: xcrun simctl bootstatus "$SIM_UDID" -b
+
       - name: Build For Testing
         run: |
           xcodebuild build-for-testing \
             -workspace Haruhancut.xcworkspace \
             -scheme App \
             -configuration Debug \
+            -destination "id=$SIM_UDID" \
             -derivedDataPath DerivedData
 
-      # 📦 DerivedData 업로드
       - name: Upload DerivedData
         uses: actions/upload-artifact@v4
         with:
@@ -472,7 +469,7 @@ jobs:
           path: DerivedData
 
   # =====================================================
-  # 2. Matrix Test (병렬)
+  # 2️. Matrix Test
   # =====================================================
   test:
     name: Test / ${{ matrix.module }}
@@ -487,25 +484,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 🛠 Xcode 선택
       - name: Select Xcode 16.4
-        run: |
-          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
 
-      # 📥 DerivedData 다운로드
       - name: Download DerivedData
         uses: actions/download-artifact@v4
         with:
           name: derived-data
           path: DerivedData
 
-      # 🧪 Test Without Building
+      # ✅ 동일 UUID resolve
+      - name: Resolve Simulator UUID
+        run: |
+          SIM_NAME="iPhone 16"
+          SIM_OS="18.5"
+          UDID=$(xcrun simctl list devices available | \
+            grep "iOS ${SIM_OS}" -A 20 | \
+            grep "^ *${SIM_NAME} (" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          [ -z "$UDID" ] && echo "Simulator not found" && exit 1
+          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
+
+      - name: Boot Simulator
+        run: xcrun simctl bootstatus "$SIM_UDID" -b
+
       - name: Run Tests
         run: |
           xcodebuild test-without-building \
             -workspace Haruhancut.xcworkspace \
             -scheme ${{ matrix.module }} \
             -configuration Debug \
+            -destination "id=$SIM_UDID" \
             -derivedDataPath DerivedData
 
   # =====================================================
@@ -518,7 +526,6 @@ jobs:
     if: always()
 
     steps:
-      # ✅ 성공 PR 코멘트
       - name: Comment success
         if: needs.test.result == 'success' &&
           github.event.inputs.triggered_by_command == 'true' &&
@@ -530,7 +537,6 @@ jobs:
             ✅ **하루한컷 iOS CI 성공**
             - Core / Data / App 테스트 모두 성공 🎉
 
-      # ❌ 실패 PR 코멘트
       - name: Comment failure
         if: needs.test.result != 'success' &&
           github.event.inputs.triggered_by_command == 'true' &&
@@ -541,40 +547,3 @@ jobs:
           body: |
             ❌ **하루한컷 iOS CI 실패**
             - 일부 모듈 테스트 실패
-
-      # ✅ 성공 메일
-      - name: Send email on success
-        if: needs.test.result == 'success'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: ✅ 하루한컷 iOS CI 성공
-          body: |
-            ✅ 모든 모듈 테스트 성공
-
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Actor: ${{ github.actor }}
-            URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          to: indextrown@gmail.com
-          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
-
-      # ❌ 실패 메일
-      - name: Send email on failure
-        if: needs.test.result != 'success'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: ❌ 하루한컷 iOS CI 실패
-          body: |
-            ❌ 일부 모듈 테스트 실패
-
-            URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          to: indextrown@gmail.com
-          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
