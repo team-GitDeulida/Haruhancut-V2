@@ -474,14 +474,16 @@ jobs:
       - name: Boot Simulator
         run: xcrun simctl bootstatus "$SIM_UDID" -b
 
-      - name: Build For Testing
+      - name: Build For Testing (All Schemes)
         run: |
-          xcodebuild build-for-testing \
-            -workspace Haruhancut.xcworkspace \
-            -scheme App \
-            -configuration Debug \
-            -destination "id=$SIM_UDID" \
-            -derivedDataPath DerivedData
+          for scheme in Core Data App; do
+            xcodebuild build-for-testing \
+              -workspace Haruhancut.xcworkspace \
+              -scheme $scheme \
+              -configuration Debug \
+              -destination "id=$SIM_UDID" \
+              -derivedDataPath DerivedData
+          done
 
       - name: Upload DerivedData
         uses: actions/upload-artifact@v4
