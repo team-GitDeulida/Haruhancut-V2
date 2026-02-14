@@ -429,6 +429,27 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
           xcodebuild -version
 
+      # key: spm-${{ runner.os }}-xcode16.4-${{ hashFiles('**/Package.resolved') }}
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - name: Cache Tuist
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.tuist/Dependencies
+            ~/.tuist/Cache
+            Tuist/Dependencies/.build
+          key: tuist-${{ runner.os }}-${{ hashFiles('Tuist/Dependencies.swift') }}
+          restore-keys: |
+            tuist-${{ runner.os }}-
+
       - name: Install Tuist
         run: |
           brew tap tuist/tuist
