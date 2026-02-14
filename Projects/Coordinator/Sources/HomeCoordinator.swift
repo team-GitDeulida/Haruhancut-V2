@@ -54,6 +54,18 @@ public final class HomeCoordinator: Coordinator {
             // self.parentCoordinator?.childDidFinish(self)
         }
         
+        home.vm.onCameraTapped = { [weak self] in
+            guard let self = self else { return }
+            let cameraCoordinator = CameraCoordinator(
+                navigationController: self.navigationController
+            )
+            
+            cameraCoordinator.parentCoordinator = self
+            self.childCoordinators.append(cameraCoordinator)
+            cameraCoordinator.start()
+            print("카메라 코디네이터")
+        }
+        
         // FeedDetail은 홈의 자식으로 간주하였음(poppable)
         home.vm.onImageTapped = { [weak self] post in
             guard let self = self else { return }

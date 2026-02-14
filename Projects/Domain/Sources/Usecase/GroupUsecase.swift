@@ -27,7 +27,7 @@ public protocol GroupUsecaseProtocol {
     
     // Comment
     // func addComment(path: String, value: Comment) -> Single<Void>
-    func deleteComment(path: String) -> Single<Void>
+    // func deleteComment(path: String) -> Single<Void>
     
     // Other
     func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T>
@@ -38,6 +38,7 @@ public protocol GroupUsecaseProtocol {
     func createAndUpdateGroup(groupName: String) -> Single<Void>
     func loadAndFetchGroup() -> Observable<HCGroup>
     func addComment(post: Post, text: String) -> Single<Void>
+    func deleteComment(post: Post, commentId: String) -> Single<Void>
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
@@ -155,4 +156,13 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return self.groupRepository.addComment(path: path, value: newComment)
     }
     
+    public func deleteComment(post: Post, commentId: String) -> Single<Void> {
+        guard let groupId = userSession.groupId else {
+            return .deferred { .just(()) }
+        }
+        
+        let dateKey = post.createdAt.toDateKey()
+        let path = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)/comments/\(commentId)"
+        return self.groupRepository.deleteComment(path: path)
+    }
 }

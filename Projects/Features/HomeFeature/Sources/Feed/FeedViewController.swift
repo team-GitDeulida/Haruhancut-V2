@@ -154,7 +154,7 @@ final class FeedViewController: UIViewController {
                                                    preferredStyle: .actionSheet,
                                                    actions: [
                                                     UIAlertAction(title: "카메라로 찍기", style: .default) { _ in
-                                                        print("카메라로 찍기")
+                                                        self.homeViewModel.onCameraTapped?()
                                                     },
                                                     UIAlertAction(title: "앨범에서 선택", style: .default) { _ in
                                                         print("앨범에서 선택")

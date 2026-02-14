@@ -15,7 +15,6 @@ import RxCocoa
 import Core
 
 public final class HomeViewModel: HomeViewModelType {
-    
     private let disposeBag = DisposeBag()
     @Dependency private var userSession: UserSession
     @Dependency private var groupSession: GroupSession
@@ -30,6 +29,7 @@ public final class HomeViewModel: HomeViewModelType {
     public var onLogoutTapped: (() -> Void)?
     public var onImageTapped: ((Post) -> Void)?
     public var onProfileTapped: (() -> Void)?
+    public var onCameraTapped: (() -> Void)?
     
     public struct Input {
         let viewDidLoad: Observable<Void>

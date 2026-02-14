@@ -31,8 +31,8 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
 
     
     public struct Input {
-        let sendTap: Observable<String>
-        let deleteTap: Observable<String>
+        let sendTap: Observable<String>   // text
+        let deleteTap: Observable<String> // commentId
     }
     
     public struct Output {
@@ -55,6 +55,7 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
             }
             .asDriver(onErrorJustReturn: [])
         
+
         /*
          버튼탭
          - 댓글 추가 (Single)
@@ -62,8 +63,8 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
          - 최신 post 찾아서 postRelay 갱신
          - 성공 여부를 Driver<Bool>로 반환
          */
+
         let sendResult = input.sendTap
-            .asObservable()   // Driver에서 잠깐 빠져나오기
             .flatMapLatest { [weak self] text -> Observable<Bool> in
                 guard let self else { return .just(false) }
 
@@ -85,76 +86,49 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
                     }
             }
             .asDriver(onErrorJustReturn: false)
+        
+        let deleteResult = input.deleteTap
+            .flatMapLatest { [weak self] commentId -> Observable<Bool>  in
+                guard let self else { return .just(false) }
+                // 원본 저장(롤백용)
+                let originalPost = self.currentPost
+                
+                // 1. 먼저 로컬 postRelay에서 제거
+                var updatedPost = originalPost
+                updatedPost.comments.removeValue(forKey: commentId)
+                self.postRelay.accept(updatedPost)
+                
+                // 2. 서버 삭제 요청
+                return self.groupUsecase
+                    .deleteComment(post: self.currentPost,
+                                   commentId: commentId)
+                    .asObservable()
+                    // 3. 최신 그룹 다시 로드
+                    .flatMapLatest { _ in
+                        self.groupUsecase.loadAndFetchGroup()
+                    }
+                    // 4. 최신 post로 동기화
+                    .map { group in
+                        if let refreshedPost = group.postsByDate
+                            .values
+                            .flatMap({ $0 })
+                            .first(where: { $0.postId == originalPost.postId }) {
+                            self.postRelay.accept(refreshedPost)
+                        }
+                        return true
+                    }
+                    // 5. 실패 시 롤백
+                    .catch { error in
+                        self.postRelay.accept(originalPost) // 복구
+                        return .just(false)
+                    }
+            }
+            .asDriver(onErrorJustReturn: false)
 
-        
-//        let sendResult = input.sendTap
-//            .do(onNext: { text in
-//                print("🟢 sendTap 들어옴:", text)
-//            })
-//            .asDriver(onErrorJustReturn: "")
-//            .flatMapLatest { [weak self] text -> Driver<Bool> in
-//                guard let self else { return Driver.just(false) }
-//                print("🟢 addComment 시작")
-//                return self.groupUsecase
-//                    .addComment(post: self.currentPost, text: text) // Single<Void>
-//                    .do(onSuccess: {
-//                        print("🟢 addComment 성공")
-//                    }, onError: { error in
-//                        print("🔴 addComment 실패:", error)
-//                    })
-//                    .flatMap { _ in
-//                        self.groupUsecase
-//                            .loadAndFetchGroup()       // Observable<HCGroup>
-//                            .do(onNext: { group in
-//                                print("🟢 group 로드됨, post 개수:",
-//                                      group.postsByDate.values.flatMap { $0 }.count)
-//                            })
-//                            .skip(1)                   // 캐시 무시
-//                            .take(1)                   // 1번만
-//                            .asSingle()                // Single<HCGroup>
-//                    }
-//                    .map { group in
-//                        if let updatedPost = group.postsByDate
-//                            .values
-//                            .flatMap({ $0 })
-//                            .first(where: { $0.postId == self.currentPost.postId }) {
-//
-//                            self.postRelay.accept(updatedPost)
-//                        }
-//                        return true
-//                    }
-//                    .asDriver(onErrorJustReturn: false)
-//            }
-
-        
-//        let sendResult = input.sendTap
-//            .asDriver(onErrorJustReturn: "")
-//            .flatMapLatest { [weak self] text in
-//                guard let self else { return Driver.just(false) }
-//
-//                return self.groupUsecase
-//                    .addComment(post: self.currentPost, text: text)
-//                    .map { true }
-//                    .asDriver(onErrorJustReturn: false)
-//            }
-        
-//        let sendResult = input.sendTap
-//            .flatMapLatest { text -> Driver<Bool> in
-//                guard let self = self else { return .just(false)}
-//                return self.addComment(text: text)
-//                    .asDriver(onErrorJustReturn: false)
-//            }
-//        
-//        let deleteResult = input.deleteTap
-//            .flatMapLatest { [weak self] commentId -> Driver<Bool> in
-//                guard let self else { return .just(false) }
-//                return self.deleteComment(commentId: commentId)
-//                    .asDriver(onErrorJustReturn: false)
-//            }
         
         return Output(comments: comments,
                       sendResult: sendResult,
-                      deleteResult: Driver.just(false))
+                      deleteResult: deleteResult)
     }
 
 }
@@ -173,7 +147,6 @@ extension FeedDetailViewModel {
         
         input.imageTapped
             .bind(with: self, onNext: { owner, _ in
-                print("출력")
                 owner.onImagePreviewTapped?(owner.currentPost.imageURL)
             }).disposed(by: disposeBag)
         
@@ -189,3 +162,131 @@ extension FeedDetailViewModel {
         return DetailOutput(commentCount: commentCount)
     }
 }
+
+
+
+
+
+
+//        let sendResult = input.sendTap
+//            .flatMapLatest { text -> Driver<Bool> in
+//                guard let self = self else { return .just(false)}
+//                return self.addComment(text: text)
+//                    .asDriver(onErrorJustReturn: false)
+//            }
+//
+//        let deleteResult = input.deleteTap
+//            .flatMapLatest { [weak self] commentId -> Driver<Bool> in
+//                guard let self else { return .just(false) }
+//                return self.deleteComment(commentId: commentId)
+//                    .asDriver(onErrorJustReturn: false)
+//            }
+
+
+
+
+/*
+let sendResult = input.sendTap
+    .flatMapLatest { [weak self] text -> Observable<Bool> in
+        guard let self else { return .just(false) }
+
+        // 0 원본 저장
+        let originalPost = self.currentPost
+
+        // 1 Optimistic UI: 임시 댓글 생성
+        let tempComment = Comment(
+            commentId: UUID().uuidString,
+            userId: self.userSession.userId ?? "",
+            nickname: "나", // 필요하면 세션 닉네임
+            text: text,
+            createdAt: Date()
+        )
+
+        var optimisticPost = originalPost
+        optimisticPost.comments[tempComment.commentId] = tempComment
+        self.postRelay.accept(optimisticPost)
+
+        // 2 서버 요청
+        return self.groupUsecase
+            .addComment(post: originalPost, text: text)
+            .asObservable()
+            .flatMapLatest { _ in
+                self.groupUsecase.loadAndFetchGroup()
+            }
+            .map { group in
+                if let refreshedPost = group.postsByDate
+                    .values
+                    .flatMap({ $0 })
+                    .first(where: { $0.postId == originalPost.postId }) {
+
+                    self.postRelay.accept(refreshedPost)
+                }
+                return true
+            }
+            .catch { error in
+                // 3 실패 시 롤백
+                self.postRelay.accept(originalPost)
+                return .just(false)
+            }
+    }
+    .asDriver(onErrorJustReturn: false)
+ */
+
+
+
+/*
+ [애니메이션 버벅임]
+ /*
+  버튼탭
+  - 댓글 추가 (Single)
+  - 그룹 새로 로드 (Observable → Single)
+  - 최신 post 찾아서 postRelay 갱신
+  - 성공 여부를 Driver<Bool>로 반환
+  */
+
+ let sendResult = input.sendTap
+     .flatMapLatest { [weak self] text -> Observable<Bool> in
+         guard let self else { return .just(false) }
+
+         return self.groupUsecase
+             .addComment(post: self.currentPost, text: text)   // Single<Void>
+             .asObservable()
+             .flatMapLatest { _ in
+                 self.groupUsecase.loadAndFetchGroup()          // Observable<HCGroup>
+             }
+             .map { group in
+                 if let updatedPost = group.postsByDate
+                     .values
+                     .flatMap({ $0 })
+                     .first(where: { $0.postId == self.currentPost.postId }) {
+
+                     self.postRelay.accept(updatedPost)
+                 }
+                 return true
+             }
+     }
+     .asDriver(onErrorJustReturn: false)
+let deleteResult = input.deleteTap
+    .flatMapLatest { [weak self] commentId -> Observable<Bool>  in
+        guard let self else { return .just(false) }
+        return self.groupUsecase
+            .deleteComment(post: self.currentPost,
+                           commentId: commentId)
+            .asObservable()
+            .flatMapLatest { _ in
+                self.groupUsecase.loadAndFetchGroup()
+            }
+            .map { group in
+                if let updatedPost = group.postsByDate
+                    .values
+                    .flatMap({ $0 })
+                    .first(where: { $0.postId == self.currentPost.postId }) {
+                    
+                    self.postRelay.accept(updatedPost)
+                }
+                return true
+            }
+            .catchAndReturn(false)
+    }
+    .asDriver(onErrorJustReturn: false)
+ */

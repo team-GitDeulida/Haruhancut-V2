@@ -13,6 +13,7 @@ public protocol HomeRouteTrigger {
     var onImageTapped: ((Post) -> Void)? { get set }
     var onLogoutTapped: (() -> Void)? { get set }
     var onProfileTapped: (() -> Void)? { get set }
+    var onCameraTapped: (() -> Void)? { get set }
 }
 
 public typealias HomeViewModelType = ViewModelType & HomeRouteTrigger

@@ -14,6 +14,7 @@ final class FeedCommentViewController: UIViewController {
     private let disposeBag = DisposeBag()
     private let customView: FeedCommentView
     private let feedDetailViewModel: FeedDetailViewModel
+    private let deleteRelay = PublishRelay<String>()
     
     init(feedDetailViewModel: FeedDetailViewModel) {
         self.feedDetailViewModel = feedDetailViewModel
@@ -51,17 +52,13 @@ final class FeedCommentViewController: UIViewController {
             .share() // 이벤트를 한 번만 실행하고 여러 구독자에게 공유
         
         // 댓글 삭제
+        let deleteTap = deleteRelay.asObservable()
+        /*
         let deleteTap = customView.tableView.rx
             .modelDeleted(Comment.self)
             .map { $0.commentId }
+         */
 
-//        let deleteTap = customView.tableView.rx
-//            .itemDeleted
-//            .withLatestFrom(customView.tableView.rx.modelSelected(Comment.self)) { indexPath, comment in
-//                return comment.commentId
-//            }
-//        
-        
         let input = FeedDetailViewModel.Input(sendTap: sendTap, deleteTap: deleteTap)
         let output = feedDetailViewModel.transform(input: input)
         
@@ -186,7 +183,18 @@ extension FeedCommentViewController: UITableViewDelegate {
     -> UISwipeActionsConfiguration? {
 
         let delete = UIContextualAction(style: .destructive,
-                                         title: "삭제") { _, _, completion in
+                                         title: "삭제") { [weak self] _, _, completion in
+            guard let self = self else {
+                completion(false)
+                return
+            }
+            
+            guard let comment = try? self.customView.tableView.rx.model(at: indexPath) as Comment else {
+                completion(false)
+                return
+            }
+            
+            self.deleteRelay.accept(comment.commentId)
             completion(true)
         }
 
