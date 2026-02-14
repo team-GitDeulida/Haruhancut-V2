@@ -550,31 +550,67 @@ jobs:
   # =====================================================
   # 3. Notify
   # =====================================================
-  notify:
-    name: Notify Result
-    runs-on: macos-15
-    needs: test
-    if: always()
+notify:
+  name: Notify Result
+  runs-on: macos-15
+  needs: test
+  if: always()
 
-    steps:
-      - name: Comment success
-        if: needs.test.result == 'success' &&
-          github.event.inputs.triggered_by_command == 'true' &&
-          github.event.inputs.pr_number != ''
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: ${{ github.event.inputs.pr_number }}
-          body: |
-            ✅ **하루한컷 iOS CI 성공**
-            - Core / Data / App 테스트 모두 성공 🎉
+  steps:
+    # PR일 때만 코멘트
+    - name: Comment success (PR only)
+      if: needs.test.result == 'success' && github.event_name == 'pull_request'
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        body: |
+          ✅ **하루한컷 iOS CI 성공**
+          - Core / Data / App 테스트 모두 성공 🎉
 
-      - name: Comment failure
-        if: needs.test.result != 'success' &&
-          github.event.inputs.triggered_by_command == 'true' &&
-          github.event.inputs.pr_number != ''
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: ${{ github.event.inputs.pr_number }}
-          body: |
-            ❌ **하루한컷 iOS CI 실패**
-            - 일부 모듈 테스트 실패
+    - name: Comment failure (PR only)
+      if: needs.test.result != 'success' && github.event_name == 'pull_request'
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        body: |
+          ❌ **하루한컷 iOS CI 실패**
+          - 일부 모듈 테스트 실패
+
+    # 메일은 모든 이벤트에서
+    - name: Send email on success
+      if: needs.test.result == 'success'
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.MAIL_USERNAME }}
+        password: ${{ secrets.MAIL_PASSWORD }}
+        subject: ✅ 하루한컷 iOS CI 성공
+        body: |
+          CI 성공 🎉
+
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Actor: ${{ github.actor }}
+          URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        to: indextrown@gmail.com
+        from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
+
+    - name: Send email on failure
+      if: needs.test.result != 'success'
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.MAIL_USERNAME }}
+        password: ${{ secrets.MAIL_PASSWORD }}
+        subject: ❌ 하루한컷 iOS CI 실패
+        body: |
+          CI 실패 발생 ❌
+
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Actor: ${{ github.actor }}
+          URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        to: indextrown@gmail.com
+        from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
