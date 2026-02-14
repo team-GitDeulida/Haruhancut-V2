@@ -550,11 +550,11 @@ jobs:
   # =====================================================
   # 3. Notify
   # =====================================================
-notify:
-  name: Notify Result
-  runs-on: macos-15
-  needs: test
-  if: always()
+  notify:
+    name: Notify Result
+    runs-on: macos-15
+    needs: test
+    if: always()
 
   steps:
     # PR일 때만 코멘트
