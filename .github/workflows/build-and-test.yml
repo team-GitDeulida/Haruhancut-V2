@@ -1,16 +1,7 @@
-name: 하루한컷 iOS CI
+# build-and-test.yml
+name: 하루한컷 Build & Test
 
 on:
-  schedule:
-    # UTC 22:00 = KST 07:00
-    - cron: "0 22 * * *"
-
-  pull_request:
-    branches: [main, develop]
-
-  push:
-    branches: [main]
-
   workflow_dispatch:
     inputs:
       triggered_by_command:
@@ -20,6 +11,22 @@ on:
       pr_number:
         description: "PR number"
         required: false
+
+  schedule:
+    # UTC 22:00 = KST 07:00
+    - cron: "0 22 * * *"
+
+  # PR 댓글 명령어로도 트리거 가능
+  # issue_comment:
+  #   types: [created]
+
+  # PR이 열릴 때마다 실행 (main, develop 브랜치 대상)
+  # pull_request:
+  #   branches: [main, develop]
+
+  # main 브랜치에 푸시될 때마다 실행 (PR 병합 포함)
+  # push:
+  #   branches: [main]
 
 permissions:
   contents: read
@@ -188,6 +195,7 @@ jobs:
     steps:
       # PR일 때만 코멘트
       - name: Comment success (PR only)
+        # PR이 성공이고, 이벤트가 PR일 때만 코멘트
         if: needs.test.result == 'success' && github.event_name == 'pull_request'
         uses: peter-evans/create-or-update-comment@v4
         with:
@@ -195,7 +203,7 @@ jobs:
           body: |
             ✅ **하루한컷 iOS CI 성공**
             - Core / Data / App 테스트 모두 성공 🎉
-
+      # PR이 실패이고, 이벤트가 PR일 때만 코멘트
       - name: Comment failure (PR only)
         if: needs.test.result != 'success' && github.event_name == 'pull_request'
         uses: peter-evans/create-or-update-comment@v4

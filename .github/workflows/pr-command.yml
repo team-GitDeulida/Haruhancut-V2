@@ -1,0 +1,66 @@
+name: PR 명령어 실행
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  actions: write
+
+jobs:
+  parse-and-run:
+    if: github.event.issue.pull_request != null
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Parse command
+        shell: bash
+        run: |
+          BODY="$(echo "${{ github.event.comment.body }}" | xargs)"
+
+          if [[ "$BODY" == "/하루한컷 빌드하고 테스트" ]]; then
+            echo "run=true" >> $GITHUB_ENV
+          else
+            echo "run=false" >> $GITHUB_ENV
+          fi
+
+      - name: Stop if not matched
+        if: env.run != 'true'
+        run: exit 0
+
+      - name: Acknowledge
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            🤖 **하루한컷 CI**
+            `/하루한컷 빌드하고 테스트` 명령을 인식했습니다.
+            빌드 & 테스트를 시작합니다 ⏳
+
+      - name: Trigger build-and-test workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.issue.number;
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            const ref = pr.head.ref;
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "build-and-test.yml",
+              ref,
+              inputs: {
+                triggered_by_command: "true",
+                pr_number: String(prNumber),
+              },
+            });
