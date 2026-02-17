@@ -1,0 +1,161 @@
+//
+//  CameraViewController.swift
+//  ImageFeature
+//
+//  Created by 김동현 on 2/15/26.
+//
+
+import UIKit
+import AVFoundation
+import Core
+import DSKit
+
+
+final class CameraViewController: UIViewController {
+    
+    // MARK: - Camera
+    let customView = CameraView()
+    private var captureSession: AVCaptureSession?               // 카메라 세션 객체
+    private var previewLayer: AVCaptureVideoPreviewLayer?       // 카메라 화면을 보여줄 레이어
+    private let context = CIContext()                           // CIImage를 CGImage(실제 이미지)로 렌더링해주는 엔진
+    
+    // MARK: - 캡처 방식
+    private let videoOutput = AVCaptureVideoDataOutput()        // 영상 프레임 출력(무음 캡처)
+    private var currentImage: UIImage?                          // 가장 최근 프레임 저장용
+    private var freezeImageView: UIImageView?                   // 캡처한 이미지 띄우는 용도
+    
+    // MARK: - 중복 카메라 설정 방지 플래그
+    private var isCameraConfigured: Bool = false
+    
+    // MARK: - LifeCycle
+    override func loadView() {
+        self.view = customView
+    }
+    
+    // MARK: - 중복 설정 방지
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard !isCameraConfigured else { return }
+        isCameraConfigured = true
+        
+        // 카메라 설정(백그라운드 스레드에서 실행)
+        DispatchQueue.global(qos: .unspecified).async { [weak self] in
+            self?.setupCamera()
+        }
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+    }
+}
+
+// MARK: - 비디오를 기록하고 프로세싱을 위한 비디오 프레임 접근을 제공하는 캡처 아웃풋
+extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    // 카메라 설정
+    private func setupCamera() {
+        // 1. 권한 체크
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            break
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                if granted {
+                    self?.setupCamera()
+                } else {
+                    DispatchQueue.main.async {
+                        // self.showCameraPermissionAlert()
+                    }
+                }
+            }
+        default:
+            DispatchQueue.main.async {
+                // self.showCameraPermissionAlert()
+            }
+        }
+        
+        // 2. 세션 설정
+        let session = AVCaptureSession()
+        session.sessionPreset = .photo // 고해상도 사진 모드
+        
+        // 3. 후면 카메라를 입력으로 설정
+        guard let camera = AVCaptureDevice.default(for: .video),
+              let input = try? AVCaptureDeviceInput(device: camera) else {
+            Logger.d("카메라 접근 실패")
+            return
+        }
+        
+        // 4. 세션에 입력 추가
+        if session.canAddInput(input) {
+            session.addInput(input)
+        }
+        
+        // 5. 비디오 출력 설정
+        videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
+        if session.canAddOutput(videoOutput) {
+            session.addOutput(videoOutput)
+        }
+        
+        // 6. 세션 저장 및 시작
+        self.captureSession = session
+        session.startRunning()
+        
+        // 7. 메인스레드에서 previewLayout과 세션 연결
+        DispatchQueue.main.async { [weak self] in
+            self?.previewLayer?.session = session
+        }
+    }
+    
+    // 카메라 미리보기 layer 설정
+    private func preparePreviewLayer() {
+        let preview = AVCaptureVideoPreviewLayer()
+        preview.videoGravity = .resizeAspectFill          // 화면 채우면서 비율 유지
+        preview.frame = customView.cameraView.bounds      // 초기 프레임 설정
+        customView.cameraView.layer.addSublayer(preview)  // cameraView에 layer 추가
+        self.previewLayer = preview                       // 나중에 참조할 수 있도록 저장
+    }
+    
+    // 프레임 캡처하여 저장(무음 촬영)
+    private func captureCurrentFrame() {
+        guard let image = currentImage else {
+            print("현재 프레임 없음")
+            return
+        }
+        assert(Thread.isMainThread, "❌ UI 변경은 반드시 메인 스레드에서 수행해야 합니다")
+    }
+    
+    // 카메라 권한 설정 -> 설정창 이동
+    private func showCameraPermissionAlert() {
+        let settingAction = UIAlertAction(title: "설정으로 이동", style: .default) { _ in
+            if let url = URL(string: UIApplication.openSettingsURLString),
+               UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            }
+        }
+        
+        let cancelAction = UIAlertAction(title: "취소", style: .cancel)
+        let alert = AlertFactory.makeAlert(title: "카메라 접근 권한 필요",
+                               message: "카메라를 사용하려면 설정 > 하루한컷에서 접근 권한을 허용해주세요.",
+                               actions: [settingAction, cancelAction])
+        self.present(alert, animated: true)
+    }
+    
+    // 카메라 실시간 프레임을 UIImage로 변환
+    func captureOutput(_ output: AVCaptureOutput,
+                       didOutput sampleBuffer: CMSampleBuffer,
+                       from connection: AVCaptureConnection) {
+        guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let ciImage = CIImage(cvImageBuffer: imageBuffer)
+        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else { return }
+        let uiImage = UIImage(cgImage: cgImage,
+                              scale: UIScreen.main.scale,
+                              orientation: .right) // 카메라 방향 보정
+        
+        DispatchQueue.main.async {
+            self.currentImage = uiImage
+        }
+    }
+}
+
+#Preview {
+    CameraViewController()
+}
