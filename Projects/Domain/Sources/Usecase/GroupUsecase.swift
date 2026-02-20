@@ -22,7 +22,7 @@ public protocol GroupUsecaseProtocol {
     // func fetchGroup() -> Single<HCGroup>
     
     // Image
-    func uploadImage(image: UIImage, path: String) -> Single<URL>
+    
     func deleteImage(path: String) -> Single<Void>
     
     // Comment
@@ -39,6 +39,7 @@ public protocol GroupUsecaseProtocol {
     func loadAndFetchGroup() -> Observable<HCGroup>
     func addComment(post: Post, text: String) -> Single<Void>
     func deleteComment(post: Post, commentId: String) -> Single<Void>
+    func uploadImageAndUploadPost(image: UIImage) -> Observable<Void>
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
@@ -60,6 +61,8 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return groupRepository.updateGroup(path: path, post: post)
     }
     
+    /// Fetches the group associated with the current user's session.
+    /// - Returns: An `HCGroup` if a groupId exists for the current user; otherwise emits `DomainError.missingGroupId`.
     private func fetchGroup() -> Single<HCGroup> {
         guard let groupId = userSession.groupId else {
             return .error(DomainError.missingGroupId)
@@ -67,11 +70,9 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return groupRepository.fetchGroup(groupId: groupId)
     }
     
-    // Image
-    public func uploadImage(image: UIImage, path: String) -> Single<URL> {
-        return groupRepository.uploadImage(image: image, path: path)
-    }
-    
+    /// Deletes the image located at the given storage path.
+    /// - Parameter path: The storage path of the image to delete.
+    /// - Returns: `Void` on success.
     public func deleteImage(path: String) -> Single<Void> {
         return groupRepository.deleteImage(path: path)
     }
@@ -156,6 +157,13 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return self.groupRepository.addComment(path: path, value: newComment)
     }
     
+    /// Deletes a comment from the specified post in the current user's group.
+    ///
+    /// If the current user has no `groupId` in session, the call is a no-op and completes without error.
+    /// - Parameters:
+    ///   - post: The post containing the comment; `post.createdAt` and `post.postId` are used to build the deletion path.
+    ///   - commentId: The identifier of the comment to delete.
+    /// - Returns: `Void` when the deletion completes successfully.
     public func deleteComment(post: Post, commentId: String) -> Single<Void> {
         guard let groupId = userSession.groupId else {
             return .deferred { .just(()) }
@@ -164,5 +172,46 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let dateKey = post.createdAt.toDateKey()
         let path = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)/comments/\(commentId)"
         return self.groupRepository.deleteComment(path: path)
+    }
+    
+    /// Uploads an image, creates a post that references the uploaded image, and refreshes the group's cached data.
+    /// - Parameter image: The image to upload and attach to the new post.
+    /// - Returns: `Void` if the upload, post creation, and group refresh complete successfully; emits an error otherwise.
+    public func uploadImageAndUploadPost(image: UIImage) -> Observable<Void> {
+        guard let userId = userSession.userId,
+              let nickname = userSession.nickname,
+              let profileImageURL = userSession.profileImageURL,
+              let groupId = userSession.groupId
+        else {
+            return .error(DomainError.missingGroupId)
+        }
+        
+        let postId = UUID().uuidString
+        let now = Date()
+        let dateKey = now.toDateKey()
+        
+        let storagePath = "groups/\(groupId)/images/\(postId).jpg"         // storage  저장 위치
+        let dbPath = "groups/\(groupId)/postsByDate/\(dateKey)/\(postId)"  // realtime 저장 위치
+        
+        return groupRepository.uploadImage(image: image, path: storagePath)
+            .asObservable()
+            .flatMap { url -> Observable<Void> in
+                let post = Post(postId: postId,
+                                userId: userId,
+                                nickname: nickname,
+                                profileImageURL: profileImageURL,
+                                imageURL: url.absoluteString,
+                                createdAt: now,
+                                likeCount: 0, // 추후 사용 예정
+                                comments: [:])
+                
+                return self.groupRepository
+                    .updateGroup(path: dbPath, post: post)
+                    .asObservable()
+            }
+            .flatMap { _ in
+                self.loadAndFetchGroup()
+                    .mapToVoid()
+            }
     }
 }
