@@ -7,11 +7,17 @@
 
 import UIKit
 import AVFoundation
-import Core
+import RxSwift
+import RxCocoa
 import DSKit
 
+//import Core
 
-final class CameraViewController: UIViewController {
+import ImageFeatureInterface
+
+final class CameraViewController: CameraViewControllerType {
+    var onPop: (() -> Void)?
+    private let cameraViewModel: CameraViewModel
     
     // MARK: - Camera
     let customView = CameraView()
@@ -26,6 +32,15 @@ final class CameraViewController: UIViewController {
     
     // MARK: - 중복 카메라 설정 방지 플래그
     private var isCameraConfigured: Bool = false
+    
+    init(viewModel: CameraViewModel) {
+        self.cameraViewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     // MARK: - LifeCycle
     override func loadView() {
@@ -44,8 +59,29 @@ final class CameraViewController: UIViewController {
         }
     }
     
+    // 뷰가 메모리에 올라왔을때 && 레이아웃 계산 전
+    // customView.cameraView.bounds == .zero  ❗ 가능성 높음
     override func viewDidLoad() {
         super.viewDidLoad()
+        preparePreviewLayer()
+        bindViewModel()
+    }
+    
+    // 오토레이아웃 끝난 후(프레임 확정된 뒤)
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        previewLayer?.frame = customView.cameraView.bounds
+    }
+    
+    private func bindViewModel() {
+        // MARK: - Tap 시점의 이미지를 꺼내서 stream으로 보낸다
+        let captureImageStream = customView.cameraButton.rx.tap
+            .compactMap { [weak self] _ in
+                self?.currentImage
+            }
+        
+        let input = CameraViewModel.Input(cameraButtonTapped: captureImageStream)
+        let _ = cameraViewModel.transform(input: input)
     }
 }
 
@@ -80,7 +116,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         // 3. 후면 카메라를 입력으로 설정
         guard let camera = AVCaptureDevice.default(for: .video),
               let input = try? AVCaptureDeviceInput(device: camera) else {
-            Logger.d("카메라 접근 실패")
+            // Logger.d("카메라 접근 실패")
             return
         }
         
@@ -109,7 +145,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     private func preparePreviewLayer() {
         let preview = AVCaptureVideoPreviewLayer()
         preview.videoGravity = .resizeAspectFill          // 화면 채우면서 비율 유지
-        preview.frame = customView.cameraView.bounds      // 초기 프레임 설정
+        // preview.frame = customView.cameraView.bounds      // 초기 프레임 설정
         customView.cameraView.layer.addSublayer(preview)  // cameraView에 layer 추가
         self.previewLayer = preview                       // 나중에 참조할 수 있도록 저장
     }
@@ -121,6 +157,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             return
         }
         assert(Thread.isMainThread, "❌ UI 변경은 반드시 메인 스레드에서 수행해야 합니다")
+        // 코디네이터 화면전환 로직 추가예정
     }
     
     // 카메라 권한 설정 -> 설정창 이동
@@ -156,6 +193,3 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     }
 }
 
-#Preview {
-    CameraViewController()
-}

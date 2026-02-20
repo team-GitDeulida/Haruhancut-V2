@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Coordinator
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -23,9 +24,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
 
         // 3. root view controller 설정
-        let rootViewController = MainViewController()
-
-        window.rootViewController = rootViewController
+        let navigationController = UINavigationController()
+        let coordinator = CameraCoordinator(navigationController: navigationController)
+        coordinator.start()
+        
+ 
+        window.rootViewController = navigationController
         self.window = window
         window.makeKeyAndVisible()
     }

@@ -14,7 +14,8 @@ let project = Project(
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "ImageFeatureInterface")
+                .target(name: "ImageFeatureInterface"),
+                .project(target: "DSKit", path: "../../Shared/DSKit")
             ]
         ),
         
@@ -27,7 +28,9 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],
             resources: [],
-            dependencies: []
+            dependencies: [
+                .project(target: "Domain", path: "../../Domain"),
+            ]
         ),
         
         // MARK: - FeatureDemo App
@@ -41,7 +44,7 @@ let project = Project(
                 // Storyboard 미사용
                 "UILaunchScreen": [:],
 
-                 // Scene 설정
+                // Scene 설정
                 "UIApplicationSceneManifest": [
                     "UIApplicationSupportsMultipleScenes": true,
                     "UISceneConfigurations": [
@@ -53,12 +56,15 @@ let project = Project(
                         ]
                     ]
                 ],
+
+                // 카메라 권한 설정
+                "NSCameraUsageDescription": "카메라 촬영을 위해 사용됩니다.",
             ]),
             sources: ["Demo/**"],
             resources: [],
             dependencies: [
                 .target(name: "ImageFeature"),
-                .target(name: "ImageFeatureTesting")
+                .project(target: "Coordinator", path: "../../Coordinator"),
             ],
             settings: .settings(
                 configurations: [
@@ -99,9 +105,10 @@ let project = Project(
             sources: ["Testing/Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "ImageFeatureInterface")
+                .target(name: "ImageFeatureInterface"),
             ]
         ),
     ]
 )
+
 

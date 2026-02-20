@@ -22,7 +22,7 @@ public protocol GroupUsecaseProtocol {
     // func fetchGroup() -> Single<HCGroup>
     
     // Image
-    func uploadImage(image: UIImage, path: String) -> Single<URL>
+    
     func deleteImage(path: String) -> Single<Void>
     
     // Comment
@@ -39,6 +39,7 @@ public protocol GroupUsecaseProtocol {
     func loadAndFetchGroup() -> Observable<HCGroup>
     func addComment(post: Post, text: String) -> Single<Void>
     func deleteComment(post: Post, commentId: String) -> Single<Void>
+    func uploadImageAndUploadPost(image: UIImage) -> Observable<Void>
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
@@ -65,11 +66,6 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             return .error(DomainError.missingGroupId)
         }
         return groupRepository.fetchGroup(groupId: groupId)
-    }
-    
-    // Image
-    public func uploadImage(image: UIImage, path: String) -> Single<URL> {
-        return groupRepository.uploadImage(image: image, path: path)
     }
     
     public func deleteImage(path: String) -> Single<Void> {
@@ -164,5 +160,42 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let dateKey = post.createdAt.toDateKey()
         let path = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)/comments/\(commentId)"
         return self.groupRepository.deleteComment(path: path)
+    }
+    
+    public func uploadImageAndUploadPost(image: UIImage) -> Observable<Void> {
+        guard let userId = userSession.userId,
+              let nickname = userSession.nickname,
+              let profileImageURL = userSession.profileImageURL,
+              let groupId = userSession.groupId
+        else {
+            return .error(DomainError.missingGroupId)
+        }
+        
+        let postId = UUID().uuidString
+        let dateKey = Date().toDateKey()
+        
+        let storagePath = "groups/\(groupId)/images/\(postId).jpg"         // storage  저장 위치
+        let dbPath = "groups/\(groupId)/postsByDate/\(dateKey)/\(postId)"  // realtime 저장 위치
+        
+        return groupRepository.uploadImage(image: image, path: storagePath)
+            .asObservable()
+            .flatMap { url -> Observable<Void> in
+                let post = Post(postId: postId,
+                                userId: userId,
+                                nickname: nickname,
+                                profileImageURL: profileImageURL,
+                                imageURL: url.absoluteString,
+                                createdAt: Date(),
+                                likeCount: 0, // 추후 사용 예정
+                                comments: [:])
+                
+                return self.groupRepository
+                    .updateGroup(path: dbPath, post: post)
+                    .asObservable()
+            }
+            .flatMap { _ in
+                self.loadAndFetchGroup()
+                    .mapToVoid()
+            }
     }
 }

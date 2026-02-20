@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import ImageFeature
 
 public final class CameraCoordinator: Coordinator {
     
@@ -21,6 +22,19 @@ public final class CameraCoordinator: Coordinator {
     }
     
     public func start() {
+        let builder = ImageFeatureBuilder()
+        var camera = builder.makeCamera()
         
+        camera.vm.onCameraButtonTapped = { [weak self] image in
+            guard let self = self else { return }
+            var upload = builder.makeImageUpload(image: image)
+            
+            upload.vm.onUploadCompleted = { [weak self] in
+                self?.navigationController.popToRootViewController(animated: true)
+            }
+            
+            self.navigationController.pushViewController(upload.vc, animated: true)
+        }
+        navigationController.pushViewController(camera.vc, animated: true)
     }
 }

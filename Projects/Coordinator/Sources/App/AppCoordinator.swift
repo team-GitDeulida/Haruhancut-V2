@@ -8,7 +8,7 @@
 import UIKit
 import Domain
 import Core
-import Data
+//import Data
 import FirebaseAuth
 
 public protocol Coordinator: AnyObject {
