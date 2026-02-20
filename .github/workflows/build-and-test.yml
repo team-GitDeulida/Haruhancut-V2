@@ -21,8 +21,8 @@ on:
   #   types: [created]
 
   # PR이 열릴 때마다 실행 (main, develop 브랜치 대상)
-  # pull_request:
-  #   branches: [main, develop]
+  pull_request:
+    branches: [main]
 
   # main 브랜치에 푸시될 때마다 실행 (PR 병합 포함)
   # push:
@@ -40,6 +40,9 @@ jobs:
   build:
     name: Build For Testing
     runs-on: macos-15
+    if: |
+      github.event_name != 'pull_request' ||
+      inputs.triggered_by_command == 'true'
 
     steps:
       - uses: actions/checkout@v4
