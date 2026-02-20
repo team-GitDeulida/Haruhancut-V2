@@ -61,6 +61,8 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return groupRepository.updateGroup(path: path, post: post)
     }
     
+    /// Fetches the group associated with the current user's session.
+    /// - Returns: An `HCGroup` if a groupId exists for the current user; otherwise emits `DomainError.missingGroupId`.
     private func fetchGroup() -> Single<HCGroup> {
         guard let groupId = userSession.groupId else {
             return .error(DomainError.missingGroupId)
@@ -68,6 +70,9 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return groupRepository.fetchGroup(groupId: groupId)
     }
     
+    /// Deletes the image located at the given storage path.
+    /// - Parameter path: The storage path of the image to delete.
+    /// - Returns: `Void` on success.
     public func deleteImage(path: String) -> Single<Void> {
         return groupRepository.deleteImage(path: path)
     }
@@ -152,6 +157,13 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return self.groupRepository.addComment(path: path, value: newComment)
     }
     
+    /// Deletes a comment from the specified post in the current user's group.
+    ///
+    /// If the current user has no `groupId` in session, the call is a no-op and completes without error.
+    /// - Parameters:
+    ///   - post: The post containing the comment; `post.createdAt` and `post.postId` are used to build the deletion path.
+    ///   - commentId: The identifier of the comment to delete.
+    /// - Returns: `Void` when the deletion completes successfully.
     public func deleteComment(post: Post, commentId: String) -> Single<Void> {
         guard let groupId = userSession.groupId else {
             return .deferred { .just(()) }
@@ -162,6 +174,9 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return self.groupRepository.deleteComment(path: path)
     }
     
+    /// Uploads an image, creates a post that references the uploaded image, and refreshes the group's cached data.
+    /// - Parameter image: The image to upload and attach to the new post.
+    /// - Returns: `Void` if the upload, post creation, and group refresh complete successfully; emits an error otherwise.
     public func uploadImageAndUploadPost(image: UIImage) -> Observable<Void> {
         guard let userId = userSession.userId,
               let nickname = userSession.nickname,

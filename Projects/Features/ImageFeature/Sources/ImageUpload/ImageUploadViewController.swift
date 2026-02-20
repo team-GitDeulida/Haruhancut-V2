@@ -27,17 +27,20 @@ final class ImageUploadViewController: UploadViewControllerType {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - LifeCycle
+    /// Sets the view controller's root view to the controller's ImageUploadView.
     override func loadView() {
         self.view = customView
     }
 
+    /// Performs additional setup after the view has been loaded.
+    /// 
+    /// Establishes bindings between the view and its view model by calling `bindViewModel()`.
     override func viewDidLoad() {
         super.viewDidLoad()
         bindViewModel()
     }
     
-    // MARK: - addTarget
+    /// Registers the upload button's `.touchUpInside` event to invoke `uploadAndBackToHome` on this view controller.
     private func addTarget() {
         
         customView.uploadButton.addTarget(self,
@@ -45,7 +48,10 @@ final class ImageUploadViewController: UploadViewControllerType {
                                           for: .touchUpInside)
     }
 
-    // MARK: - Bindings
+    /// Binds the view model's inputs and outputs to the view's UI elements.
+    /// 
+    /// Creates an input using the upload button's tap events, transforms it through the view model,
+    /// and subscribes to the `isUploading` output to disable/enable the upload button and adjust the view's alpha while an upload is in progress.
     private func bindViewModel() {
         let input = ImageUploadViewModel.Input(uploadButtonTapped: customView.uploadButton.rx.tap.asObservable())
         let output = viewModel.transform(input: input)
@@ -63,6 +69,9 @@ final class ImageUploadViewController: UploadViewControllerType {
             .disposed(by: disposeBag)
     }
     
+    /// Updates the UI to reflect the start of an upload operation.
+    /// 
+    /// Disables the upload button and sets the view's alpha to 0.5 to indicate a non-interactive/uploading state.
     @objc private func uploadAndBackToHome() {
         customView.uploadButton.isEnabled = false
         customView.alpha = 0.5

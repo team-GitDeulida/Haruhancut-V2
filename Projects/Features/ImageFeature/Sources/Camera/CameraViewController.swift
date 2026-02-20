@@ -42,12 +42,14 @@ final class CameraViewController: CameraViewControllerType {
         fatalError("init(coder:) has not been implemented")
     }
     
-    // MARK: - LifeCycle
+    /// Sets the view controller's root view to the configured `CameraView`.
     override func loadView() {
         self.view = customView
     }
     
-    // MARK: - 중복 설정 방지
+    /// Performs a one-time camera configuration when the view becomes visible.
+    /// 
+    /// Calls `super.viewDidAppear(_:)`, ensures camera setup runs only once by setting `isCameraConfigured`, and schedules `setupCamera()` to execute on a background queue.
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         guard !isCameraConfigured else { return }
@@ -60,19 +62,25 @@ final class CameraViewController: CameraViewControllerType {
     }
     
     // 뷰가 메모리에 올라왔을때 && 레이아웃 계산 전
-    // customView.cameraView.bounds == .zero  ❗ 가능성 높음
+    /// Performs post-load setup for the controller's UI and bindings.
+    /// 
+    /// Prepares the camera preview layer and establishes bindings between the view and the view model.
     override func viewDidLoad() {
         super.viewDidLoad()
         preparePreviewLayer()
         bindViewModel()
     }
     
-    // 오토레이아웃 끝난 후(프레임 확정된 뒤)
+    /// Updates the preview layer's frame to match the camera view's bounds after layout.
+    /// Ensures the video preview fills the camera view's current size.
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         previewLayer?.frame = customView.cameraView.bounds
     }
     
+    /// Binds the camera UI to the view model by streaming the most recently captured image when the camera button is tapped.
+    /// 
+    /// Subscribes to the camera button tap events and forwards the latest `currentImage` as the `cameraButtonTapped` input to the view model.
     private func bindViewModel() {
         // MARK: - Tap 시점의 이미지를 꺼내서 stream으로 보낸다
         let captureImageStream = customView.cameraButton.rx.tap
@@ -87,7 +95,9 @@ final class CameraViewController: CameraViewControllerType {
 
 // MARK: - 비디오를 기록하고 프로세싱을 위한 비디오 프레임 접근을 제공하는 캡처 아웃풋
 extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
-    // 카메라 설정
+    /// Configures and starts the device camera capture session and connects it to the preview layer.
+    /// 
+    /// Requests camera permission when needed. When authorized, creates an `AVCaptureSession` using the rear camera, sets its preset to `.photo`, attaches a video data output (delegate is set), stores and starts the session, and assigns the session to `previewLayer` on the main thread. If permission is denied or a camera input cannot be created, the method returns without starting a session.
     private func setupCamera() {
         // 1. 권한 체크
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -141,7 +151,9 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         }
     }
     
-    // 카메라 미리보기 layer 설정
+    /// Creates and attaches an AVCaptureVideoPreviewLayer to the camera view and stores it for later use.
+    /// 
+    /// The preview layer's videoGravity is set to `resizeAspectFill` before it is added as a sublayer of `customView.cameraView`, and the layer is saved to `previewLayer`.
     private func preparePreviewLayer() {
         let preview = AVCaptureVideoPreviewLayer()
         preview.videoGravity = .resizeAspectFill          // 화면 채우면서 비율 유지
@@ -150,7 +162,9 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         self.previewLayer = preview                       // 나중에 참조할 수 있도록 저장
     }
     
-    // 프레임 캡처하여 저장(무음 촬영)
+    /// Ensures a captured frame is available and that execution is on the main thread before further handling.
+    /// 
+    /// If `currentImage` is nil, logs `"현재 프레임 없음"` and returns without performing any action. Asserts that the call is made from the main thread; subsequent handling (for example, navigation or passing the image to a coordinator) occurs after this validation.
     private func captureCurrentFrame() {
         guard let image = currentImage else {
             print("현재 프레임 없음")
@@ -160,7 +174,9 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         // 코디네이터 화면전환 로직 추가예정
     }
     
-    // 카메라 권한 설정 -> 설정창 이동
+    /// Presents an alert prompting the user to enable camera access in Settings.
+    /// 
+    /// The alert includes a "설정으로 이동" action that opens the app's Settings page and a "취소" action to dismiss the alert.
     private func showCameraPermissionAlert() {
         let settingAction = UIAlertAction(title: "설정으로 이동", style: .default) { _ in
             if let url = URL(string: UIApplication.openSettingsURLString),
@@ -176,7 +192,13 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         self.present(alert, animated: true)
     }
     
-    // 카메라 실시간 프레임을 UIImage로 변환
+    /// Receives video sample buffers and updates the controller's currentImage with the latest frame.
+    ///
+    /// Converts the provided `CMSampleBuffer` into a `UIImage` and assigns it to `currentImage` on the main thread.
+    /// - Parameters:
+    ///   - output: The capture output that provided the sample buffer.
+    ///   - sampleBuffer: A `CMSampleBuffer` containing a video frame to be converted.
+    ///   - connection: The capture connection from which the buffer was received.
     func captureOutput(_ output: AVCaptureOutput,
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
@@ -192,4 +214,3 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         }
     }
 }
-

@@ -46,7 +46,9 @@ final class ImageUploadView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - UI Setup
+    /// Configures the view hierarchy and basic appearance for the upload UI.
+    /// 
+    /// Sets the view background color, adds `cameraView` and `uploadButton` to the view (and disables their autoresizing mask translation), and adds `imageView` as a subview of `cameraView` (also disabling its autoresizing mask translation).
     private func setupUI() {
         backgroundColor = .background
         [cameraView, uploadButton].forEach {
@@ -58,7 +60,9 @@ final class ImageUploadView: UIView {
         imageView.translatesAutoresizingMaskIntoConstraints = false
     }
 
-    // MARK: - Constraints
+    /// Configures and activates Auto Layout constraints for the view's subviews.
+    /// 
+    /// Positions the camera container near the top and centered horizontally, enforces a square size with a leading inset, pins the image view to fill the camera container, and places the upload button below the image view with a fixed size and centered alignment.
     private func setupConstraints() {
         NSLayoutConstraint.activate([
             // 위치
