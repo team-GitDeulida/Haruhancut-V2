@@ -172,7 +172,8 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         }
         
         let postId = UUID().uuidString
-        let dateKey = Date().toDateKey()
+        let now = Date()
+        let dateKey = now.toDateKey()
         
         let storagePath = "groups/\(groupId)/images/\(postId).jpg"         // storage  저장 위치
         let dbPath = "groups/\(groupId)/postsByDate/\(dateKey)/\(postId)"  // realtime 저장 위치
@@ -185,7 +186,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
                                 nickname: nickname,
                                 profileImageURL: profileImageURL,
                                 imageURL: url.absoluteString,
-                                createdAt: Date(),
+                                createdAt: now,
                                 likeCount: 0, // 추후 사용 예정
                                 comments: [:])
                 
