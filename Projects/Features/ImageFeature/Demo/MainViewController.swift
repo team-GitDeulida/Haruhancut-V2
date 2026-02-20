@@ -15,6 +15,9 @@ final class MainViewController: UIViewController {
         setupUI()
     }
 
+    /// Creates and adds a centered title label displaying "Image Demo" to the view.
+    /// 
+    /// The label uses a bold system font at size 24, has centered text alignment, and is positioned at the view's center using Auto Layout constraints.
     private func setupUI() {
         let label = UILabel()
         label.text = "Image Demo"

@@ -21,6 +21,12 @@ final class CameraViewModel: CameraViewModelType {
     }
     struct Output {}
     
+    /// Subscribes to the camera button image stream and forwards each captured image to the coordinator callback.
+    /// 
+    /// Binds `input.cameraButtonTapped` to `onCameraButtonTapped` and retains the subscription in `disposeBag`.
+    /// - Parameters:
+    ///   - input: An `Input` containing `cameraButtonTapped`, an observable that emits captured `UIImage` instances.
+    /// - Returns: An `Output` value representing the view model's outputs (empty).
     func transform(input: Input) -> Output {
         input.cameraButtonTapped
             .bind(with: self, onNext: { owner, image in

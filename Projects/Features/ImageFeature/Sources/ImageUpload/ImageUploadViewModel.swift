@@ -36,6 +36,12 @@ final class ImageUploadViewModel: UploadViewModelType {
         self.image = image
     }
     
+    /// Sets up the reactive upload flow triggered by `input.uploadButtonTapped` and returns an output exposing upload state.
+    /// 
+    /// The flow starts an upload via the injected `groupUsecase`, sets the upload state to `true` while uploading, resets it to `false` on success or error, and invokes `onUploadCompleted` when an upload completes successfully.
+    /// - Parameters:
+    ///   - input: An `Input` containing the `uploadButtonTapped` observable that triggers the upload.
+    /// - Returns: An `Output` whose `isUploading` driver emits `true` while an upload is in progress and `false` when the upload finishes or fails.
     func transform(input: Input) -> Output {
         
         let uploading = PublishRelay<Bool>()

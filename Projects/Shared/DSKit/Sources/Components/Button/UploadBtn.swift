@@ -17,6 +17,8 @@ public final class HCUploadButton: UIButton {
         fatalError("init(coder:) has not been implemented")
     }
     
+    /// Configure the button's appearance using the provided title.
+    /// - Parameter title: The title displayed on the button. Sets foreground to `mainBlack`, background to `mainWhite`, applies a corner radius of 20 and enables clipping, and updates the background to `lightGray` while the button is highlighted.
     private func configure(title: String) {
         var config = UIButton.Configuration.filled()
         config.title = title

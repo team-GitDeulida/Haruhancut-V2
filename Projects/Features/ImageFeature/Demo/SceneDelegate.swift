@@ -12,6 +12,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
+    /// Configures and attaches the app window for the connecting scene, starts the CameraCoordinator, and makes the window key and visible.
+    /// - Parameters:
+    ///   - scene: The scene being connected; must be a `UIWindowScene`.
+    ///   - session: The session associated with the connecting scene.
+    ///   - connectionOptions: Options used to configure the scene upon connection.
     func scene(
         _ scene: UIScene,
         willConnectTo session: UISceneSession,

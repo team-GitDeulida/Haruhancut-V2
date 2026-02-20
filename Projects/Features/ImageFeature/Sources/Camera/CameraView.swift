@@ -39,6 +39,9 @@ final class CameraView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
+    /// Configures view appearance and adds subviews required for the camera UI.
+    /// 
+    /// Sets the view's background color and adds `cameraView` and `cameraButton` as subviews, disabling their `translatesAutoresizingMaskIntoConstraints` so Auto Layout constraints can be applied.
     private func setupUI() {
         backgroundColor = .background
         [cameraView, cameraButton].forEach {
@@ -47,6 +50,9 @@ final class CameraView: UIView {
         }
     }
     
+    /// Configures and activates Auto Layout constraints for the view's subviews.
+    /// 
+    /// Positions `cameraView` near the top center of the safe area with a 20-point leading inset and enforces a square aspect ratio (height equal to width). Positions `cameraButton` centered horizontally near the bottom of the safe area.
     private func setupConstraints() {
         NSLayoutConstraint.activate([
             // MARK: - cameraView
