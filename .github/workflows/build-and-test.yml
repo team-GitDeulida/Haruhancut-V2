@@ -40,9 +40,11 @@ jobs:
   build:
     name: Build For Testing
     runs-on: macos-15
-    if: |
-      github.event_name != 'pull_request' ||
-      inputs.triggered_by_command == 'true'
+
+    # pr -> build skip
+    # if: |
+    #   github.event_name != 'pull_request' ||
+    #   inputs.triggered_by_command == 'true'
 
     steps:
       - uses: actions/checkout@v4
