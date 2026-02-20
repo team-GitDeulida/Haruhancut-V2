@@ -30,7 +30,9 @@ public final class CameraCoordinator: Coordinator {
             var upload = builder.makeImageUpload(image: image)
             
             upload.vm.onUploadCompleted = { [weak self] in
-                self?.navigationController.popToRootViewController(animated: true)
+                guard let self = self else { return }
+                self.navigationController.popToRootViewController(animated: true)
+                self.parentCoordinator?.childDidFinish(self)
             }
             
             self.navigationController.pushViewController(upload.vc, animated: true)
