@@ -24,7 +24,7 @@ jobs:
     if: >
       github.event.issue.pull_request != null &&
       github.event.comment.user.type == 'User' &&
-      github.event.comment.body == '/하루한컷 빌드하고 테스트'
+      startsWith(github.event.comment.body, '/하루한컷 빌드하고 테스트')
     runs-on: ubuntu-latest
     steps:
       - name: Acknowledge
