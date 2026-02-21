@@ -1,12 +1,3 @@
-# PR에 댓글 작성
-#     ↓
-# issue_comment 이벤트 발생
-#     ↓
-# job 조건 검사
-#     ↓
-# 조건 안 맞으면 ❌ job 자체가 실행 안 됨
-# 조건 맞으면 ✅ 실행
-
 name: PR 명령어 실행
 
 on:
@@ -21,18 +12,33 @@ permissions:
 
 jobs:
   parse-and-run:
-    if: >
-      github.event.issue.pull_request != null &&
-      github.event.comment.user.type == 'User' &&
-      github.event.comment.body == '/하루한컷 빌드하고 테스트'
+    if: github.event.issue.pull_request != null
     runs-on: ubuntu-latest
+
     steps:
+      - name: Parse command
+        shell: bash
+        run: |
+          BODY="$(echo "${{ github.event.comment.body }}" | xargs)"
+
+          if [[ "$BODY" == "/하루한컷 빌드하고 테스트" ]]; then
+            echo "run=true" >> $GITHUB_ENV
+          else
+            echo "run=false" >> $GITHUB_ENV
+          fi
+
+      - name: Stop if not matched
+        if: env.run != 'true'
+        run: exit 0
+
       - name: Acknowledge
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
-            🔨 iOS 18.5 iPhone 16 Pro Max 에서 빌드 및 테스트를 실행합니다.
+            🤖 **하루한컷 CI**
+            `/하루한컷 빌드하고 테스트` 명령을 인식했습니다.
+            빌드 & 테스트를 시작합니다 ⏳
 
       - name: Trigger build-and-test workflow
         uses: actions/github-script@v7
