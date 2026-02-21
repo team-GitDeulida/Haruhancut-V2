@@ -15,7 +15,8 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "OnboardingFeatureInterface"),
-                .project(target: "DSKit", path: "../../Shared/DSKit")
+                .project(target: "DSKit", path: "../../Shared/DSKit"),
+                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
             ]
         ),
         

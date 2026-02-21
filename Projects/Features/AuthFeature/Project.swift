@@ -16,6 +16,7 @@ let project = Project(
             dependencies: [
                 .target(name: "AuthFeatureInterface"),
                 .project(target: "DSKit", path: "../../Shared/DSKit"),
+                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
             ]
         ),
         

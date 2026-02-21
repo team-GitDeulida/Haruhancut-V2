@@ -14,7 +14,8 @@ let project = Project(
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "HomeFeatureInterface")
+                .target(name: "HomeFeatureInterface"),
+                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
             ]
         ),
         
