@@ -66,12 +66,12 @@ import PackageDescription
         //     "ScaleKit": .framework,
         // ]
 
-        productTypes: [ 
-            // Rx → runtime 안정성
-            "RxSwift": .framework,
-            "RxRelay": .framework,
-        ]
-
+        // productTypes: [ 
+        //     // Rx → runtime 안정성
+        //     "RxSwift": .framework,
+        //     "RxRelay": .framework,
+        // ]
+        productTypes: [:]
     )
 #endif
 
