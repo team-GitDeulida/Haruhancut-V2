@@ -206,7 +206,8 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ✅ 하루한컷 패키지를 성공적으로 빌드하고 테스트했습니다.
+            ✅ **하루한컷 iOS CI 성공**
+            - Core / Data / App 테스트 모두 성공 🎉
       # PR이 실패이고, 이벤트가 PR일 때만 코멘트
       - name: Comment failure (PR only)
         if: needs.test.result != 'success' && github.event_name == 'pull_request'

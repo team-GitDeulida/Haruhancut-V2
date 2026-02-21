@@ -8,7 +8,7 @@ let project = Project(
         .target(
             name: "Coordinator",
             destinations: .iOS,
-            product: .staticFramework, // 필요하면 .staticFramework 로 변경 가능
+            product: .framework, // 필요하면 .staticFramework 로 변경 가능
             bundleId: "com.indextrown.Haruhancut.coordinator",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
@@ -21,6 +21,7 @@ let project = Project(
                 .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
                 .project(target: "ImageFeature", path: "../Features/ImageFeature"),
                 .project(target: "Core", path: "../Core"),
+                .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs")
             ]
         ),
     ]

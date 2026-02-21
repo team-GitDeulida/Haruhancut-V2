@@ -8,14 +8,15 @@ let project = Project(
         .target(
             name: "OnboardingFeature",
             destinations: .iOS,
-            product: .staticFramework,
+            product: .framework,
             bundleId: "com.indextrown.Haruhancut.onboardingfeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
                 .target(name: "OnboardingFeatureInterface"),
-                .project(target: "DSKit", path: "../../Shared/DSKit")
+                .project(target: "DSKit", path: "../../Shared/DSKit"),
+                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
             ]
         ),
         

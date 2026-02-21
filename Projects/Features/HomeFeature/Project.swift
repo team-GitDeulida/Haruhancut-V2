@@ -8,13 +8,14 @@ let project = Project(
         .target(
             name: "HomeFeature",
             destinations: .iOS,
-            product: .staticFramework,
+            product: .framework,
             bundleId: "com.indextrown.Haruhancut.homefeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "HomeFeatureInterface")
+                .target(name: "HomeFeatureInterface"),
+                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
             ]
         ),
         

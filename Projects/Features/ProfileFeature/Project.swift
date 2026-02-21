@@ -8,14 +8,15 @@ let project = Project(
         .target(
             name: "ProfileFeature",
             destinations: .iOS,
-            product: .staticFramework,
+            product: .framework,
             bundleId: "com.indextrown.Haruhancut.profilefeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
                 .target(name: "ProfileFeatureInterface"),
-                .project(target: "DSKit", path: "../../Shared/DSKit")
+                .project(target: "DSKit", path: "../../Shared/DSKit"),
+                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
             ]
         ),
         
