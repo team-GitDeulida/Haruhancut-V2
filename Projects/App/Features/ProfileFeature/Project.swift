@@ -23,7 +23,7 @@ let project = Project(
         .target(
             name: "ProfileFeatureInterface",
             destinations: .iOS,
-            product: .staticFramework,
+            product: .framework,
             bundleId: "com.indextrown.Haruhancut.profilefeature.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],

@@ -8,7 +8,7 @@ let project = Project(
         .target(
             name: "HomeFeature",
             destinations: .iOS,
-            product: .staticFramework,
+            product: .framework,
             bundleId: "com.indextrown.Haruhancut.homefeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
