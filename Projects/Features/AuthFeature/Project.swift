@@ -8,13 +8,14 @@ let project = Project(
         .target(
             name: "AuthFeature",
             destinations: .iOS,
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.Haruhancut.authfeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
                 .target(name: "AuthFeatureInterface"),
+                .project(target: "DSKit", path: "../../Shared/DSKit"),
                 .project(target: "DSKit", path: "../../Shared/DSKit"),
                 .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
             ]

@@ -42,23 +42,34 @@ import PackageDescription
         // 그래서 안에 뭐를 안넣느냐:
         // - UIKit / App lifecycle 전제 라이브러리
         // - RxCocoa, SnapKit, Lottie, Kingfisher
-        productTypes: [
+        // 여기에 없으면 staticFramework으로 빌드됨
+
+        // dynamic: 여러 실행 타깃이 공유, 런타임 안전성 필요한 라이브러리
+        // static: 각 타깃이 독립적으로 포함, 런타임 안전성 필요 없는 라이브러리
+
+        // productTypes: [ 
+        //     // Rx → runtime 안정성
+        //     "RxSwift": .framework,
+        //     "RxRelay": .framework,
+        //     // "RxKakaoSDK": .framework,
+
+        //     // firebase
+        //     // "FirebaseCore": .staticFramework,
+        //     // "FirebaseMessaging": .staticFramework,
+        //     // "FirebaseAuth": .staticFramework,
+        //     // "FirebaseDatabase": .staticFramework,
+        //     // "FirebaseStorage": .staticFramework,
+
+        //     // 기타 → 단순 라이브러리
+        //     "Lottie": .framework,
+        //     "Kingfisher": .framework,
+        //     "ScaleKit": .framework,
+        // ]
+
+        productTypes: [ 
             // Rx → runtime 안정성
             "RxSwift": .framework,
             "RxRelay": .framework,
-            // "RxKakaoSDK": .framework,
-
-            // firebase
-            // "FirebaseCore": .staticFramework,
-            // "FirebaseMessaging": .staticFramework,
-            // "FirebaseAuth": .staticFramework,
-            // "FirebaseDatabase": .staticFramework,
-            // "FirebaseStorage": .staticFramework,
-
-            // 기타 → 단순 라이브러리
-            "Lottie": .framework,
-            "Kingfisher": .framework,
-            "ScaleKit": .framework,
         ]
 
     )

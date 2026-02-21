@@ -8,7 +8,7 @@ let project = Project(
         .target(
             name: "OnboardingFeature",
             destinations: .iOS,
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.Haruhancut.onboardingfeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],

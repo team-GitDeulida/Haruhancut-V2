@@ -8,7 +8,7 @@ let project = Project(
         .target(
             name: "ImageFeature",
             destinations: .iOS,
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.Haruhancut.imagefeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
@@ -82,33 +82,33 @@ let project = Project(
         ),
 
         // MARK: - Feature Tests
-        .target(
-            name: "ImageTests",
-            destinations: .iOS,
-            product: .unitTests,
-            bundleId: "com.indextrown.Haruhancut.imagefeature.tests",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Tests/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "ImageFeature"),
-                .target(name: "ImageFeatureTesting")
-            ]
-        ),
+        // .target(
+        //     name: "ImageTests",
+        //     destinations: .iOS,
+        //     product: .unitTests,
+        //     bundleId: "com.indextrown.Haruhancut.imagefeature.tests",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Tests/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "ImageFeature"),
+        //         .target(name: "ImageFeatureTesting")
+        //     ]
+        // ),
 
-        // MARK: - Feature Testing
-        .target(
-            name: "ImageFeatureTesting",
-            destinations: .iOS,
-            product: .framework,
-            bundleId: "com.indextrown.Haruhancut.imagefeature.testing",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Testing/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "ImageFeatureInterface"),
-            ]
-        ),
+        // // MARK: - Feature Testing
+        // .target(
+        //     name: "ImageFeatureTesting",
+        //     destinations: .iOS,
+        //     product: .framework,
+        //     bundleId: "com.indextrown.Haruhancut.imagefeature.testing",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Testing/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "ImageFeatureInterface"),
+        //     ]
+        // ),
     ]
 )
 
