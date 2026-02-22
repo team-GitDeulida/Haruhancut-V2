@@ -7,9 +7,11 @@
 
 import Domain
 import HomeFeature
+import HomeFeatureInterface
 import UIKit
+import ImageFeature
 
-public final class HomeCoordinator: Coordinator {
+public final class HomeCoordinator: NSObject, Coordinator  {
     
     public var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
@@ -45,25 +47,23 @@ public final class HomeCoordinator: Coordinator {
             profileCoordinator.parentCoordinator = self
             self.childCoordinators.append(profileCoordinator)
             profileCoordinator.start()
-            
-            // 1. Profile flow 시작
-            // (self.parentCoordinator as? AppCoordinator)?
-            //     .startProfileFlowCoordinator()
-            
-            // 2. HomeCoordinator 종료 X
-            // self.parentCoordinator?.childDidFinish(self)
         }
         
-        home.vm.onCameraTapped = { [weak self] in
+        home.vm.onCameraTapped = { [weak self] source in
             guard let self = self else { return }
-            let cameraCoordinator = CameraCoordinator(
-                navigationController: self.navigationController
-            )
             
-            cameraCoordinator.parentCoordinator = self
-            self.childCoordinators.append(cameraCoordinator)
-            cameraCoordinator.start()
-            print("카메라 코디네이터")
+            switch source {
+            case .camera:
+                let cameraCoordinator = CameraCoordinator(
+                    navigationController: self.navigationController
+                )
+                
+                cameraCoordinator.parentCoordinator = self
+                self.childCoordinators.append(cameraCoordinator)
+                cameraCoordinator.start()
+            case .album:
+                self.homePresentImagePicker()
+            }
         }
         
         // FeedDetail은 홈의 자식으로 간주하였음(poppable)
@@ -100,3 +100,99 @@ public final class HomeCoordinator: Coordinator {
         navigationController.setViewControllers([home.vc], animated: true)
     }
 }
+
+// MARK: - Delegate
+extension HomeCoordinator: UIImagePickerControllerDelegate & UINavigationControllerDelegate {
+    func homePresentImagePicker() {
+        guard UIImagePickerController.isSourceTypeAvailable(.photoLibrary) else {
+            return
+        }
+        
+        let picker = UIImagePickerController()
+        picker.sourceType = .photoLibrary
+        picker.allowsEditing = false
+        picker.delegate = self
+        
+        // iPad 대응
+        // - ipad에서 UIImagePicker가 기본적으로 popOver로 뜨기 때문에 popOver 설정이 되어있지 않으면 delegate가 호출되지 않거나
+        // - 빈응이 없는 것 처럼 보일 수 있다
+        if let popover = picker.popoverPresentationController {
+            popover.sourceView = navigationController.view
+            popover.sourceRect = CGRect(
+                x: navigationController.view.bounds.midX,
+                y: navigationController.view.bounds.midY,
+                width: 0,
+                height: 0
+            )
+            popover.permittedArrowDirections = []
+        }
+        navigationController.present(picker, animated: true)
+    }
+    
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        
+        guard let image = info[.originalImage] as? UIImage else {
+            picker.dismiss(animated: true)
+            return
+        }
+        
+        picker.dismiss(animated: true) { [weak self] in
+            let builder = ImageFeatureBuilder()
+            var upload = builder.makeImageUpload(image: image)
+            // upload.vc.modalPresentationStyle = .fullScreen
+            upload.vm.onUploadCompleted = { [weak self] in
+                self?.navigationController.popViewController(animated: true)
+            }
+            
+            self?.navigationController.pushViewController(upload.vc, animated: true)
+        }
+    }
+    
+    public func imagePickerControllerDidCancel(
+        _ picker: UIImagePickerController
+    ) {
+        picker.dismiss(animated: true)
+    }
+}
+
+
+
+
+
+
+
+
+
+//extension HomeCoordinator {
+//    private func bindHomeActions(home: HomePresentable) {
+//        var home = home
+//        home.vm.onLogoutTapped = { [weak self] in
+//            // 로그인 화면으로 이동
+//            (self?.parentCoordinator as? AppCoordinator)?
+//                .logoutWithRotation()
+//            
+//            // HomeCoordinator 종료
+//            self?.parentCoordinator?.childDidFinish(self)
+//        }
+//    }
+//}
+
+
+//private func bindHomeActions(home: (vc: UIViewController, vm: HomeViewModelType)) {
+//    
+//    home.vm.onLogoutTapped = { [weak self] in
+//        self?.handleLogout()
+//    }
+//    
+//    home.vm.onProfileTapped = { [weak self] in
+//        self?.showProfile()
+//    }
+//    
+//    home.vm.onCameraTapped = { [weak self] in
+//        self?.showCamera()
+//    }
+//    
+//    home.vm.onImageTapped = { [weak self] post in
+//        self?.showFeedDetail(post: post)
+//    }
+//}

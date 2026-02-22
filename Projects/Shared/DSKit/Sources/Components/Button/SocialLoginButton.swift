@@ -25,7 +25,7 @@ public final class SocialLoginButton: UIButton {
     private func configure(type: LoginType, title: String) {
         var config = UIButton.Configuration.filled()
         config.imagePlacement = .leading
-        config.imagePadding = 20
+        config.imagePadding = 20.scaled
         config.title = title
         config.baseBackgroundColor = .black
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in

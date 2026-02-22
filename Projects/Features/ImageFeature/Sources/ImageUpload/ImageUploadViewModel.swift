@@ -44,9 +44,10 @@ final class ImageUploadViewModel: UploadViewModelType {
     /// - Returns: An `Output` whose `isUploading` driver emits `true` while an upload is in progress and `false` when the upload finishes or fails.
     func transform(input: Input) -> Output {
         
-        let uploading = PublishRelay<Bool>()
+        let uploading = BehaviorRelay<Bool>(value: false)
         
         input.uploadButtonTapped
+            .do(onNext: { print("🔥 upload tap 들어옴") })
             .flatMapLatest { [weak self] _ -> Observable<Void> in
                 guard let self else { return .empty() }
                 
@@ -54,6 +55,13 @@ final class ImageUploadViewModel: UploadViewModelType {
 
                 return self.groupUsecase
                     .uploadImageAndUploadPost(image: self.image)
+                    .do(
+                        onNext: { print("✅ onNext") },
+                        onError: { print("❌ onError:", $0) },
+                        onCompleted: { print("🏁 completed") },
+                        onSubscribe: { print("📡 subscribe") },
+                        onDispose: { print("🧹 dispose") }
+                    )
                     .do(
                         onNext: { _ in uploading.accept(false) },
                         onError: { _ in uploading.accept(false) },
