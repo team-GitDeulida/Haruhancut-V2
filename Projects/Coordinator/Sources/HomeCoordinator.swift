@@ -112,20 +112,39 @@ extension HomeCoordinator: UIImagePickerControllerDelegate & UINavigationControl
         picker.sourceType = .photoLibrary
         picker.allowsEditing = false
         picker.delegate = self
+        
+        // iPad 대응
+        // - ipad에서 UIImagePicker가 기본적으로 popOver로 뜨기 때문에 popOver 설정이 되어있지 않으면 delegate가 호출되지 않거나
+        // - 빈응이 없는 것 처럼 보일 수 있다
+        if let popover = picker.popoverPresentationController {
+            popover.sourceView = navigationController.view
+            popover.sourceRect = CGRect(
+                x: navigationController.view.bounds.midX,
+                y: navigationController.view.bounds.midY,
+                width: 0,
+                height: 0
+            )
+            popover.permittedArrowDirections = []
+        }
         navigationController.present(picker, animated: true)
     }
     
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        picker.dismiss(animated: true)
         
-        if let image = info[.originalImage] as? UIImage {
+        guard let image = info[.originalImage] as? UIImage else {
+            picker.dismiss(animated: true)
+            return
+        }
+        
+        picker.dismiss(animated: true) { [weak self] in
             let builder = ImageFeatureBuilder()
             var upload = builder.makeImageUpload(image: image)
+            // upload.vc.modalPresentationStyle = .fullScreen
             upload.vm.onUploadCompleted = { [weak self] in
                 self?.navigationController.popViewController(animated: true)
             }
             
-            navigationController.pushViewController(upload.vc, animated: true)
+            self?.navigationController.pushViewController(upload.vc, animated: true)
         }
     }
     

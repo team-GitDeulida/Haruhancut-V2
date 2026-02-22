@@ -140,12 +140,13 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     public func addComment(post: Post, text: String) -> Single<Void> {
         guard let userId = userSession.userId,
               let groupId = userSession.groupId,
-              let nickname = userSession.nickname,
-              let profileImageURL = userSession.profileImageURL
+              let nickname = userSession.nickname
         else {
             return .deferred { .just(()) }
         }
+        
         let commentId = UUID().uuidString
+        let profileImageURL = userSession.profileImageURL
         let newComment = Comment(commentId: commentId,
                                  userId: userId,
                                  nickname: nickname,
@@ -180,7 +181,6 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     public func uploadImageAndUploadPost(image: UIImage) -> Observable<Void> {
         guard let userId = userSession.userId,
               let nickname = userSession.nickname,
-              let profileImageURL = userSession.profileImageURL,
               let groupId = userSession.groupId
         else {
             return .error(DomainError.missingGroupId)
@@ -189,6 +189,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let postId = UUID().uuidString
         let now = Date()
         let dateKey = now.toDateKey()
+        let profileImageURL = self.userSession.profileImageURL
         
         let storagePath = "groups/\(groupId)/images/\(postId).jpg"         // storage  저장 위치
         let dbPath = "groups/\(groupId)/postsByDate/\(dateKey)/\(postId)"  // realtime 저장 위치

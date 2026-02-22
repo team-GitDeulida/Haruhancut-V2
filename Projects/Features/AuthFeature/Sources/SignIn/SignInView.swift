@@ -25,7 +25,7 @@ final class SignInView: UIView {
             appleLoginButton
         ])
         st.axis = .vertical
-        st.spacing = 19
+        st.spacing = 10
         st.distribution = .fillEqually
         st.alignment = .fill
         return st
@@ -57,25 +57,26 @@ final class SignInView: UIView {
     
     // MARK: - Constraints
     private func setupConstraints() {
+        // let topConstant: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 120 : 220
         NSLayoutConstraint.activate([
             
             // MARK: - Lottie
             // 위치
-            animationView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 220),
+            animationView.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -50.scaled),
             animationView.centerXAnchor.constraint(equalTo: centerXAnchor),
             
             // 크기
-            animationView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
-            animationView.heightAnchor.constraint(equalToConstant: 200),
+            animationView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20.scaled),
+            animationView.heightAnchor.constraint(equalToConstant: 200.scaled),
             
             // MARK: - StackView
-            stackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -50),
+            stackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -50.scaled),
             stackView.centerXAnchor.constraint(equalTo: centerXAnchor),
-            stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
-            stackView.heightAnchor.constraint(equalToConstant: 130),
+            stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20.scaled),
+            stackView.heightAnchor.constraint(equalToConstant: 130.scaled),
             
             // MARK: - Title
-            titleLabel.topAnchor.constraint(equalTo: animationView.bottomAnchor, constant: 20),
+            titleLabel.topAnchor.constraint(equalTo: animationView.bottomAnchor, constant: 20.scaled),
             titleLabel.centerXAnchor.constraint(equalTo: centerXAnchor)
         ])
     }
