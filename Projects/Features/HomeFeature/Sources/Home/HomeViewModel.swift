@@ -29,7 +29,8 @@ public final class HomeViewModel: HomeViewModelType {
     public var onLogoutTapped: (() -> Void)?
     public var onImageTapped: ((Post) -> Void)?
     public var onProfileTapped: (() -> Void)?
-    public var onCameraTapped: (() -> Void)?
+    // public var onCameraTapped: (() -> Void)?
+    public var onCameraTapped: ((CameraSource) -> Void)?
     
     public struct Input {
         let viewDidLoad: Observable<Void>

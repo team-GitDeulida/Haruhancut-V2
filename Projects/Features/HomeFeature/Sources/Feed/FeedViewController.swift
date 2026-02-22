@@ -149,17 +149,18 @@ final class FeedViewController: UIViewController {
         // 카메라 버튼 알림
         output.showCameraAlert
             .emit(with: self, onNext: { owner, _ in
-                let alert = AlertFactory.makeAlert(title: nil,
-                                                   message: nil,
-                                                   preferredStyle: .actionSheet,
-                                                   actions: [
-                                                    UIAlertAction(title: "카메라로 찍기", style: .default) { _ in
-                                                        self.homeViewModel.onCameraTapped?()
-                                                    },
-                                                    UIAlertAction(title: "앨범에서 선택", style: .default) { _ in
-                                                        print("앨범에서 선택")
-                                                    }
-                                                   ])
+                let alert = AlertFactory
+                    .makeAlert(title: nil,
+                               message: nil,
+                               preferredStyle: .actionSheet,
+                               actions: [
+                                UIAlertAction(title: "카메라로 찍기", style: .default) { _ in
+                                    self.homeViewModel.onCameraTapped?(.camera)
+                                },
+                                UIAlertAction(title: "앨범에서 선택", style: .default) { _ in
+                                    self.homeViewModel.onCameraTapped?(.album)
+                                }
+                               ])
                 owner.present(alert, animated: true)
             })
             .disposed(by: disposeBag)
