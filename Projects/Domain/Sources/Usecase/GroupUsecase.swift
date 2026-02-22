@@ -11,6 +11,7 @@ import UIKit
 
 enum DomainError: Error {
     case missingGroupId
+    case missingDomainSession
 }
 
 public protocol GroupUsecaseProtocol {
@@ -142,7 +143,8 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
               let groupId = userSession.groupId,
               let nickname = userSession.nickname
         else {
-            return .deferred { .just(()) }
+            return .error(DomainError.missingDomainSession)
+            // return .deferred { .just(()) } // 에러 없지만 아무 작업도 안함
         }
         
         let commentId = UUID().uuidString
@@ -167,7 +169,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     /// - Returns: `Void` when the deletion completes successfully.
     public func deleteComment(post: Post, commentId: String) -> Single<Void> {
         guard let groupId = userSession.groupId else {
-            return .deferred { .just(()) }
+            return .error(DomainError.missingDomainSession)
         }
         
         let dateKey = post.createdAt.toDateKey()
