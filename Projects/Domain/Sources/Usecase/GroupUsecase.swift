@@ -185,7 +185,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
               let nickname = userSession.nickname,
               let groupId = userSession.groupId
         else {
-            return .error(DomainError.missingGroupId)
+            return .error(DomainError.missingDomainSession)
         }
         
         let postId = UUID().uuidString
