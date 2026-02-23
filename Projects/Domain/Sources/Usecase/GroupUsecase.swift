@@ -15,20 +15,8 @@ enum DomainError: Error {
 }
 
 public protocol GroupUsecaseProtocol {
-    // Group
-    // func createGroup(groupName: String) -> Single<(groupId: String, inviteCode: String)>
-    // func joinGroup(inviteCode: String) -> Single<HCGroup>
     func updateGroup(path: String, post: Post) -> Single<Void>
-    // func updateUserGroupId(groupId: String) -> Single<Void>
-    // func fetchGroup() -> Single<HCGroup>
     
-    // Image
-    
-    // func deleteImage(path: String) -> Single<Void>
-    
-    // Comment
-    // func addComment(path: String, value: Comment) -> Single<Void>
-    // func deleteComment(path: String) -> Single<Void>
     
     // Other
     func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T>
@@ -70,13 +58,6 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             return .error(DomainError.missingGroupId)
         }
         return groupRepository.fetchGroup(groupId: groupId)
-    }
-    
-    /// Deletes the image located at the given storage path.
-    /// - Parameter path: The storage path of the image to delete.
-    /// - Returns: `Void` on success.
-    public func deleteImage(path: String) -> Single<Void> {
-        return groupRepository.deleteImage(path: path)
     }
     
     // Comment
