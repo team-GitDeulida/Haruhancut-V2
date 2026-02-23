@@ -29,7 +29,6 @@ public final class HomeViewModel: HomeViewModelType {
     public var onLogoutTapped: (() -> Void)?
     public var onImageTapped: ((Post) -> Void)?
     public var onProfileTapped: (() -> Void)?
-    // public var onCameraTapped: (() -> Void)?
     public var onCameraTapped: ((CameraSource) -> Void)?
     
     public struct Input {
@@ -40,6 +39,7 @@ public final class HomeViewModel: HomeViewModelType {
         let imageTapped: Observable<Post>
         let longPressed: Observable<Post>
         let cameraButtonTapped: Observable<Void>
+        let deleteConfirmed: Observable<Post>
     }
     
     public struct Output {
@@ -60,26 +60,16 @@ public final class HomeViewModel: HomeViewModelType {
     
     public func transform(input: Input) -> Output {
         
-        // 최초로딩 / 재로딩
-        let loadTrigger = Observable.merge(input.viewDidLoad,
-                                           input.refreshTapped)
-        
-        // result: Observable<Event<HCGroup>>
-        let result = loadTrigger
-            .withUnretained(self)
-            .flatMapLatest { owner, _ in
-                owner.groupUsecase.loadAndFetchGroup()
-                    .materialize() // 에러 발생 시 스트림 이 끊기지 않도록 해준다
-            }
-            .share() /// 아래서 group, error가 모두 result를 구독하는데 요청 1번만 하도록 하기 위함
-        
+        // MARK: - 그룹 세션 관찰
         let group = Observable<HCGroup>.create { observer in
+            // 세션 업데이트마다 방출
             let id = self.groupSession.bind { session in
                 if let session {
                     observer.onNext(session.toEntity())
                 }
             }
             
+            // 구독 해제시 바인딩 제거
             return Disposables.create {
                 self.groupSession.removeObserver(id)
             }
@@ -96,18 +86,22 @@ public final class HomeViewModel: HomeViewModelType {
             })
             .disposed(by: disposeBag)
         
+        // 롱프레스 이벤트를 Signal로 변환
         let showLongPressedAlert = input.longPressed
             .asSignal(onErrorSignalWith: .empty())
         
+        // 커메라 버튼 탭을 signal로 변환
         let showCameraAlert = input.cameraButtonTapped
             .asSignal(onErrorSignalWith: .empty())
         
+        // 그룹의 모든 post를 정렬하여 하나의 배열로 변환
         let posts = group
             .map { group in
                 let allPosts = group.postsByDate.flatMap { $0.value }
                 return allPosts.sorted { $0.createdAt < $1.createdAt }
             }
         
+        // 오늘 + 현재 유저가 작성한 포스트만 필터링
         let todayPosts = posts
             .map { posts in
                 posts
@@ -116,11 +110,49 @@ public final class HomeViewModel: HomeViewModelType {
             }
             .asDriver(onErrorJustReturn: [])
         
+        // 오늘 업로드 했는지 여부(카메라 버튼 활성화 판단용)
         let didTodayUpload = todayPosts
             .map { !$0.isEmpty }
             .distinctUntilChanged()
         
-        let error = result.compactMap { $0.error }
+        // 삭제처리
+        let deleteResult = input.deleteConfirmed
+            .withUnretained(self)
+            .flatMapLatest { owner, post -> Observable<Event<Void>> in
+                owner.groupUsecase.deletePost(post: post)
+                    .asObservable()
+                    .materialize()
+            }
+            .share()
+        
+        // 삭제 성공 시 reload 트리거를 위한 Void 스트림
+        let deleteSuccessTrigger = deleteResult
+            .compactMap { $0.element }
+            .mapToVoid()
+        
+        // 최초로딩 / 재로딩 / 새로고침 / 삭제 성공 후 리로드
+        let loadTrigger = Observable.merge(
+            input.viewDidLoad,
+            input.refreshTapped,
+            deleteSuccessTrigger
+        )
+        
+        // result: Observable<Event<HCGroup>>
+        // 그룹 데이터를 캐시 + 서버 순으로 가져온다
+        let result = loadTrigger
+            .withUnretained(self)
+            .flatMapLatest { owner, _ in
+                owner.groupUsecase.loadAndFetchGroup()
+                    .materialize() // 에러 발생 시 스트림 이 끊기지 않도록 해준다
+            }
+            .share() /// 아래서 group, error가 모두 result를 구독하는데 요청 1번만 하도록 하기 위함
+        
+         // load 실패, delete 실패를 하나의 error 스트림으로 병합
+        let error = Observable.merge(
+            result.compactMap { $0.error },
+            deleteResult.compactMap { $0.error }
+        )
+        
         return Output(group: group.asDriver(onErrorDriveWith: Driver.empty()),
                       posts: posts.asDriver(onErrorDriveWith: Driver.empty()),
                       todayPosts: todayPosts,
@@ -130,6 +162,13 @@ public final class HomeViewModel: HomeViewModelType {
                       showCameraAlert: showCameraAlert)
     }
 }
+
+
+
+
+
+
+
 
 
 

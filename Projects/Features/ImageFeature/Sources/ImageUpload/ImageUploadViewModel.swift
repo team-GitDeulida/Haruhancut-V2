@@ -47,7 +47,7 @@ final class ImageUploadViewModel: UploadViewModelType {
         let uploading = BehaviorRelay<Bool>(value: false)
         
         input.uploadButtonTapped
-            .do(onNext: { print("🔥 upload tap 들어옴") })
+            // .do(onNext: { print("🔥 upload tap 들어옴") })
             .flatMapLatest { [weak self] _ -> Observable<Void> in
                 guard let self else { return .empty() }
                 

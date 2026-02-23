@@ -15,20 +15,8 @@ enum DomainError: Error {
 }
 
 public protocol GroupUsecaseProtocol {
-    // Group
-    // func createGroup(groupName: String) -> Single<(groupId: String, inviteCode: String)>
-    // func joinGroup(inviteCode: String) -> Single<HCGroup>
     func updateGroup(path: String, post: Post) -> Single<Void>
-    // func updateUserGroupId(groupId: String) -> Single<Void>
-    // func fetchGroup() -> Single<HCGroup>
     
-    // Image
-    
-    func deleteImage(path: String) -> Single<Void>
-    
-    // Comment
-    // func addComment(path: String, value: Comment) -> Single<Void>
-    // func deleteComment(path: String) -> Single<Void>
     
     // Other
     func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T>
@@ -41,6 +29,7 @@ public protocol GroupUsecaseProtocol {
     func addComment(post: Post, text: String) -> Single<Void>
     func deleteComment(post: Post, commentId: String) -> Single<Void>
     func uploadImageAndUploadPost(image: UIImage) -> Observable<Void>
+    func deletePost(post: Post) -> Single<Void>
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
@@ -69,13 +58,6 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             return .error(DomainError.missingGroupId)
         }
         return groupRepository.fetchGroup(groupId: groupId)
-    }
-    
-    /// Deletes the image located at the given storage path.
-    /// - Parameter path: The storage path of the image to delete.
-    /// - Returns: `Void` on success.
-    public func deleteImage(path: String) -> Single<Void> {
-        return groupRepository.deleteImage(path: path)
     }
     
     // Comment
@@ -215,6 +197,22 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             .flatMap { _ in
                 self.loadAndFetchGroup()
                     .mapToVoid()
+            }
+    }
+    
+    public func deletePost(post: Post) -> Single<Void> {
+        guard let groupId = userSession.groupId else {
+            return .deferred { .error(DomainError.missingDomainSession) }
+        }
+        
+        let dateKey = post.createdAt.toDateKey()
+        let dbPath = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)"
+        let storagePath = "groups/\(groupId)/images/\(post.postId).jpg"
+        
+        return groupRepository.deleteImage(path: storagePath)
+            .catch { _ in .just(()) }   // 스토리지 삭제 실패는 무시하고 계속 진행
+            .flatMap {
+                self.groupRepository.deleteValue(path: dbPath)
             }
     }
 }
