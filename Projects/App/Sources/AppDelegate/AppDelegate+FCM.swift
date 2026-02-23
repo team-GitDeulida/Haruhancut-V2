@@ -39,6 +39,9 @@ extension AppDelegate: MessagingDelegate {
         store.latestToken = token
         
         let authUsecase = DIContainer.shared.resolve(AuthUsecaseProtocol.self)
-        _ = authUsecase.syncFcmIfNeeded().subscribe()
+        _ = authUsecase.syncFcmIfNeeded()
+            .subscribe()
+        
+        
     }
 }

@@ -417,7 +417,7 @@ extension FirebaseAuthManager {
     
     /// 유저 일부 수정
     /// - Parameter uid: Uid
-    /// - Returns: 삭제유무
+    /// - Returns: 업데이트 성공유무
     public func patchUser(uid: String, fields: [String: Any]) -> Single<Void> {
         let path = "users/\(uid)"
         return Single.create { single in
