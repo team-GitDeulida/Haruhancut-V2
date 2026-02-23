@@ -78,6 +78,10 @@ public final class AuthRepositoryImpl: AuthRepositoryProtocol {
             .map { () }
     }
     
+    public func patchUser(uid: String, fields: [String: Any]) -> Single<Void> {
+        return firebaseAuthManager.patchUser(uid: uid, fields: fields)
+    }
+    
     public func uploadImage(user: User, image: UIImage) -> Single<URL> {
         let path = "users/\(user.uid)/profile.jpg"
         return firebaseStorageManager.uploadImage(image: image, path: path)

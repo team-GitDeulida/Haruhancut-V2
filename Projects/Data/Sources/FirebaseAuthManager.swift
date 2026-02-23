@@ -96,7 +96,6 @@ public protocol FirebaseAuthManagerProtocol {
     func updateValue<T: Encodable>(path: String, value: T) -> Single<Void>   // update
     func deleteValue(path: String) -> Single<Void>                           // dellete
     
-    
     // MARK: - 유저관련
     // Firebase Auth 인증
     // func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void>
@@ -116,6 +115,7 @@ public protocol FirebaseAuthManagerProtocol {
     
     // 유저 삭제 (Auth + DB)
     func deleteUser(uid: String) -> Single<Void>
+    func patchUser(uid: String, fields: [String: Any]) -> Single<Void>       // patch
     
     
     // MARK: - 그룹관련
@@ -413,6 +413,25 @@ extension FirebaseAuthManager {
                     return Disposables.create()
                 }
             }
+    }
+    
+    /// 유저 일부 수정
+    /// - Parameter uid: Uid
+    /// - Returns: 삭제유무
+    public func patchUser(uid: String, fields: [String: Any]) -> Single<Void> {
+        let path = "users/\(uid)"
+        return Single.create { single in
+            self.databaseRef
+                .child(path)
+                .updateChildValues(fields) { error, _ in
+                    if let error {
+                        single(.failure(FirebaseError.unknown(error)))
+                    } else {
+                        single(.success(()))
+                    }
+                }
+            return Disposables.create()
+        }
     }
 }
 

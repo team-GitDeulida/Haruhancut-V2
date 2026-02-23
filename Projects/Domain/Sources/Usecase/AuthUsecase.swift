@@ -36,19 +36,23 @@ public protocol AuthUsecaseProtocol {
     func signUp(user: User, profileImage: UIImage?) -> Single<Void>
     
     // MARK: - FCM
-    
+    func generateFcmToken() -> Single<String>
+    func syncFcmIfNeeded() -> Single<Void>
 }
 
 public final class AuthUsecaseImpl: AuthUsecaseProtocol {
 
     private let repository: AuthRepositoryProtocol
     private let userSession: UserSession
+    private let fcmTokenStore: FCMTokenStore
     
     public init(authRepository: AuthRepositoryProtocol,
-                userSession: UserSession
+                userSession: UserSession,
+                fcmTokenStore: FCMTokenStore
     ) {
         self.repository = authRepository
         self.userSession = userSession
+        self.fcmTokenStore = fcmTokenStore
     }
     
     /// 유저 업데이트
@@ -56,6 +60,9 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     /// - Returns: 성공유무
     public func updateUser(user: User) -> Single<User> {
         return repository.updateUser(user: user)
+            .do(onSuccess: { updatedUser in
+                self.userSession.update(updatedUser.toSession())
+            })
     }
     
     /// 이미지 업로드
@@ -105,20 +112,6 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
                     self.userSession.update(user.toSession())
                 }
             }
-    }
-    
-    public func syncFcmIfNeeded() -> Single<Void> {
-        let localToken = userSession.fcmToken
-        let serverToken = userSession.fcmToken
-        
-        // 1. 로컬 토큰 없음 -> 새로 발급
-        
-        // 2. 다르면 업대이트
-        
-        // 3. 같으면 아무것도 안함
-        
-        //
-        return .just(())
     }
 }
 
@@ -172,5 +165,45 @@ extension AuthUsecaseImpl {
             return repository.loginWithApple()
                 .map { SocialAuthPayload.apple(idToken: $0.0, rawNonce: $0.1) }
         }
+    }
+}
+
+extension AuthUsecaseImpl {
+    
+    // MARK: - FCM 토큰 생성(회원가입시 명시적)
+    public func generateFcmToken() -> Single<String> {
+        return repository.generateFcmToken()
+    }
+    
+    // MARK: - 로컬 값(최신) 서버 값(최신 아닐 가능성) 비교 후 서버 값 최신화
+    public func syncFcmIfNeeded() -> Single<Void> {
+        
+        // 세션이 없으면 조기리턴
+        guard let sessionUser = userSession.session else {
+            return .just(())
+        }
+        
+        // 로컬 최신 토큰 없으면 조기리턴
+        guard let localToken = fcmTokenStore.latestToken else {
+            return .just(())
+        }
+        
+        return repository.fetchUser(uid: sessionUser.userId)
+            .flatMap { serverUser -> Single<Void> in
+                let serverToken = serverUser?.fcmToken
+                
+                // 값이 같으면 아무것도 안 함
+                if serverToken == localToken {
+                    return .just(())
+                }
+                
+                // 다르면 patch
+                return self.repository.patchUser(uid: sessionUser.userId,
+                                            fields: ["fcmToken": localToken])
+                .do(onSuccess: {
+                    self.userSession.update(\.fcmToken, localToken)
+                    Logger.d("FCM 토큰 동기화 완료")
+                })
+            }
     }
 }

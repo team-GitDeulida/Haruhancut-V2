@@ -10,7 +10,7 @@ import Data
 import Domain
 import FirebaseDatabase
 
-extension SceneDelegate {
+extension AppDelegate {
     var container: DIContainer {
         DIContainer.shared
     }
@@ -21,8 +21,10 @@ extension SceneDelegate {
         let storage = UserDefaultsStorage()
         let userSession = UserSession(storage: storage, storageKey: "session.user")
         let groupSession = GroupSession(storage: storage, storageKey: "session.group")
+        let fcmTokenStore = FCMTokenStore()
         DIContainer.shared.register(UserSession.self, dependency: userSession)
         DIContainer.shared.register(GroupSession.self, dependency: groupSession)
+        DIContainer.shared.register(FCMTokenStore.self, dependency: fcmTokenStore)
         
         let kakaoLoginManager = KakaoLoginManager()
         let appleLoginManager = AppleLoginManager()
@@ -41,7 +43,8 @@ extension SceneDelegate {
         
         // usecase
         let authUseCase = AuthUsecaseImpl(authRepository: authRepository,
-                                          userSession: userSession)
+                                          userSession: userSession,
+                                          fcmTokenStore: fcmTokenStore)
         DIContainer.shared.register(AuthUsecaseProtocol.self, dependency: authUseCase)
         
         let groupUseCase = GroupUsecaseImpl(groupRepository: groupRepository,

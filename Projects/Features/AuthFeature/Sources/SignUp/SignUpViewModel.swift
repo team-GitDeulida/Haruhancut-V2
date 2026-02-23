@@ -124,7 +124,8 @@ extension SignUpViewModel {
 
                     let user = self.userBuilder.build()
 
-                    return self.generateFcmToken()
+                    return self.authUsecase.generateFcmToken()
+                        .asObservable()
                         .flatMapLatest { token -> Observable<User> in
                             var userWithToken = user
                             userWithToken.fcmToken = token
@@ -158,32 +159,3 @@ extension SignUpViewModel {
                       error: errorRelay.asSignal())
     }
 }
-
-
-
-// MARK: - Usecase Wrapper
-extension SignUpViewModel {
-    
-    // FCM 토큰 발급
-    private func generateFcmToken() -> Observable<String> {
-        return Observable.create { observer in
-            Messaging.messaging().token { token, error in
-                if let error = error {
-                    print("⚠️ FCM 토큰 발급 실패: \(error.localizedDescription)")
-                    print("⚠️ FCM 토큰을 받을 수 없는 기기라서 넘어갑니다.")
-                    observer.onNext("noFCM")
-                    observer.onCompleted()
-                } else if let token = token {
-                    observer.onNext(token)
-                    observer.onCompleted()
-                } else {
-                    observer.onError(NSError(domain: "FCMToken", code: -1,
-                                             userInfo: [NSLocalizedDescriptionKey: "토큰이 없습니다"]))
-                }
-            }
-            
-            return Disposables.create()
-        }
-    }
-}
-

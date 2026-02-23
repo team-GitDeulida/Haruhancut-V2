@@ -18,9 +18,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         
-        // AppLifeCycle
-        registerDependencies()
-        
         // 1. scene 캡처
         guard let windowScene = (scene as? UIWindowScene) else { return }
         

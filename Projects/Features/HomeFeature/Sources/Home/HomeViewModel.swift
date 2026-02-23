@@ -20,6 +20,7 @@ public final class HomeViewModel: HomeViewModelType {
     @Dependency private var groupSession: GroupSession
     
     // MARK: - Properties
+    private let authUsecase: AuthUsecaseProtocol
     private let groupUsecase: GroupUsecaseProtocol
     public var userId: String? {
         userSession.userId
@@ -54,11 +55,26 @@ public final class HomeViewModel: HomeViewModelType {
         let showCameraAlert: Signal<Void>
     }
     
-    public init(groupUsecase: GroupUsecaseProtocol) {
+    public init(groupUsecase: GroupUsecaseProtocol,
+                authUsecase: AuthUsecaseProtocol
+    ) {
         self.groupUsecase = groupUsecase
+        self.authUsecase = authUsecase
     }
     
     public func transform(input: Input) -> Output {
+        
+        /*
+        input.viewDidLoad
+            .withUnretained(self)
+            .flatMapLatest { owner, _ in
+                return owner.authUsecase.syncFcmIfNeeded()
+                    .asObservable()
+                    .catchAndReturn(()) // 에러시 무시하고 Void 방출
+            }
+            .subscribe()                // 구독 해야 실행됨
+            .disposed(by: disposeBag)   // 이 구독을 viewModel 생명주기에 묶는다(deinit시 모든 구독 자동해제)
+         */
         
         // MARK: - 그룹 세션 관찰
         let group = Observable<HCGroup>.create { observer in
