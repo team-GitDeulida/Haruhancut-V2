@@ -24,7 +24,7 @@ public protocol GroupUsecaseProtocol {
     
     // Image
     
-    func deleteImage(path: String) -> Single<Void>
+    // func deleteImage(path: String) -> Single<Void>
     
     // Comment
     // func addComment(path: String, value: Comment) -> Single<Void>
@@ -41,6 +41,7 @@ public protocol GroupUsecaseProtocol {
     func addComment(post: Post, text: String) -> Single<Void>
     func deleteComment(post: Post, commentId: String) -> Single<Void>
     func uploadImageAndUploadPost(image: UIImage) -> Observable<Void>
+    func deletePost(post: Post) -> Single<Void>
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
@@ -215,6 +216,21 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             .flatMap { _ in
                 self.loadAndFetchGroup()
                     .mapToVoid()
+            }
+    }
+    
+    public func deletePost(post: Post) -> Single<Void> {
+        guard let groupId = userSession.groupId else {
+            return .deferred { .error(DomainError.missingDomainSession) }
+        }
+        
+        let dateKey = post.createdAt.toDateKey()
+        let dbPath = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)"
+        let storagePath = "groups/\(groupId)/images/\(post.postId).jpg"
+        
+        return groupRepository.deleteImage(path: storagePath)
+            .flatMap {
+                self.groupRepository.deleteValue(path: dbPath)
             }
     }
 }

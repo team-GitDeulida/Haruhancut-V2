@@ -168,7 +168,8 @@ final class HomeViewController: UIViewController {
                                         refreshTapped: refreshTapped,
                                         imageTapped: feedVC.imageTapped,
                                         longPressed: feedVC.longPressed,
-                                        cameraButtonTapped: feedVC.cameraButtonTapped)
+                                        cameraButtonTapped: feedVC.cameraButtonTapped,
+                                        deleteConfirmed: feedVC.deleteConfirmed)
         
         let output = viewModel.transform(input: input)
         feedVC.setOutput(output)

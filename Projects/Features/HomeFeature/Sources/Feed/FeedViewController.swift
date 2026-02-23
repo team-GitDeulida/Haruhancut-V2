@@ -18,6 +18,7 @@ final class FeedViewController: UIViewController {
     private var customView = FeedView()
     private var output: HomeViewModel.Output?
     private let longPressRelay = PublishRelay<Post>()
+    private let deleteRelay = PublishRelay<Post>()
     
     init(homeViewModel: HomeViewModel) {
         self.homeViewModel = homeViewModel
@@ -58,6 +59,10 @@ final class FeedViewController: UIViewController {
     
     var longPressed: Observable<Post> {
         longPressRelay.asObservable()
+    }
+    
+    var deleteConfirmed: Observable<Post> {
+        deleteRelay.asObservable()
     }
     
     var cameraButtonTapped: Observable<Void> {
@@ -133,12 +138,13 @@ final class FeedViewController: UIViewController {
         
         // 포스트 롱프레스 알림(삭제)
         output.showLongPressedAlert
-            .emit(with: self, onNext: { owner, _ in
+            .emit(with: self, onNext: { owner, post in
                 let alert = AlertFactory.makeAlert(title: "삭제 확인",
                                        message: "이 사진을 삭제하시겠습니까?",
                                        actions: [
                                         UIAlertAction(title: "삭제", style: .destructive) { _ in
                                             print("삭제")
+                                            owner.deleteRelay.accept((post))
                                         },
                                         UIAlertAction(title: "취소", style: .cancel)
                                        ])

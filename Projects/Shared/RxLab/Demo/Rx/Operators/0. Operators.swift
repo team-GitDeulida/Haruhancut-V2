@@ -9,6 +9,55 @@ import RxSwift
 import Foundation
 
 /*
+ .withUnretained(self)
+ - 클로저 안에서 self를 안전하게 쓰기 위해 사용한다
+ 
+ .map
+ - 값 -> 값
+ 
+ .flatMap
+ button.rx.tap
+     .flatMap {
+         apiCall()
+     }
+ 
+ deleteImage()
+     .flatMap {
+         deleteValue()
+     }
+     .flatMap {
+         loadGroup()
+     }
+ 
+ 이미지 삭제 성공하면 →
+     DB 삭제 실행 →
+         DB 삭제 성공하면 →
+             그룹 재로드 실행
+ - 여러 비동기 작업을 모두 실행하고 유지하는 연산자
+ - 값 -> Observable -> 평탄화
+ - 하나의 값 -> 비동기 작업 -> 새로운 Observable
+ 
+ .flatMapLatest
+ - 새로운 이벤트가 오면 이전 작업은 무시하고 최신 것만 유지(삭제 연속 2번 눌러도 마지막 삭제만 진행)
+ 
+ guard let groupId else {
+     return .error(DomainError.missingDomainSession)
+ }
+ - Observable 안에서 에러를 반환하면 Observable<Void>를 리턴하는것
+ 
+ .materialize()
+ - 원래 Observable은 onNext, onError, onCompleted중 하나가 발생하면 스트림이 끝나지만
+ - 이 연산자는 에러를 이벤트로 바꿔준다 그래서 삭제 실패 하더라도 스트림이 끊기지 않는다
+ - 이걸 안하면 삭제 실패 후 삭제 버튼이 안먹힌다
+ 
+ .share()
+ - error = deleteResult.compactMap { $0.error }
+ - 처음 여러 번 구독할 가능성이 있는데 share 없으면 삭제 작업이 구독자 수만큼 실행됨
+ - share는 서버 요청을 1번만 실행하도록 만드는 연산자
+ 
+ */
+
+/*
  MARK: Operators (연산자)
  ─────────────────────────────────────
  연산자는 Observable이 흘려보내는 값을
