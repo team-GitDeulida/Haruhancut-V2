@@ -210,6 +210,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let storagePath = "groups/\(groupId)/images/\(post.postId).jpg"
         
         return groupRepository.deleteImage(path: storagePath)
+            .catch { _ in .just(()) }   // 스토리지 삭제 실패는 무시하고 계속 진행
             .flatMap {
                 self.groupRepository.deleteValue(path: dbPath)
             }
