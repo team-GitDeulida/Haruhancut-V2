@@ -22,6 +22,7 @@ public protocol AuthRepositoryProtocol {
     
     func updateUser(user: User) -> Single<User>
     func deleteUser(uid: String) -> Single<Void>
+    func patchUser(uid: String, fields: [String: Any]) -> Single<Void>
     
     // MARK: - Image
     func uploadImage(user: User, image: UIImage) -> Single<URL>

@@ -24,7 +24,9 @@ extension HomeFeatureBuilder: HomeFeatureBuildable {
     public func makeHome() -> HomePresentable {
         // return HomeInteractor()
         @Dependency var gropUsecase: GroupUsecaseProtocol
-        let vm = HomeViewModel(groupUsecase: gropUsecase)
+        @Dependency var authUsecase: AuthUsecaseProtocol
+        let vm = HomeViewModel(groupUsecase: gropUsecase,
+                               authUsecase: authUsecase)
         let vc = HomeViewController(viewModel: vm)
         return (vc, vm)
     }

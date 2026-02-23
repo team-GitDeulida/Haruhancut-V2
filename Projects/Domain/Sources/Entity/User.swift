@@ -95,7 +95,8 @@ public struct SessionUser: Codable, Equatable, CustomStringConvertible {
         - userId:          \(userId),
         - groupId:         \(groupId ?? "nil"),
         - nickname:        \(nickname),
-        - profileImageURL: \(profileImageURL ?? "nil")
+        - profileImageURL: \(profileImageURL ?? "nil"),
+        - fcmToken:        \(fcmToken ?? "nil")
         )
         """
     }

@@ -15,6 +15,10 @@ import FirebaseMessaging
 import KakaoSDKAuth
 import RxKakaoSDKCommon
 
+import Domain
+import Core
+
+
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     
@@ -40,9 +44,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
+        // AppLifeCycle
+        registerDependencies()
+        
+        
         // Firebase
         FirebaseConfiguration.shared.setLoggerLevel(.error)
         FirebaseApp.configure()
+        
+        // fcm(MessagingDelegate), fcm -> session save
+        Messaging.messaging().delegate = self
         
         // Kakao
         if let nativeAppKey: String = Bundle.main.infoDictionary?["KAKAO_NATIVE_APP_KEY"] as? String {
