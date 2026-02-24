@@ -75,7 +75,7 @@ final class CommentViewController: UIViewController {
                     owner.customView.chattingView.clearInput()
                     
                     // 이벤트 전송
-                    Logger.d("Notification: 이벤트 방출")
+                    Logger.d("Notification: 댓글 추가 이벤트 방출")
                     
                     // Notification
                     NotificationCenter.default.post(name: .homeCommentDidChange,
@@ -89,7 +89,12 @@ final class CommentViewController: UIViewController {
         // 삭제 결과 처리
         output.deleteResult
             .drive(with: self) { owner, success in
-                if !success {
+                if success {
+                    // 이벤트 전송
+                    Logger.d("Notification: 댓글 삭제 이벤트 방출")
+                    NotificationCenter.default.post(name: .homeCommentDidChange,
+                                                    object: nil)
+                } else {
                     // AlertManager.showError(on: owner, message: "댓글 삭제 실패")
                 }
             }

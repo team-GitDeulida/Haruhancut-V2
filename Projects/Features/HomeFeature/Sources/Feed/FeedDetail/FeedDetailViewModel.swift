@@ -32,6 +32,7 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
     public struct Input {
         let imageTapped: Observable<Void>
         let commentButtonTapped: Observable<Void>
+        let reload: Observable<Void>
     }
     
     public struct Output {
@@ -43,19 +44,6 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
         self.postRelay = BehaviorRelay(value: post)
     }
     
-    public func reloadGroup() {
-        groupUsecase.loadAndFetchGroup()
-            .withUnretained(self)
-            .map { owner, group -> Post? in
-                group.postsByDate
-                    .values
-                    .flatMap { $0 }
-                    .first { $0.postId == owner.postRelay.value.postId }
-            }
-            .compactMap { $0 }
-            .bind(to: postRelay)
-            .disposed(by: disposeBag)
-    }
 
     public func transform(input: Input) -> Output {
         
@@ -73,9 +61,27 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
             .map { $0.comments.count }
             .asDriver(onErrorJustReturn: 0)
         
+        
+        input.reload
+            .withUnretained(self)
+            .flatMapLatest { owner, _ in
+                owner.groupUsecase.loadAndFetchGroup()
+            }
+            .withUnretained(self)
+            .map { owner, group -> Post? in
+                group.postsByDate
+                    .values
+                    .flatMap { $0 }
+                    .first { $0.postId == owner.postRelay.value.postId }
+            }
+            .compactMap { $0 }
+            .bind(to: postRelay)
+            .disposed(by: disposeBag)
+        
         return Output(commentCount: commentCount)
     }
 }
+
 
 
 

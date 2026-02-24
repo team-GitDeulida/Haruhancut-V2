@@ -11,7 +11,7 @@ import Core
 import UIKit
 import HomeFeatureInterface
 
-public protocol CalendarDetailBuilable {
+public protocol CalendarDetailBuildable {
     func makeCalendarDetail(posts: [Post], selectedDate: Date) -> CalendarDetailPresentable
     func makeComment(post: Post) -> (vc: UIViewController, vm: AnyObject)
 }
@@ -20,7 +20,7 @@ public final class CalendarDetailBuilder {
     public init() {}
 }
 
-extension CalendarDetailBuilder: CalendarDetailBuilable {
+extension CalendarDetailBuilder: CalendarDetailBuildable {
 
 
     public func makeCalendarDetail(posts: [Post], selectedDate: Date) -> CalendarDetailPresentable {

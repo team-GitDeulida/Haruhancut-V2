@@ -64,10 +64,19 @@ final class CalendarDetailViewController: UIViewController {
                 return owner.viewModel.posts[index]
             }
         
+        // Notification
+        let reload = NotificationCenter.default.rx
+            .notification(.homeCommentDidChange)
+            .do(onNext: { _ in
+                Logger.d("Notification: 이벤트 받음")
+            })
+            .mapToVoid()
+        
         let input = CalendarDetailViewModel.Input(
             imageTapped: customView.collectionView.rx.modelSelected(Post.self).asObservable(),
             commentButtonTapped: commentTapped,
-            currentIndex: currentRelay.asObservable())
+            currentIndex: currentRelay.asObservable(),
+            reload: reload)
         let output = viewModel.transform(input: input)
         
         // 닫기 탭 이벤트
@@ -91,12 +100,6 @@ final class CalendarDetailViewController: UIViewController {
                 owner.customView.commentButton.setCount(count)
             }).disposed(by: disposeBag)
         
-        // Notification
-        NotificationCenter.default.rx.notification(.homeCommentDidChange)
-            .bind(with: self, onNext: { owner, _ in
-                Logger.d("Notification: 이벤트 받음")
-                owner.viewModel.reloadGroup()
-            }).disposed(by: disposeBag)
     }
 }
 

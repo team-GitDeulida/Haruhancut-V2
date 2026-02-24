@@ -30,6 +30,7 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
         let imageTapped: Observable<Post>
         let commentButtonTapped: Observable<Post>
         let currentIndex: Observable<Int>
+        let reload: Observable<Void>
     }
     public struct Output {
         let posts: Driver<[Post]>
@@ -40,16 +41,6 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
         self.groupUsecase = groupUsecase
         self.postsRelay = BehaviorRelay<[Post]>(value: posts)
         self.selectedDate = selectedDate
-    }
-    
-    public func reloadGroup() {
-        groupUsecase.loadAndFetchGroup()
-            .withUnretained(self)
-            .map { owner, group in
-                group.postsByDate[owner.selectedDate.toDateKey()] ?? []
-            }
-            .bind(to: postsRelay)
-            .disposed(by: disposeBag)
     }
     
     public func transform(input: Input) -> Output {
@@ -89,6 +80,18 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
             }
             .asDriver(onErrorJustReturn: 0)
         
+        input.reload
+            .withUnretained(self)
+            .flatMapLatest { owner, _ -> Observable<HCGroup> in
+                owner.groupUsecase.loadAndFetchGroup()
+            }
+            .withUnretained(self)
+            .map { owner, group in
+                group.postsByDate[owner.selectedDate.toDateKey()] ?? []
+            }
+            .bind(to: postsRelay)
+            .disposed(by: disposeBag)
+          
         return Output(posts: postsRelay.asDriver(),
                       commentCount: commentCount)
     }

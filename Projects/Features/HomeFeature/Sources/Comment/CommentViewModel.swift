@@ -1,5 +1,5 @@
 //
-//  CommendViewModel.swift
+//  CommentViewModel.swift
 //  HomeFeature
 //
 //  Created by 김동현 on 2/24/26.
@@ -12,7 +12,6 @@ import Domain
 
 public final class CommentViewModel {
     
-    public var onNeedRefresh: (() -> Void)?
     private let groupUsecase: GroupUsecaseProtocol
     private let postRelay: BehaviorRelay<Post>
     var currentPost: Post {
@@ -51,24 +50,24 @@ public final class CommentViewModel {
          - 최신 post 찾아서 postRelay 갱신
          - 성공 여부를 Driver<Bool>로 반환
          */
-        
+        // TODO: - reload를 usecase 내부 처리 고려
         let sendResult = input.sendTap
-            .flatMapLatest { [weak self] text -> Observable<Bool> in
-                guard let self else { return .just(false) }
-                
-                return self.groupUsecase
+            .withUnretained(self)
+            .flatMapLatest { owner, text -> Observable<Bool> in
+                return owner.groupUsecase
                     .addComment(post: self.postRelay.value, text: text)   // Single<Void>
                     .asObservable()
-                    .flatMapLatest { _ in
-                        self.groupUsecase.loadAndFetchGroup()             // Observable<HCGroup>
+                    .withUnretained(self)
+                    .flatMapLatest { owner, _ in
+                        owner.groupUsecase.loadAndFetchGroup()             // Observable<HCGroup>
                     }
-                    .map { group in
+                    .withUnretained(self)
+                    .map { owner, group in
                         if let updatedPost = group.postsByDate
                             .values
                             .flatMap({ $0 })
-                            .first(where: { $0.postId == self.postRelay.value.postId }) {
-                            
-                            self.postRelay.accept(updatedPost)
+                            .first(where: { $0.postId == owner.postRelay.value.postId }) {
+                            owner.postRelay.accept(updatedPost)
                         }
                         return true
                     }
@@ -76,38 +75,40 @@ public final class CommentViewModel {
             .asDriver(onErrorJustReturn: false)
         
         let deleteResult = input.deleteTap
-            .flatMapLatest { [weak self] commentId -> Observable<Bool>  in
-                guard let self else { return .just(false) }
+            .withUnretained(self)
+            .flatMapLatest { owner, commentId -> Observable<Bool>  in
                 // 원본 저장(롤백용)
-                let originalPost = self.postRelay.value
+                let originalPost = owner.postRelay.value
                 
                 // 1. 먼저 로컬 postRelay에서 제거
                 var updatedPost = originalPost
                 updatedPost.comments.removeValue(forKey: commentId)
-                self.postRelay.accept(updatedPost)
+                owner.postRelay.accept(updatedPost)
                 
                 // 2. 서버 삭제 요청
-                return self.groupUsecase
-                    .deleteComment(post: self.postRelay.value,
+                return owner.groupUsecase
+                    .deleteComment(post: originalPost,
                                    commentId: commentId)
                     .asObservable()
                 // 3. 최신 그룹 다시 로드
-                    .flatMapLatest { _ in
-                        self.groupUsecase.loadAndFetchGroup()
+                    .withUnretained(self)
+                    .flatMapLatest { owner, _ in
+                        owner.groupUsecase.loadAndFetchGroup()
                     }
                 // 4. 최신 post로 동기화
-                    .map { group in
+                    .withUnretained(self)
+                    .map { owner, group in
                         if let refreshedPost = group.postsByDate
                             .values
                             .flatMap({ $0 })
                             .first(where: { $0.postId == originalPost.postId }) {
-                            self.postRelay.accept(refreshedPost)
+                            owner.postRelay.accept(refreshedPost)
                         }
                         return true
                     }
                 // 5. 실패 시 롤백
                     .catch { error in
-                        self.postRelay.accept(originalPost) // 복구
+                        owner.postRelay.accept(originalPost) // 복구
                         return .just(false)
                     }
             }
