@@ -9,16 +9,18 @@ import UIKit
 import RxSwift
 import Domain
 import RxCocoa
+import Core
 
-final class FeedCommentViewController: UIViewController {
+final class CommentViewController: UIViewController {
+
     private let disposeBag = DisposeBag()
-    private let customView: FeedCommentView
-    private let feedDetailViewModel: FeedDetailViewModel
+    private let customView: CommentView
+    private let commentViewModel: CommentViewModel
     private let deleteRelay = PublishRelay<String>()
     
-    init(feedDetailViewModel: FeedDetailViewModel) {
-        self.feedDetailViewModel = feedDetailViewModel
-        self.customView = FeedCommentView(post: feedDetailViewModel.currentPost)
+    init(commentViewModel: CommentViewModel) {
+        self.customView = CommentView(post: commentViewModel.currentPost)
+        self.commentViewModel = commentViewModel
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -53,14 +55,9 @@ final class FeedCommentViewController: UIViewController {
         
         // 댓글 삭제
         let deleteTap = deleteRelay.asObservable()
-        /*
-        let deleteTap = customView.tableView.rx
-            .modelDeleted(Comment.self)
-            .map { $0.commentId }
-         */
 
-        let input = FeedDetailViewModel.Input(sendTap: sendTap, deleteTap: deleteTap)
-        let output = feedDetailViewModel.transform(input: input)
+        let input = CommentViewModel.Input(sendTap: sendTap, deleteTap: deleteTap)
+        let output = commentViewModel.transform(input: input)
         
         // 채팅 로드
         output.comments
@@ -76,6 +73,13 @@ final class FeedCommentViewController: UIViewController {
             .drive(with: self) { owner, success in
                 if success {
                     owner.customView.chattingView.clearInput()
+                    
+                    // 이벤트 전송
+                    Logger.d("Notification: 이벤트 방출")
+                    
+                    // Notification
+                    NotificationCenter.default.post(name: .homeCommentDidChange,
+                                                    object: nil)
                 } else {
                     // AlertManager.showError(on: owner, message: "댓글 작성 실패")
                 }
@@ -90,64 +94,12 @@ final class FeedCommentViewController: UIViewController {
                 }
             }
             .disposed(by: disposeBag)
-
-        
-        
-        // 댓글 작성
-        /*
-        customView.chattingView.sendButton.rx.tap
-            .map { [weak self] in
-                self?.customView.chattingView.text ?? ""
-            }
-            .filter { !$0.isEmpty }
-            .subscribe(with: self, onNext: { owner, text in
-                print("전송: \(text)")
-                owner.customView.chattingView.clearInput()
-            })
-            .disposed(by: disposeBag)
-         
-         customView.chattingView.sendButton.rx.tap
-             .map { [weak self] in
-                 self?.customView.chattingView.text ?? ""
-             }
-             .filter { !$0.isEmpty }
-             .flatMapLatest { [weak self] text -> Driver<Bool> in
-                 guard let self else { return .empty() }
-                 // return self.viewModel.addComment(text: text)
-                 return .just(true)
-             }
-             .drive(with: self) { owner, success in
-                 if success {
-                     owner.customView.chattingView.clearInput()
-                 } else {
-                     AlertManager.showError(on: owner, message: "댓글 작성 실패")
-                 }
-             }
-             .disposed(by: disposeBag)
-         */
-        
-
-        
-            
-        
-        // 댓글 삭제(swipe)
-        /*
-        customView.tableView.rx.modelSelected(CommentCell.self)
-            .flatMapLatest { [weak self] comment -> Driver<Bool> in
-                guard let self = self else { return .empty() }
-                // 뷰모델에서 삭제 로직
-                return .just(true)
-            }
-            .asDriver(onErrorJustReturn: false)
-            .drive()
-            .disposed(by: disposeBag)
-         */
         
     }
 }
 
 // MARK: - BottomSheet
-extension FeedCommentViewController {
+extension CommentViewController {
     func configureSheet() {
         modalPresentationStyle = .pageSheet
         guard let sheet = sheetPresentationController else { return }
@@ -177,7 +129,8 @@ extension FeedCommentViewController {
     }
 }
 
-extension FeedCommentViewController: UITableViewDelegate {
+// MARK: - Swipe
+extension CommentViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView,
                    trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath)
     -> UISwipeActionsConfiguration? {

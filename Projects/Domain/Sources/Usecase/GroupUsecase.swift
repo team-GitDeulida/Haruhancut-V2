@@ -140,6 +140,11 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let dateKey = post.createdAt.toDateKey()
         let path = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)/comments/\(commentId)"
         return self.groupRepository.addComment(path: path, value: newComment)
+        // MARK: - 임시
+            .flatMap { _ in
+                self.loadAndFetchGroup().first()
+            }
+            .mapToVoid()
     }
     
     /// Deletes a comment from the specified post in the current user's group.

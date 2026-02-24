@@ -19,6 +19,7 @@ public protocol HomeRouteTrigger {
     var onLogoutTapped: (() -> Void)? { get set }
     var onProfileTapped: (() -> Void)? { get set }
     var onCameraTapped: ((CameraSource) -> Void)? { get set }
+    var onCalendarImageTapped: (([Post], Date) -> Void)? { get set }
 }
 
 public typealias HomeViewModelType = ViewModelType & HomeRouteTrigger

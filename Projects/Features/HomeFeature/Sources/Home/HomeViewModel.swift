@@ -15,6 +15,7 @@ import RxCocoa
 import Core
 
 public final class HomeViewModel: HomeViewModelType {
+    
     private let disposeBag = DisposeBag()
     @Dependency private var userSession: UserSession
     @Dependency private var groupSession: GroupSession
@@ -31,6 +32,7 @@ public final class HomeViewModel: HomeViewModelType {
     public var onImageTapped: ((Post) -> Void)?
     public var onProfileTapped: (() -> Void)?
     public var onCameraTapped: ((CameraSource) -> Void)?
+    public var onCalendarImageTapped: (([Post], Date) -> Void)?
     
     public struct Input {
         let viewDidLoad: Observable<Void>
@@ -41,6 +43,8 @@ public final class HomeViewModel: HomeViewModelType {
         let longPressed: Observable<Post>
         let cameraButtonTapped: Observable<Void>
         let deleteConfirmed: Observable<Post>
+        
+        // calendarVC
     }
     
     public struct Output {
@@ -53,6 +57,9 @@ public final class HomeViewModel: HomeViewModelType {
         // feedVC
         let showLongPressedAlert: Signal<Post>
         let showCameraAlert: Signal<Void>
+        
+        // calendarVC
+        let postsByDate: Driver<[String: [Post]]>
     }
     
     public init(groupUsecase: GroupUsecaseProtocol,
@@ -63,18 +70,6 @@ public final class HomeViewModel: HomeViewModelType {
     }
     
     public func transform(input: Input) -> Output {
-        
-        /*
-        input.viewDidLoad
-            .withUnretained(self)
-            .flatMapLatest { owner, _ in
-                return owner.authUsecase.syncFcmIfNeeded()
-                    .asObservable()
-                    .catchAndReturn(()) // 에러시 무시하고 Void 방출
-            }
-            .subscribe()                // 구독 해야 실행됨
-            .disposed(by: disposeBag)   // 이 구독을 viewModel 생명주기에 묶는다(deinit시 모든 구독 자동해제)
-         */
         
         // MARK: - 그룹 세션 관찰
         let group = Observable<HCGroup>.create { observer in
@@ -91,9 +86,6 @@ public final class HomeViewModel: HomeViewModelType {
             }
         }
         .share() /// Rx는 기본적으로 Cold Observable이다 구독자가 2명 이상이면 블록이 2번이상 실행됨.. 중복방지를위함
-        
-        
-        
         
         // MARK: - Feed
         input.imageTapped
@@ -169,13 +161,19 @@ public final class HomeViewModel: HomeViewModelType {
             deleteResult.compactMap { $0.error }
         )
         
+        // MARK: - Calendar
+        let postsByDate = group
+            .map { $0.postsByDate }
+            .asDriver(onErrorDriveWith: .empty())
+        
         return Output(group: group.asDriver(onErrorDriveWith: Driver.empty()),
                       posts: posts.asDriver(onErrorDriveWith: Driver.empty()),
                       todayPosts: todayPosts,
                       didTodayUpload: didTodayUpload,
                       error: error.asSignal(onErrorSignalWith: Signal.empty()),
                       showLongPressedAlert: showLongPressedAlert,
-                      showCameraAlert: showCameraAlert)
+                      showCameraAlert: showCameraAlert,
+                      postsByDate: postsByDate)
     }
 }
 
