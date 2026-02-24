@@ -78,9 +78,9 @@ public final class HomeCoordinator: NSObject, Coordinator  {
             feedDetail.vm.onCommentTapped = { [weak self] in
                 guard let self = self else { return }
                 
-                let commentVc = builder.makeComment(post: post)
-                commentVc.modalPresentationStyle = .pageSheet
-                self.navigationController.present(commentVc, animated: true)
+                let commentVC = builder.makeComment(post: post)
+                commentVC.modalPresentationStyle = .pageSheet
+                self.navigationController.present(commentVC, animated: true)
             }
             
             // 이미지 프리뷰
@@ -103,10 +103,11 @@ public final class HomeCoordinator: NSObject, Coordinator  {
             guard let self = self else { return }
             let builder = CalendarDetailBuilder()
             var calendarDetail = builder.makeCalendarDetail(posts: posts,
-                                                              selectedDate: date)
+                                                            selectedDate: date)
             // Comment 띄우기
-            calendarDetail.vm.onCommentTapped = { post in
-               
+            calendarDetail.vm.onCommentTapped = { [weak self] post in
+                guard let self = self else { return }
+                
                 let comment = builder.makeComment(post: post)
                 comment.vc.modalPresentationStyle = .pageSheet
                 calendarDetail.vc.present(comment.vc, animated: true)
