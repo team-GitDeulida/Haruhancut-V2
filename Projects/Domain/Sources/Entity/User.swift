@@ -137,4 +137,15 @@ public extension SessionContext where Model == SessionUser {
     var profileImageURL: String? { session?.profileImageURL }
     var fcmToken: String? { session?.fcmToken }
     var hasGroup: Bool { groupId != nil }
+    func mockLogin(uid: String, hasGroup: Bool) {
+        let sessionUser = SessionUser(
+            userId: uid,
+            groupId: hasGroup ? "TEST_GROUP_ID" : nil,
+            nickname: "UITestUser",
+            profileImageURL: nil,
+            fcmToken: nil
+        )
+        
+        update(sessionUser)
+    }
 }

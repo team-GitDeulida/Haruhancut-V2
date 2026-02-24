@@ -30,6 +30,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // 5. AppCoordinator 생성
         let appCoordinator = AppCoordinator(navigationController: navigationController)
         self.appCoordinator = appCoordinator
+        self.configureForUITests()
         appCoordinator.start()
 
         // 4. navigationController로 window의 root view controller를 설정

@@ -9,11 +9,17 @@ final class AppUITests: XCTestCase {
         continueAfterFailure = false
         
         app = XCUIApplication()
+        app.launchArguments = [
+            "-UITest",
+            "-MockUID", "TEST_UID_123",
+            "-HasGroup"
+        ]
         app.launch()
     }
 
     func test_app_launch() {
         // 앱이 정상적으로 실행되는지 확인
         XCTAssertTrue(app.state == .runningForeground)
+        sleep(5)
     }
 }

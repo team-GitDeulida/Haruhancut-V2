@@ -118,9 +118,16 @@ private extension AppCoordinator {
     // MARK: - Root Flow
     // 앱 최초 실행 시 진입할 플로우를 결정한다
     func routeBySession() {
+        /*
         let isLoggedIn =
         userSession.hasSession &&
         Auth.auth().currentUser != nil
+         */
+        
+        let isUITest = ProcessInfo.processInfo.arguments.contains("-UITest")
+        let isLoggedIn =
+        userSession.hasSession &&
+        (isUITest || Auth.auth().currentUser != nil)
         
         // 1️⃣ 로그인 안 됨
         guard isLoggedIn else {
