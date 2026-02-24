@@ -165,7 +165,8 @@ final class FeedViewController: UIViewController {
                                 },
                                 UIAlertAction(title: "앨범에서 선택", style: .default) { _ in
                                     owner.homeViewModel.onCameraTapped?(.album)
-                                }
+                                },
+                                UIAlertAction(title: "취소", style: .cancel)
                                ])
                 owner.present(alert, animated: true)
             })
