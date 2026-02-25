@@ -6,11 +6,17 @@
 //
 
 import UIKit
+import RxSwift
+import FSCalendar
+import Domain
 
 final class CalendarViewController: UIViewController {
     
+    private let disposeBag = DisposeBag()
     private let homeViewModel: HomeViewModel
     private let customView = CalendarView()
+    private var output: HomeViewModel.Output?
+    private var postsByDate: [String: [Post]] = [:]
     
     // MARK: - Initializer
     init(homeViewModel: HomeViewModel) {
@@ -25,15 +31,94 @@ final class CalendarViewController: UIViewController {
     // MARK: - LifeCycle
     override func loadView() {
         self.view = customView
+        setDeleagte()
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        bindViewModel()
     }
     
     // MARK: - Bindings
+    func setOutput(_ output: HomeViewModel.Output) {
+        self.output = output
+        bindViewModel()
+    }
+    
+    private func setDeleagte() {
+        customView.calendarView.delegate = self
+        customView.calendarView.dataSource = self
+    }
+    
     private func bindViewModel() {
+        guard let output else { return }
         
+        // 새로운 그룹 정보를 방출할 때 마다 새로고침
+        output.group
+            .asDriver()
+            .drive(with: self, onNext: { owner, _ in
+                owner.customView.calendarView.reloadData()
+            })
+            .disposed(by: disposeBag)
+        
+        // 데이터 바인딩
+        output.postsByDate
+            .drive(with: self, onNext: { owner, map in
+                owner.postsByDate = map
+                owner.customView.calendarView.reloadData()
+            })
+            .disposed(by: disposeBag)
     }
 }
+
+// 행동(이벤트)을 처리하는 역할
+extension CalendarViewController: FSCalendarDelegate {
+    // 달력 뷰 높이 등 크기 변화 감지(UI 동적 레이아웃 맞출 때 활용)
+    func calendar(_ calendar: FSCalendar, boundingRectWillChange bounds: CGRect, animated: Bool) {
+        customView.calendarViewHeightConstraint.constant = bounds.height
+        view.layoutIfNeeded()
+    }
+    
+    // 셀 터치 감지
+    func calendar(_ calendar: FSCalendar, didSelect date: Date, at monthPosition: FSCalendarMonthPosition) {
+        // 현재 월이 아니면 return
+        guard monthPosition == .current else { return }
+        let dateString = date.toDateKey()
+        
+        // 터치한 날짜에 게시글이 없으면 조기 리턴
+        guard let posts = postsByDate[dateString],
+              !posts.isEmpty else { return }
+        
+        // print("게시글 존재하는 셀 클릭됨: \(posts)")
+        homeViewModel.onCalendarImageTapped?(posts, date)
+    }
+}
+
+// 데이터를 제공하는 역할
+extension CalendarViewController: FSCalendarDataSource {
+    // 커스텀 셀 이미지 표시
+    func calendar(_ calendar: FSCalendar, cellFor date: Date, at position: FSCalendarMonthPosition) -> FSCalendarCell {
+        let cell = calendar.dequeueReusableCell(withIdentifier: CalendarCell.reuseIdentifier,
+                                                for: date,
+                                                at: position) as! CalendarCell
+        
+        // 오늘 날짜인지 비교해서 전달
+        let calendar = Calendar.current
+        cell.isToday = calendar.isDateInToday(date)
+        cell.isCurrentMonth = (position == .current)
+        
+        // 날짜 -> String(key) 변환
+        let dateString = date.toDateKey()
+
+        if position == .current,
+           let posts = postsByDate[dateString],
+           let first = posts.first {
+            // 해당 날짜에 이미지가 있다면첫 이미지만 표시
+            cell.setImage(url: first.imageURL)
+        } else {
+            cell.setGrayBox()
+        }
+        return cell
+    }
+}
+
+

@@ -8,7 +8,7 @@ import UIKit
 import Domain
 import DSKit
 
-public final class FeedCommentView: UIView {
+public final class CommentView: UIView {
     
     let post: Post
     

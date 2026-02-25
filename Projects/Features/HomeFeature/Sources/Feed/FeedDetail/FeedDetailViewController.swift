@@ -54,9 +54,18 @@ final class FeedDetailViewController: UIViewController, PopableViewController {
     // MARK: - Bindings
     private func bindViewModel() {
         
+        // Notification
+        let reload = NotificationCenter.default.rx
+            .notification(.homeCommentDidChange)
+            .do(onNext: { _ in
+                Logger.d("Notification: 이벤트 받음")
+            })
+            .mapToVoid()
 
-        let input = FeedDetailViewModel.DetailInput(imageTapped: customView.imageView.rx.tap.asObservable(),
-                                                    commentButtonTapped: customView.commentButton.rx.tap.asObservable())
+        let input = FeedDetailViewModel.Input(
+            imageTapped: customView.imageView.rx.tap.asObservable(),
+            commentButtonTapped: customView.commentButton.rx.tap.asObservable(),
+            reload: reload)
         let output = viewModel.transform(input: input)
         
         // 게시물 업데이트 감지 후 댓글 수 반영을 한다

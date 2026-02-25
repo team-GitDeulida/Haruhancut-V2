@@ -13,7 +13,7 @@ import Core
 
 public protocol FeedDetailBuildable {
     func makeFeed(post: Post) -> FeedDetailPresentable
-    func makeComment(vm: FeedDetailViewModel) -> UIViewController
+    func makeComment(post: Post) -> UIViewController
 }
 
 public final class FeedDetailBuilder {
@@ -28,8 +28,10 @@ extension FeedDetailBuilder: FeedDetailBuildable {
         return (vc, vm)
     }
     
-    public func makeComment(vm: FeedDetailViewModel) -> UIViewController {
-        let vc = FeedCommentViewController(feedDetailViewModel: vm)
+    public func makeComment(post: Post) -> UIViewController {
+        @Dependency var groupUsecase: GroupUsecaseProtocol
+        let vm = CommentViewModel(groupUsecase: groupUsecase, post: post)
+        let vc = CommentViewController(commentViewModel: vm)
         return vc
     }
 }
