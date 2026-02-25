@@ -93,30 +93,37 @@ extension CalendarViewController: FSCalendarDelegate {
     }
 }
 
-// 데이터를 제공하는 역할
+// 데이터를 제공하는 역할 (FSCalendar에 셀 구성 데이터 전달)
 extension CalendarViewController: FSCalendarDataSource {
-    // 커스텀 셀 이미지 표시
+    // 각 날짜에 해당하는 셀을 생성하고 구성
     func calendar(_ calendar: FSCalendar, cellFor date: Date, at position: FSCalendarMonthPosition) -> FSCalendarCell {
+        
+        // 재사용 큐에서 커스텀 CalendarCell 가져오기
         let cell = calendar.dequeueReusableCell(withIdentifier: CalendarCell.reuseIdentifier,
                                                 for: date,
                                                 at: position) as! CalendarCell
         
-        // 오늘 날짜인지 비교해서 전달
-        let calendar = Calendar.current
-        cell.isToday = calendar.isDateInToday(date)
-        cell.isCurrentMonth = (position == .current)
-        
         // 날짜 -> String(key) 변환
         let dateString = date.toDateKey()
+        
+        // 셀에 표시할 이미지 URL (없으면 nil → 회색 박스 처리)
+        let imageURL: String?
 
+        // // 현재 월이면서 해당 날짜에 게시글이 존재하는 경우
         if position == .current,
            let posts = postsByDate[dateString],
            let first = posts.first {
-            // 해당 날짜에 이미지가 있다면첫 이미지만 표시
-            cell.setImage(url: first.imageURL)
+            // // 첫 번째 게시글의 이미지 URL을 사용
+            imageURL = first.imageURL
         } else {
-            cell.setGrayBox()
+            // 게시글이 없거나 현재 월이 아닌 경우 이미지 없음
+            imageURL = nil
         }
+        
+        // 날짜, 현재월 여부, 이미지 정보를 기반으로 셀 UI 구성
+        cell.configure(date: date,
+                       isCurrentMonth: position == .current,
+                       imageURL: imageURL)
         return cell
     }
 }

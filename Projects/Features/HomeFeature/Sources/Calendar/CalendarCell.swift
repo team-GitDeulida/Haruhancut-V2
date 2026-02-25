@@ -10,9 +10,10 @@ import FSCalendar
 
 final class CalendarCell: FSCalendarCell {
     
-    var isToday: Bool = false
-    var isCurrentMonth: Bool = false
+    // 현재 월 여부를 selection 처리 시 사용하기 위한 내부 플래그
+    private var currentMonthFlag: Bool = false
     
+    // 날짜에 표시될 이미지 뷰
     private let cellImageView: UIImageView = {
         let view = UIImageView()
         view.contentMode = .scaleAspectFill
@@ -20,6 +21,7 @@ final class CalendarCell: FSCalendarCell {
         return view
     }()
     
+    // 선택 시 반투명 오버레이를 표시하기 위한 뷰
     private let selectedOverlay: UIView = {
         let view = UIView()
         view.backgroundColor = .clear
@@ -27,21 +29,24 @@ final class CalendarCell: FSCalendarCell {
         return view
     }()
 
+    // 셀 생성 시 UI 초기 세팅
     override init!(frame: CGRect) {
         super.init(frame: frame)
-        makeUI()
-        layoutSubviews()
+        setupUI()
     }
 
+    // 스토리보드 미사용으로 fatal 처리
     required init!(coder: NSCoder!) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private func makeUI() {
+    // 서브뷰를 contentView에 추가
+    private func setupUI() {
         contentView.insertSubview(cellImageView, at: 0)
         contentView.insertSubview(selectedOverlay, aboveSubview: cellImageView)
     }
 
+    // 셀 내부 레이아웃 계산 및 중앙 정렬 처리
     override func layoutSubviews() {
         super.layoutSubviews()
         // 1. cellImageView와 selectedOverlay 똑같이 배치 (정중앙 정사각형)
@@ -66,43 +71,88 @@ final class CalendarCell: FSCalendarCell {
             width: labelSize.width,
             height: labelSize.height
         )
-    
-        // 3. 현재월 && 선택시 오버레이만 반투명 하늘색, 아니면 투명
-        selectedOverlay.backgroundColor = isSelected && isCurrentMonth
-            ? UIColor.hcColor.withAlphaComponent(0.4)
-            : .clear
+    }
 
-        // titleLabel.font = .hcFont(.bold, size: 15.scaled)
+    /*
+    // 기본 UIImage를 직접 설정
+    func setImage(image: UIImage?) {
+        self.cellImageView.image = image
+    }
+    
+    // URL 기반 이미지 로드 (Kingfisher 사용)
+    func setImage(url: String) {
+        guard let url = URL(string: url) else { return }
+        cellImageView.kf.setImage(with: url)
+    }
+     */
+    
+    /*
+    // 이미지가 없을 때 기본 회색 박스 표시
+    func setGrayBox() {
+        cellImageView.image = nil
+        cellImageView.backgroundColor = .gray500
+    }
+    
+    // 다크 회색 박스 표시 (현재는 동일 색상)
+    func setDarkGrayBox() {
+        cellImageView.image = nil
+        cellImageView.backgroundColor = .gray500
+    }
+     */
+    
+    // 날짜, 현재월 여부, 이미지 정보를 기반으로 셀 UI 구성
+    public func configure(date: Date, isCurrentMonth: Bool, imageURL: String?) {
+        let calendar = Calendar.current
+        let isToday = calendar.isDateInToday(date)
+        currentMonthFlag = isCurrentMonth
         
-        // 4. 오늘 && 현재월이면 테두리 Stroke 추가
+        // 이미지 초기화
+        cellImageView.kf.cancelDownloadTask()
+        cellImageView.image = nil
+        cellImageView.backgroundColor = .clear
+        
+        // 이미지 세팅
+        if let imageURL, let url = URL(string: imageURL) {
+            cellImageView.kf.setImage(with: url)
+        } else {
+            cellImageView.backgroundColor = .gray500
+        }
+        
+        // 오늘 테두리 표시
         if isToday && isCurrentMonth {
             cellImageView.layer.borderWidth = 3
             cellImageView.layer.borderColor = UIColor.hcColor.cgColor
         } else {
             cellImageView.layer.borderWidth = 0
         }
-    }
-
-    /// 기본 이미지 설정 방식
-    func setImage(image: UIImage?) {
-        self.cellImageView.image = image
+        
+        // 셀 재사용으로 데이터 변경 시 호출
+        updateSelectionUI()
     }
     
-    /// kingfisher 이미지 설정 방식
-    func setImage(url: String) {
-        guard let url = URL(string: url) else { return }
-        cellImageView.kf.setImage(with: url)
+    // selection 상태 변경 시 오버레이 UI 업데이트
+    override var isSelected: Bool {
+        didSet {
+            updateSelectionUI()
+        }
     }
     
-    /// 기본 이미지
-    func setGrayBox() {
+    // 현재월 && 선택 상태일 때만 반투명 오버레이 적용
+    private func updateSelectionUI() {
+        // 현재월 && 선택시 오버레이만 반투명 하늘색, 아니면 투명
+        selectedOverlay.backgroundColor = isSelected && currentMonthFlag
+            ? UIColor.hcColor.withAlphaComponent(0.4)
+            : .clear
+    }
+    
+    // 셀 재사용 전 이전 상태 초기화
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        cellImageView.kf.cancelDownloadTask()
         cellImageView.image = nil
-        cellImageView.backgroundColor = .gray500
-    }
-    
-    /// 기본 이미지
-    func setDarkGrayBox() {
-        cellImageView.image = nil
-        cellImageView.backgroundColor = .gray500
+        cellImageView.backgroundColor = .clear
+        cellImageView.layer.borderWidth = 0
+        selectedOverlay.backgroundColor = .clear
+        currentMonthFlag = false
     }
 }
