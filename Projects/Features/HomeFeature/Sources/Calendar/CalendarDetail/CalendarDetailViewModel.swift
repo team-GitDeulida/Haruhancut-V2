@@ -21,6 +21,7 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
     private let disposeBag = DisposeBag()
     private let groupUsecase: GroupUsecaseProtocol
     private let postsRelay: BehaviorRelay<[Post]>
+    
     let selectedDate: Date
     public var posts: [Post] {
         postsRelay.value
@@ -62,7 +63,7 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
          - (index, posts)
          
          combineLatest는 A나 B둘중 하나라도 바뀌면 실행됨
-         combineLatest은 A가 바뀔 때만 실행됨
+         withLatestFrom은 A가 바뀔 때만 실행됨
          */
         /*
         let commentCount = input.currentIndex
@@ -84,6 +85,7 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
             .withUnretained(self)
             .flatMapLatest { owner, _ -> Observable<HCGroup> in
                 owner.groupUsecase.loadAndFetchGroup()
+                    .catch { _ in .empty() } // 추후에 에러 상세 처리 예정
             }
             .withUnretained(self)
             .map { owner, group in

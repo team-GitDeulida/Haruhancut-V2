@@ -66,6 +66,7 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
             .withUnretained(self)
             .flatMapLatest { owner, _ in
                 owner.groupUsecase.loadAndFetchGroup()
+                    .catch { _ in .empty() }
             }
             .withUnretained(self)
             .map { owner, group -> Post? in

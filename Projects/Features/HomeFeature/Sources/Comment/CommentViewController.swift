@@ -129,8 +129,6 @@ extension CommentViewController {
         
         /// 시트의 상단 모서리를 24pt 둥글게
         sheet.preferredCornerRadius = 24
-        
-        modalPresentationStyle = .pageSheet
     }
 }
 
