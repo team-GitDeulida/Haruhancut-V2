@@ -173,6 +173,7 @@ final class HomeViewController: UIViewController {
         
         let output = viewModel.transform(input: input)
         feedVC.setOutput(output)
+        calendarVC.setOutput(output)
     }
 }
 

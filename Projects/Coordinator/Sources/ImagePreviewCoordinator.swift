@@ -12,20 +12,20 @@ public final class ImagePreviewCoordinator: Coordinator {
     public var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
     
-    private let navigationController: UINavigationController
+    private weak var presentingViewController: UIViewController?
     private let imageURL: String
     
     public init(
-        navigationController: UINavigationController,
+        presentingViewController: UIViewController,
         imageURL: String
     ) {
-        self.navigationController = navigationController
+        self.presentingViewController = presentingViewController
         self.imageURL = imageURL
     }
     
     public func start() {
         let previewVC = ImagePreViewController(imageURL: imageURL) // 어떻게하지
         previewVC.modalPresentationStyle = .fullScreen
-        navigationController.present(previewVC, animated: true)
+        presentingViewController?.present(previewVC, animated: true)
     }
 }

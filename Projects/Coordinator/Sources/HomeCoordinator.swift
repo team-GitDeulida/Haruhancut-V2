@@ -10,6 +10,7 @@ import HomeFeature
 import HomeFeatureInterface
 import UIKit
 import ImageFeature
+import Core
 
 public final class HomeCoordinator: NSObject, Coordinator  {
     
@@ -66,36 +67,68 @@ public final class HomeCoordinator: NSObject, Coordinator  {
             }
         }
         
+        // MARK: - Feed
         // FeedDetail은 홈의 자식으로 간주하였음(poppable)
         home.vm.onImageTapped = { [weak self] post in
             guard let self = self else { return }
             let builder = FeedDetailBuilder()
             var feedDetail = builder.makeFeed(post: post)
             
-            // FeedComment 띄우기
+            // Comment 띄우기
             feedDetail.vm.onCommentTapped = { [weak self] in
                 guard let self = self else { return }
-                guard let vm = feedDetail.vm as? FeedDetailViewModel else { return }
                 
-                let commentVc = builder.makeComment(vm: vm)
-                commentVc.modalPresentationStyle = .pageSheet
-                self.navigationController.present(commentVc, animated: true)
+                let commentVC = builder.makeComment(post: post)
+                commentVC.modalPresentationStyle = .pageSheet
+                self.navigationController.present(commentVC, animated: true)
             }
             
+            // 이미지 프리뷰
             feedDetail.vm.onImagePreviewTapped = { [weak self] imageURL in
                 guard let self = self else { return }
                 
                 let previewCoordinator = ImagePreviewCoordinator(
-                    navigationController: self.navigationController,
+                    presentingViewController: self.navigationController,
                     imageURL: imageURL)
                 
                 previewCoordinator.parentCoordinator = self
-                self.childCoordinators.append(previewCoordinator)
                 previewCoordinator.start()
             }
             
             self.navigationController.pushViewController(feedDetail.vc, animated: true)
         }
+        
+        // MARK: - Calendar
+        home.vm.onCalendarImageTapped = { [weak self] posts, date in
+            guard let self = self else { return }
+            let builder = CalendarDetailBuilder()
+            var calendarDetail = builder.makeCalendarDetail(posts: posts,
+                                                            selectedDate: date)
+            // Comment 띄우기
+            calendarDetail.vm.onCommentTapped = { [weak self] post in
+                guard let self = self else { return }
+                
+                let comment = builder.makeComment(post: post)
+                comment.vc.modalPresentationStyle = .pageSheet
+                calendarDetail.vc.present(comment.vc, animated: true)
+            }
+            
+            // CalendarDetail 프리뷰
+            calendarDetail.vm.onImagePreviewTapped = { [weak self] imageURL in
+                guard let self = self else { return }
+                
+                let previewCoordinator = ImagePreviewCoordinator(
+                    presentingViewController: calendarDetail.vc,
+                    imageURL: imageURL)
+                
+                previewCoordinator.parentCoordinator = self
+                previewCoordinator.start()
+            }
+            
+            calendarDetail.vc.modalPresentationStyle = .fullScreen
+            self.navigationController.present(calendarDetail.vc, animated: true)
+        }
+        
         // 홈은 루트 플로우 → 스택 교체
         navigationController.setViewControllers([home.vc], animated: true)
     }
