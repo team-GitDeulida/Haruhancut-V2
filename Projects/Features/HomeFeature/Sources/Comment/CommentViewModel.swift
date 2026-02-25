@@ -14,7 +14,7 @@ public final class CommentViewModel {
     
     private let groupUsecase: GroupUsecaseProtocol
     private let postRelay: BehaviorRelay<Post>
-    var currentPost: Post {
+    public var currentPost: Post {
         postRelay.value
     }
     

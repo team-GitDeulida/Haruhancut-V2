@@ -74,12 +74,9 @@ final class CommentViewController: UIViewController {
                 if success {
                     owner.customView.chattingView.clearInput()
                     
-                    // 이벤트 전송
-                    Logger.d("Notification: 댓글 추가 이벤트 방출")
-                    
                     // Notification
-                    NotificationCenter.default.post(name: .homeCommentDidChange,
-                                                    object: nil)
+                    Logger.d("Notification: 댓글 추가 이벤트 방출")
+                    owner.sendNoti(action: .add)
                 } else {
                     // AlertManager.showError(on: owner, message: "댓글 작성 실패")
                 }
@@ -90,10 +87,9 @@ final class CommentViewController: UIViewController {
         output.deleteResult
             .drive(with: self) { owner, success in
                 if success {
-                    // 이벤트 전송
+                    // Notification
                     Logger.d("Notification: 댓글 삭제 이벤트 방출")
-                    NotificationCenter.default.post(name: .homeCommentDidChange,
-                                                    object: nil)
+                    owner.sendNoti(action: .delete)
                 } else {
                     // AlertManager.showError(on: owner, message: "댓글 삭제 실패")
                 }
