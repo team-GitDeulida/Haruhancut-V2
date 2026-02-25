@@ -53,7 +53,7 @@ public final class CommentViewModel {
         // TODO: - reload를 usecase 내부 처리 고려
         let sendResult = input.sendTap
             .withUnretained(self)
-            .flatMapLatest { owner, text -> Observable<Bool> in
+            .concatMap { owner, text -> Observable<Bool> in
                 return owner.groupUsecase
                     .addComment(post: self.postRelay.value, text: text)   // Single<Void>
                     .asObservable()
@@ -76,7 +76,7 @@ public final class CommentViewModel {
         
         let deleteResult = input.deleteTap
             .withUnretained(self)
-            .flatMapLatest { owner, commentId -> Observable<Bool>  in
+            .concatMap { owner, commentId -> Observable<Bool>  in
                 // 원본 저장(롤백용)
                 let originalPost = owner.postRelay.value
                 
