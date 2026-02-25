@@ -94,6 +94,7 @@ public final class CommentViewModel {
                     .withUnretained(self)
                     .flatMapLatest { owner, _ in
                         owner.groupUsecase.loadAndFetchGroup()
+                            .takeLast(1) // 삭제 시에는 서버 값만 받아오겠다
                     }
                 // 4. 최신 post로 동기화
                     .withUnretained(self)
