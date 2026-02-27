@@ -29,6 +29,8 @@ public final class HomeViewModel: HomeViewModelType {
     public var userId: String? {
         userSession.userId
     }
+    
+    private var groupSessionObserverID: UUID?
 
     // MARK: - Coordinator Trigger
     public var onLogoutTapped: (() -> Void)?
@@ -66,15 +68,22 @@ public final class HomeViewModel: HomeViewModelType {
         self.groupUsecase = groupUsecase
         self.authUsecase = authUsecase
 
+
         // 초기 세션 값 즉시 반영 (빠른 로딩)
         if let session = groupSession.entity {
             groupRelay.accept(session)
         }
 
         // 세션 변경 감지 → relay 동기화
-        _ = groupSession.bind { [weak self] session in
+        groupSessionObserverID = groupSession.bind { [weak self] session in
             guard let session else { return }
             self?.groupRelay.accept(session.toEntity())
+        }
+    }
+    
+    deinit {
+        if let id = groupSessionObserverID {
+            groupSession.removeObserver(id)
         }
     }
 
@@ -169,6 +178,46 @@ public final class HomeViewModel: HomeViewModelType {
         )
     }
 }
+
+/*
+ // 학습 후 사용 예정
+ groupSession.nonNilObservable
+         .map { $0.toEntity() }
+         .bind(to: groupRelay)
+         .disposed(by: disposeBag)
+ */
+public extension SessionContext {
+
+    var observable: Observable<Model?> {
+        Observable.create { [weak self] observer in
+            guard let self else {
+                observer.onCompleted()
+                return Disposables.create()
+            }
+
+            // 현재 값 즉시 방출 + 이후 변경 감지
+            let id = self.bind { model in
+                observer.onNext(model)
+            }
+
+            return Disposables.create {
+                self.removeObserver(id)
+            }
+        }
+        .share(replay: 1, scope: .whileConnected)
+    }
+
+    var nonNilObservable: Observable<Model> {
+        observable.compactMap { $0 }
+    }
+}
+
+
+
+
+
+
+
 
 
 

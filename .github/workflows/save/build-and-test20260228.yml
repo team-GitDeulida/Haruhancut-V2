@@ -121,15 +121,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: derived-data
-          path: DerivedData/Build/Products
-
-      - name: Upload Workspace
-        uses: actions/upload-artifact@v4
-        with:
-          name: workspace
-          path: |
-            Haruhancut.xcworkspace
-            **/*.xcodeproj
+          path: DerivedData
 
   # =====================================================
   # 2️. Matrix Test
@@ -161,12 +153,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: derived-data
-          path: DerivedData/Build
+          path: DerivedData
 
-      - name: Download Workspace
-        uses: actions/download-artifact@v4
-        with:
-          name: workspace
+      - name: Install Tuist
+        run: |
+          brew tap tuist/tuist
+          brew install tuist@4.115.0
+
+      - name: Generate
+        run: |
+          tuist install
+          tuist generate --no-open
 
       # ✅ 동일 UUID resolve
       - name: Resolve Simulator UUID
