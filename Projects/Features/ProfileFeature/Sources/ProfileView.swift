@@ -10,7 +10,6 @@ import DSKit
 import Kingfisher
 
 public final class ProfileView: UIView {
-    var nickname: String
     
     // MARK: - UI Component
     public lazy var profileImageView: ProfileImageView = {
@@ -19,7 +18,7 @@ public final class ProfileView: UIView {
     }()
     
     public lazy var nicknameLabel: HCLabel = {
-        let label = HCLabel(type: .main(text: nickname))
+        let label = HCLabel(type: .main(text: ""))
         return label
     }()
     
@@ -58,8 +57,7 @@ public final class ProfileView: UIView {
         return cv
     }()
     
-    public init(nickname: String) {
-        self.nickname = nickname
+    public init() {
         super.init(frame: .zero)
         setupUI()
         setupConstraints()

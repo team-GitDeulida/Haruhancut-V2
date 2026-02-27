@@ -29,7 +29,7 @@ final class ProfileViewController: UIViewController, PopableViewController {
     )
     
     init(viewModel: ProfileViewModel) {
-        self.customView = ProfileView(nickname: "")
+        self.customView = ProfileView()
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
@@ -101,6 +101,12 @@ final class ProfileViewController: UIViewController, PopableViewController {
                       let url = URL(string: urlString) else { return }
                 owner.customView.profileImageView.setImage(with: url)
             })
+            .disposed(by: disposeBag)
+        
+        // MARK: - 프로필 닉네임
+        output.user
+            .map(\.nickname)
+            .drive(customView.nicknameLabel.rx.text)
             .disposed(by: disposeBag)
         
         // MARK: - 프로필 컬렉션 셀

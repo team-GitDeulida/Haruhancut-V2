@@ -13,11 +13,12 @@ import UIKit
 //    func configure(with model: Model)
 //}
 
-class BasicCell<Model>: UICollectionViewCell {
+/*
+public class BasicCell<Model>: UICollectionViewCell {
     
     // var disposeBag = DisposeBag()
     
-    func configure(with model: Model) {
+    public func configure(with model: Model) {
         fatalError("Override me")
     }
     
@@ -28,3 +29,4 @@ class BasicCell<Model>: UICollectionViewCell {
     }
      */
 }
+*/

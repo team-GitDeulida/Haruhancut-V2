@@ -50,7 +50,6 @@ final class ProfileViewModel: ProfileViewModelType {
         // 그룹
         let initialGroup = groupUsecase
             .loadAndFetchGroup()
-            .do(onNext: { print("group 방출됨:", $0) })
         
         let reloadGroup = input.reload
             .flatMapLatest { [weak self] _ -> Observable<HCGroup> in
