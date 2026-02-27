@@ -61,9 +61,6 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     /// - Returns: 성공유무
     public func updateUser(user: User) -> Single<User> {
         return repository.updateUser(user: user)
-            .do(onSuccess: { updatedUser in
-                self.userSession.update(updatedUser)
-            })
     }
     
     /// 이미지 업로드
@@ -133,24 +130,27 @@ extension AuthUsecaseImpl {
 extension AuthUsecaseImpl {
     public func signUp(user: User, profileImage: UIImage?) -> Single<Void> {
         repository.registerUserToRealtimeDatabase(user: user)
-            .flatMap { registeredUser in
+            .flatMap { registeredUser -> Single<User> in
+                
+                // 이미지가 없는 경우
                 guard let image = profileImage else {
                     // 이미지가 없다면 바로 성공(Void) 반환
-                    return .just(())
+                    return .just(registeredUser)
                 }
 
+                // 이미지가 있는 경우
                 return self.uploadImage(user: registeredUser, image: image)
                     .flatMap { url in
                         var updated = registeredUser
                         updated.profileImageURL = url.absoluteString
                         return self.updateUser(user: updated)
-                            .mapToVoid()
                     }
-                    .do(onSuccess: {
-                        // groupId = nil
-                        self.userSession.update(user)
-                    })
             }
+            .do(onSuccess: { savedUser in
+                // 최종 유저를 세션에 저장
+                self.userSession.update(savedUser)
+            })
+            .mapToVoid()
     }
     
     public func signIn(platform: User.LoginPlatform) -> Single<SignInResult> {

@@ -58,6 +58,7 @@ public final class ProfileCoordinator: Coordinator {
                     imageURL: imageURL)
                 
                 previewCoordinator.parentCoordinator = self
+                self.childCoordinators.append(previewCoordinator)
                 previewCoordinator.start()
             }
         }

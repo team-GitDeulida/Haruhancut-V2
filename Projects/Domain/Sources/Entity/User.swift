@@ -85,7 +85,7 @@ extension User: CustomStringConvertible {
         ├─ loginPlatform:    \(loginPlatform.rawValue)
         ├─ nickname:         \(nickname)
         ├─ profileImageURL:  \(profileImageURL ?? "nil")
-        ├─ fcmToken:         \(fcmToken ?? "nil")
+        ├─ fcmToken:         \(fcmToken.map { "\($0.prefix(6))***" } ?? "nil")
         ├─ birthdayDate:     \(birthdayDate.toDateKey())
         ├─ gender:           \(gender.rawValue)
         ├─ isPushEnabled:    \(isPushEnabled)

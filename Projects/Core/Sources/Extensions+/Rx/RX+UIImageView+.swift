@@ -21,6 +21,9 @@ public extension UIImageView {
                   placeholder: UIImage? = nil,
                   forceRefresh: Bool = false
     ) {
+        
+        self.kf.cancelDownloadTask()
+        
         guard let url else {
             self.image = placeholder
             return
@@ -33,6 +36,7 @@ public extension UIImageView {
             placeholder: placeholder,
             options: options
         )
+        
     }
 }
 
