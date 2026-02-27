@@ -55,7 +55,7 @@ public final class CommentViewModel {
             .withUnretained(self)
             .concatMap { owner, text -> Observable<Bool> in
                 return owner.groupUsecase
-                    .addComment(post: self.postRelay.value, text: text)   // Single<Void>
+                    .addComment(post: owner.postRelay.value, text: text)   // Single<Void>
                     .asObservable()
                     .withUnretained(self)
                     .flatMapLatest { owner, _ in

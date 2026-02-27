@@ -45,6 +45,7 @@ public extension Date {
     }
 }
 
+/*
 public extension Date {
 
     private static let dateKeyFormatter: DateFormatter = {
@@ -59,3 +60,4 @@ public extension Date {
         return dateKeyFormatter.date(from: key)
     }
 }
+*/
