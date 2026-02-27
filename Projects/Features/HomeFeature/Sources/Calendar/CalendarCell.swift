@@ -10,6 +10,8 @@ import FSCalendar
 
 final class CalendarCell: FSCalendarCell {
     
+    private var currentImageURL: String?
+    
     // 현재 월 여부를 selection 처리 시 사용하기 위한 내부 플래그
     private var currentMonthFlag: Bool = false
     
@@ -101,20 +103,25 @@ final class CalendarCell: FSCalendarCell {
      */
     
     // 날짜, 현재월 여부, 이미지 정보를 기반으로 셀 UI 구성
+    /*
     public func configure(date: Date, isCurrentMonth: Bool, imageURL: String?) {
         let calendar = Calendar.current
         let isToday = calendar.isDateInToday(date)
         currentMonthFlag = isCurrentMonth
         
-        // 이미지 초기화
-        cellImageView.kf.cancelDownloadTask()
-        cellImageView.image = nil
-        cellImageView.backgroundColor = .clear
-        
         // 이미지 세팅
         if let imageURL, let url = URL(string: imageURL) {
-            cellImageView.kf.setImage(with: url)
+            cellImageView.kf.setImage(
+                with: url,
+                options: [
+                    .backgroundDecode,      // 디코딩 백그라운드 스레드
+                    .cacheOriginalImage,    // 원본 이미지 캐시 저장
+                    .transition(.fade(0.15))// 이미지 교체 페이드 애니메이션
+                ]
+            )
+            cellImageView.backgroundColor = .clear
         } else {
+            cellImageView.image = nil
             cellImageView.backgroundColor = .gray500
         }
         
@@ -127,6 +134,53 @@ final class CalendarCell: FSCalendarCell {
         }
         
         // 셀 재사용으로 데이터 변경 시 호출
+        updateSelectionUI()
+    }
+     */
+    
+    public func configure(date: Date, isCurrentMonth: Bool, imageURL: String?) {
+        let calendar = Calendar.current
+        let isToday = calendar.isDateInToday(date)
+        currentMonthFlag = isCurrentMonth
+
+        // 🔥 1️⃣ 이미지 처리
+        if let imageURL,
+           let url = URL(string: imageURL) {
+            
+            // 같은 URL이면 다시 로딩하지 않음
+            if currentImageURL != imageURL {
+                currentImageURL = imageURL
+                
+                cellImageView.kf.setImage(
+                    with: url,
+                    placeholder: cellImageView.image,
+                    options: [
+                        .backgroundDecode,
+                        .cacheOriginalImage
+                    ]
+                )
+            }
+            
+            // 이미지가 있는 날은 배경 투명
+            cellImageView.backgroundColor = .clear
+            
+        } else {
+            // 🔥 이미지 없는 날짜 처리 (항상 실행)
+            currentImageURL = nil
+            cellImageView.kf.cancelDownloadTask()
+            cellImageView.image = nil
+            cellImageView.backgroundColor = .gray500
+        }
+
+        // 🔥 2️⃣ 오늘 테두리 처리
+        if isToday && isCurrentMonth {
+            cellImageView.layer.borderWidth = 3
+            cellImageView.layer.borderColor = UIColor.hcColor.cgColor
+        } else {
+            cellImageView.layer.borderWidth = 0
+        }
+
+        // 🔥 3️⃣ 선택 상태 업데이트
         updateSelectionUI()
     }
     
@@ -148,11 +202,13 @@ final class CalendarCell: FSCalendarCell {
     // 셀 재사용 전 이전 상태 초기화
     override func prepareForReuse() {
         super.prepareForReuse()
+        
         cellImageView.kf.cancelDownloadTask()
         cellImageView.image = nil
         cellImageView.backgroundColor = .clear
         cellImageView.layer.borderWidth = 0
         selectedOverlay.backgroundColor = .clear
         currentMonthFlag = false
+        currentImageURL = nil
     }
 }
