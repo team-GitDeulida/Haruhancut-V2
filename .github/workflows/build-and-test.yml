@@ -161,7 +161,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: derived-data
-          path: DerivedData/Build
+          path: DerivedData/Build/Products
 
       - name: Download Workspace
         uses: actions/download-artifact@v4
