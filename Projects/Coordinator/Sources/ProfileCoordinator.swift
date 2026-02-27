@@ -27,7 +27,7 @@ public final class ProfileCoordinator: Coordinator {
         let builder = ProfileFeatureBuilder()
         var profile = builder.makeProfile()
         
-        // pop 처라
+        // pop 처리
         profile.vc.onPop = { [weak self] in
             guard let self else { return }
             self.parentCoordinator?.childDidFinish(self)
