@@ -70,17 +70,19 @@ public struct SessionGroup: Codable, Equatable, CustomStringConvertible {
 
     public var description: String {
         """
+        
         SessionGroup(
         - groupId: \(groupId)
         - groupName: \(groupName)
         - members: \(members.count)
         - posts count: \(postsByDate.values.flatMap { $0 }.count)
         )
+        
         """
     }
 }
 
-extension HCGroup {
+extension HCGroup { 
     public func toSession() -> SessionGroup {
         SessionGroup(
             groupId: groupId,
@@ -96,7 +98,7 @@ extension HCGroup {
 
 extension SessionGroup {
     public func toEntity() -> HCGroup {
-        HCGroup(
+        return HCGroup(
             groupId: groupId,
             groupName: groupName,
             createdAt: createdAt,

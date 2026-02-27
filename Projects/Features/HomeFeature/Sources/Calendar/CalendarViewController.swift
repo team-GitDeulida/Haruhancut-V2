@@ -53,12 +53,12 @@ final class CalendarViewController: UIViewController {
         guard let output else { return }
         
         // 새로운 그룹 정보를 방출할 때 마다 새로고침
-        output.group
-            .asDriver()
-            .drive(with: self, onNext: { owner, _ in
-                owner.customView.calendarView.reloadData()
-            })
-            .disposed(by: disposeBag)
+//        output.group
+//            .asDriver()
+//            .drive(with: self, onNext: { owner, _ in
+//                owner.customView.calendarView.reloadData()
+//            })
+//            .disposed(by: disposeBag)
         
         // 데이터 바인딩
         output.postsByDate

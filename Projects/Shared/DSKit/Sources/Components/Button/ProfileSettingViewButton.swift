@@ -120,22 +120,7 @@ public extension ProfileImageView {
     // MARK: - 유저가 사진 선택 후 바로 반영
     func setImage(_ image: UIImage) {
         imageView.image = image
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-
-        // 기존 작은 제약 해제
-        NSLayoutConstraint.deactivate(iconSizeConstraints)
-
-        // 전체 꽉 채우는 제약 적용 (한 번만 생성)
-        if fullSizeConstraints.isEmpty {
-            fullSizeConstraints = [
-                imageView.topAnchor.constraint(equalTo: topAnchor),
-                imageView.leadingAnchor.constraint(equalTo: leadingAnchor),
-                imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
-                imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
-            ]
-        }
-        NSLayoutConstraint.activate(fullSizeConstraints)
+        applyFilledImageLayout()
     }
     
     // MARK: - 서버에서 URL 갱신되면, 비동기 로딩
@@ -152,23 +137,29 @@ public extension ProfileImageView {
             guard let self = self else { return }
             switch result {
             case .success:
-                self.imageView.contentMode = .scaleAspectFill
-                self.imageView.clipsToBounds = true
-                NSLayoutConstraint.deactivate(self.iconSizeConstraints)
-
-                if self.fullSizeConstraints.isEmpty {
-                    self.fullSizeConstraints = [
-                        self.imageView.topAnchor.constraint(equalTo: self.topAnchor),
-                        self.imageView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
-                        self.imageView.trailingAnchor.constraint(equalTo: self.trailingAnchor),
-                        self.imageView.bottomAnchor.constraint(equalTo: self.bottomAnchor)
-                    ]
-                }
-                NSLayoutConstraint.activate(self.fullSizeConstraints)
+                self.applyFilledImageLayout()
             case .failure(let error):
                 print("❌ 이미지 로딩 실패: \(error.localizedDescription)")
             }
         }
+    }
+    
+    private func applyFilledImageLayout() {
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+
+        NSLayoutConstraint.deactivate(iconSizeConstraints)
+
+        if fullSizeConstraints.isEmpty {
+            fullSizeConstraints = [
+                imageView.topAnchor.constraint(equalTo: topAnchor),
+                imageView.leadingAnchor.constraint(equalTo: leadingAnchor),
+                imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
+                imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
+            ]
+        }
+
+        NSLayoutConstraint.activate(fullSizeConstraints)
     }
 }
 
