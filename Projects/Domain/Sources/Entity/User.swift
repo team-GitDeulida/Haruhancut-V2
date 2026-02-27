@@ -8,7 +8,7 @@
 import Foundation
 import Core
 
-public struct User: Encodable {
+public struct User: Codable, Equatable {
     
     public var uid: String
     public let registerDate: Date
@@ -62,18 +62,35 @@ extension User {
 }
 
 extension User: CustomStringConvertible {
+//    public var description: String {
+//        """
+//        
+//        👤 User
+//        ├─ ID: \(uid)
+//        ├─ registerDate: \(registerDate)
+//        ├─ loginPlatform: \(loginPlatform)
+//        ├─ nickname: \(nickname)
+//        ├─ birthdayDate \(birthdayDate)
+//        ├─ gender \(gender)
+//        └─ isPushEnabled \(isPushEnabled)
+//
+//        """
+//    }
     public var description: String {
         """
         
         👤 User
-        ├─ ID: \(uid)
-        ├─ registerDate: \(registerDate)
-        ├─ loginPlatform: \(loginPlatform)
-        ├─ nickname: \(nickname)
-        ├─ birthdayDate \(birthdayDate)
-        ├─ gender \(gender)
-        └─ isPushEnabled \(isPushEnabled)
-
+        ├─ uid:              \(uid)
+        ├─ registerDate:     \(registerDate.formatted())
+        ├─ loginPlatform:    \(loginPlatform.rawValue)
+        ├─ nickname:         \(nickname)
+        ├─ profileImageURL:  \(profileImageURL ?? "nil")
+        ├─ fcmToken:         \(fcmToken ?? "nil")
+        ├─ birthdayDate:     \(birthdayDate.toDateKey())
+        ├─ gender:           \(gender.rawValue)
+        ├─ isPushEnabled:    \(isPushEnabled)
+        └─ groupId:          \(groupId ?? "nil")
+        
         """
     }
 }
@@ -81,7 +98,8 @@ extension User: CustomStringConvertible {
 
 
 // MARK: - User Session
-public typealias UserSession = SessionContext<SessionUser>
+public typealias UserSession = SessionContext<User>
+/*
 public struct SessionUser: Codable, Equatable, CustomStringConvertible {
     public var userId: String
     public var groupId: String?
@@ -123,15 +141,17 @@ public struct SessionUser: Codable, Equatable, CustomStringConvertible {
         self.fcmToken = user.fcmToken
     }
 }
+ */
 
-extension User {
-    public func toSession() -> SessionUser {
-        return SessionUser(user: self)
-    }
-}
+//extension User {
+//    public func toSession() -> SessionUser {
+//        return SessionUser(user: self)
+//    }
+//}
 
-public extension SessionContext where Model == SessionUser {
-    var userId: String? { session?.userId }
+
+public extension SessionContext where Model == User {
+    var userId: String? { session?.uid }
     var groupId: String? { session?.groupId }
     var nickname: String? { session?.nickname }
     var profileImageURL: String? { session?.profileImageURL }

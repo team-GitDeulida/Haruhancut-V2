@@ -7,6 +7,8 @@
 
 import ProfileFeatureInterface
 import UIKit
+import Core
+import Domain
 
 public protocol ProfileFeatureBuildable {
     func makeProfile() -> ProfilePresentable
@@ -18,7 +20,12 @@ public final class ProfileFeatureBuilder {
 
 extension ProfileFeatureBuilder: ProfileFeatureBuildable {
     public func makeProfile() -> ProfilePresentable {
-        let vm = ProfileViewModel()
+        @Dependency var userSession: UserSession
+        @Dependency var authUsecase: AuthUsecaseProtocol
+        @Dependency var gropUsecase: GroupUsecaseProtocol
+        let vm = ProfileViewModel(userSession: userSession,
+                                  authUsecase: authUsecase,
+                                  groupUsecase: gropUsecase)
         let vc = ProfileViewController(viewModel: vm)
         return (vc, vm)
     }

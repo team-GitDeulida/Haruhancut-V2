@@ -120,22 +120,22 @@ public extension ProfileImageView {
     // MARK: - 유저가 사진 선택 후 바로 반영
     func setImage(_ image: UIImage) {
         imageView.image = image
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-
-        // 기존 작은 제약 해제
-        NSLayoutConstraint.deactivate(iconSizeConstraints)
-
-        // 전체 꽉 채우는 제약 적용 (한 번만 생성)
-        if fullSizeConstraints.isEmpty {
-            fullSizeConstraints = [
-                imageView.topAnchor.constraint(equalTo: topAnchor),
-                imageView.leadingAnchor.constraint(equalTo: leadingAnchor),
-                imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
-                imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
-            ]
-        }
-        NSLayoutConstraint.activate(fullSizeConstraints)
+//        imageView.contentMode = .scaleAspectFill
+//        imageView.clipsToBounds = true
+//
+//        // 기존 작은 제약 해제
+//        NSLayoutConstraint.deactivate(iconSizeConstraints)
+//
+//        // 전체 꽉 채우는 제약 적용 (한 번만 생성)
+//        if fullSizeConstraints.isEmpty {
+//            fullSizeConstraints = [
+//                imageView.topAnchor.constraint(equalTo: topAnchor),
+//                imageView.leadingAnchor.constraint(equalTo: leadingAnchor),
+//                imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
+//                imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
+//            ]
+//        }
+//        NSLayoutConstraint.activate(fullSizeConstraints)
     }
     
     // MARK: - 서버에서 URL 갱신되면, 비동기 로딩

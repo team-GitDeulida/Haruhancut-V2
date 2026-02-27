@@ -38,6 +38,7 @@ public protocol AuthUsecaseProtocol {
     // MARK: - FCM
     func generateFcmToken() -> Single<String>
     func syncFcmIfNeeded() -> Single<Void>
+    func loadAndFetchUser() -> Observable<User>
 }
 
 public final class AuthUsecaseImpl: AuthUsecaseProtocol {
@@ -61,7 +62,7 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     public func updateUser(user: User) -> Single<User> {
         return repository.updateUser(user: user)
             .do(onSuccess: { updatedUser in
-                self.userSession.update(updatedUser.toSession())
+                self.userSession.update(updatedUser)
             })
     }
     
@@ -73,49 +74,9 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     public func uploadImage(user: User, image: UIImage) -> Single<URL> {
         return repository.uploadImage(user: user, image: image)
     }
-    
-    public func signUp(user: User, profileImage: UIImage?) -> Single<Void> {
-        repository.registerUserToRealtimeDatabase(user: user)
-            .flatMap { registeredUser in
-                guard let image = profileImage else {
-                    // 이미지가 없다면 바로 성공(Void) 반환
-                    return .just(())
-                }
-
-                return self.uploadImage(user: registeredUser, image: image)
-                    .flatMap { url in
-                        var updated = registeredUser
-                        updated.profileImageURL = url.absoluteString
-                        return self.updateUser(user: updated)
-                            .mapToVoid()
-                    }
-                    .do(onSuccess: {
-                        // groupId = nil
-                        self.userSession.update(user.toSession())
-                    })
-            }
-    }
-    
-    public func signIn(platform: User.LoginPlatform) -> Single<SignInResult> {
-        self.loginWith(with: platform)
-            .flatMap { payload in
-                Logger.d("인증 진행")
-                return self.authenticate(payload: payload)
-            }
-            .flatMap { uid in
-                Logger.d("firebase 진행")
-                return self.resolveUser(uid: uid, platform: platform)
-            }
-            .do { result in
-                if case .existingUser(let user) = result {
-                    Logger.d("기존 사용자")
-                    self.userSession.update(user.toSession())
-                }
-            }
-    }
 }
 
-// MARK: - Sign in
+// MARK: - Sign in(Private)
 extension AuthUsecaseImpl {
     
     /// Firebase 인증
@@ -168,6 +129,50 @@ extension AuthUsecaseImpl {
     }
 }
 
+// MARK: - Sign in / Sign Up
+extension AuthUsecaseImpl {
+    public func signUp(user: User, profileImage: UIImage?) -> Single<Void> {
+        repository.registerUserToRealtimeDatabase(user: user)
+            .flatMap { registeredUser in
+                guard let image = profileImage else {
+                    // 이미지가 없다면 바로 성공(Void) 반환
+                    return .just(())
+                }
+
+                return self.uploadImage(user: registeredUser, image: image)
+                    .flatMap { url in
+                        var updated = registeredUser
+                        updated.profileImageURL = url.absoluteString
+                        return self.updateUser(user: updated)
+                            .mapToVoid()
+                    }
+                    .do(onSuccess: {
+                        // groupId = nil
+                        self.userSession.update(user)
+                    })
+            }
+    }
+    
+    public func signIn(platform: User.LoginPlatform) -> Single<SignInResult> {
+        self.loginWith(with: platform)
+            .flatMap { payload in
+                Logger.d("인증 진행")
+                return self.authenticate(payload: payload)
+            }
+            .flatMap { uid in
+                Logger.d("firebase 진행")
+                return self.resolveUser(uid: uid, platform: platform)
+            }
+            .do { result in
+                if case .existingUser(let user) = result {
+                    Logger.d("기존 사용자")
+                    self.userSession.update(user)
+                }
+            }
+    }
+}
+
+// MARK: - FCM
 extension AuthUsecaseImpl {
     
     // MARK: - FCM 토큰 생성(회원가입시 명시적)
@@ -188,7 +193,7 @@ extension AuthUsecaseImpl {
             return .just(())
         }
         
-        return repository.fetchUser(uid: sessionUser.userId)
+        return repository.fetchUser(uid: sessionUser.uid)
             .flatMap { serverUser -> Single<Void> in
                 let serverToken = serverUser?.fcmToken
                 
@@ -198,12 +203,40 @@ extension AuthUsecaseImpl {
                 }
                 
                 // 다르면 patch
-                return self.repository.patchUser(uid: sessionUser.userId,
+                return self.repository.patchUser(uid: sessionUser.uid,
                                             fields: ["fcmToken": localToken])
                 .do(onSuccess: {
                     self.userSession.update(\.fcmToken, localToken)
                     Logger.d("FCM 토큰 동기화 완료")
                 })
             }
+    }
+}
+
+extension AuthUsecaseImpl {
+    public func loadAndFetchUser() -> Observable<User> {
+        guard let userId = userSession.userId else {
+            return .error(DomainError.missingDomainSession)
+        }
+        
+        // 1. 캐시에서 유저 가져옴
+        let cached = userSession.session
+            .map { Observable.just($0) } ?? .empty()
+        
+        // 2. 서버에서 유저 가져옴
+        let remote = repository.fetchUser(uid: userId)
+            .compactMap { $0 } // nil 제거(PrimitiveSequence<MaybeTrait, User>)
+            .asObservable()
+            .do(onNext: { user in
+                self.userSession.update(user)
+            })
+
+        // 3. 캐시 -> 서버 순서로 방출
+        return Observable.concat(cached, remote)
+            .enumerated()
+            .do(onNext: { index, user in
+                Logger.d("\n[\(index)]번째 방출: \(user.description)")
+            })
+            .map { $0.element }
     }
 }
