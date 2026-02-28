@@ -103,11 +103,6 @@ jobs:
           [ -z "$UDID" ] && echo "Simulator not found" && exit 1
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
-      - name: Boot Simulator
-        run: xcrun simctl bootstatus "$SIM_UDID" -b
-
-      
-
       - name: Build For Testing (App only)
         run: |
           xcodebuild build-for-testing \
