@@ -8,15 +8,11 @@
 import UIKit
 import Domain
 import Kingfisher
-import RxSwift
 
 public final class ProfilePostCell: UICollectionViewCell {
     
-    var disposeBag = DisposeBag()
-    
     public override func prepareForReuse() {
         super.prepareForReuse()
-        self.disposeBag = DisposeBag()
         imageView.kf.cancelDownloadTask() // 다운로드 취소
         imageView.image = nil             // 기존 비트맵 이미지 제거
     }
@@ -49,10 +45,10 @@ public final class ProfilePostCell: UICollectionViewCell {
         ])
     }
     
-    func configure(post: Post) {
+    func configure(post: Post, targetSize: CGSize) {
         let url = URL(string: post.imageURL)
         
-        let targetSize = contentView.bounds.size
+        // let targetSize = contentView.bounds.size
         let processor = DownsamplingImageProcessor(size: targetSize)
         imageView.kf.setImage(
             with: url,

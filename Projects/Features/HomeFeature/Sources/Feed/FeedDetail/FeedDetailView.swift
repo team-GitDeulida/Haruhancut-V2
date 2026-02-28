@@ -7,10 +7,15 @@
 import UIKit
 import DSKit
 import Domain
+import Kingfisher
 
 final class FeedDetailView: UIView {
     
     var post: Post
+    
+    var currentImageRenderSize: CGSize {
+        imageView.bounds.size
+    }
     
     // MARK: - UI Component
     lazy var imageView: UIImageView = {
@@ -34,7 +39,7 @@ final class FeedDetailView: UIView {
         super.init(frame: .zero)
         setupUI()
         setupConstraints()
-        configure(post: post)
+        configure()
     }
 
     required init?(coder: NSCoder) {
@@ -70,9 +75,25 @@ final class FeedDetailView: UIView {
         ])
     }
     
-    func configure(post: Post) {
+    func configure() {
         let url = URL(string: post.imageURL)
-        imageView.kf.setImage(with: url)
+        
+        let width = UIScreen.main.bounds.width - 40
+        let targetSize = CGSize(width: width, height: width)
+        guard targetSize != .zero else {
+            print("사이즈가 0입니다.")
+            return
+        }
+        
+        let processor = DownsamplingImageProcessor(size: targetSize)
+        imageView.kf.setImage(
+                with: url,
+                options: [
+                    .processor(processor),
+                    .backgroundDecode,
+                    .scaleFactor(UIScreen.main.scale)
+                ]
+            )
     }
 }
 

@@ -114,8 +114,11 @@ final class ProfileViewController: UIViewController, PopableViewController {
             .drive(customView.collectionView.rx
                 .items(cellIdentifier: ProfilePostCell.reuseIdentifier,
                        cellType: ProfilePostCell.self)
-            ) { _, post, cell in
-                cell.configure(post: post)
+            ) { [weak self] _, post, cell in
+                guard let self = self else { return }
+                
+                let size = self.itemSize(for: self.customView.collectionView)
+                cell.configure(post: post, targetSize: size)
             }
             .disposed(by: disposeBag)
     }
