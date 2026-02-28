@@ -103,16 +103,19 @@ jobs:
           [ -z "$UDID" ] && echo "Simulator not found" && exit 1
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
-      - name: Build For Testing (App only)
+      - name: Build For Testing (All modules parallel)
         run: |
-          xcodebuild build-for-testing \
-            -workspace Haruhancut.xcworkspace \
-            -scheme App \
-            -configuration Debug \
-            -destination "id=$SIM_UDID" \
-            -derivedDataPath DerivedData \
-            -parallelizeTargets \
-            -jobs $(sysctl -n hw.ncpu)
+          for scheme in Core Data App; do
+            xcodebuild build-for-testing \
+              -workspace Haruhancut.xcworkspace \
+              -scheme $scheme \
+              -configuration Debug \
+              -destination "id=$SIM_UDID" \
+              -derivedDataPath DerivedData/$scheme \
+              -parallelizeTargets \
+              -jobs $(sysctl -n hw.ncpu) &
+          done
+          wait
 
       - name: Upload DerivedData
         uses: actions/upload-artifact@v4
