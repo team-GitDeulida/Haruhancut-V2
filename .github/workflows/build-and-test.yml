@@ -12,7 +12,7 @@
 #                   └ Haruhancut.app
 
 # build-and-test.yml
-name: 하루한컷 Build & Test 최적화중
+name: 하루한컷 Build & Test
 
 on:
   workflow_dispatch:
