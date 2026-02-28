@@ -113,11 +113,20 @@ final class ProfileViewController: UIViewController, PopableViewController {
         output.myPosts
             .drive(customView.collectionView.rx
                 .items(cellIdentifier: ProfilePostCell.reuseIdentifier,
-                                                      cellType: ProfilePostCell.self)
+                       cellType: ProfilePostCell.self)
             ) { _, post, cell in
                 cell.configure(post: post)
             }
             .disposed(by: disposeBag)
+    }
+    
+    // MARK: - 셀 사이즈
+    private func itemSize(for collectionView: UICollectionView) -> CGSize {
+        let spacing: CGFloat = 1
+        let columns: CGFloat = 3
+        let totalSpacing = (columns - 1) * spacing
+        let width = (collectionView.bounds.width - totalSpacing) / columns
+        return CGSize(width: width, height: width * 1.5)
     }
 }
 
@@ -126,15 +135,14 @@ extension ProfileViewController: UICollectionViewDelegateFlowLayout {
                         layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
         
-        let spacing: CGFloat = 1
-        let columns: CGFloat = 3
-        
-        let totalSpacing = (columns - 1) * spacing
-        let width = (collectionView.bounds.width - totalSpacing) / columns
-        
-        return CGSize(width: width, height: width * 1.5)
+        return itemSize(for: collectionView)
     }
 }
+
+
+
+
+
 
 
 
