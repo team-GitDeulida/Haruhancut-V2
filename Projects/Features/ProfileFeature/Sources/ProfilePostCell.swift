@@ -58,7 +58,7 @@ public final class ProfilePostCell: UICollectionViewCell {
             with: url,
             options: [
                 .processor(processor),             // 다운샘플링으로 픽셀 수를 줄임
-                // .backgroundDecode,              // 디코딩 백그라운드 실행
+                .backgroundDecode,                 // 디코딩 백그라운드 실행
                 .scaleFactor(UIScreen.main.scale), // 디스플레이 스케일에 맞게 이미지 처리
                 // .cacheOriginalImage             // 원본 이미지를 디스크 캐시에 저장
             ]
