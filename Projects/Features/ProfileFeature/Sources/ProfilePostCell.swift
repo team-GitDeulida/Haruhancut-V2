@@ -11,6 +11,12 @@ import Kingfisher
 
 public final class ProfilePostCell: UICollectionViewCell {
     
+    public override func prepareForReuse() {
+        super.prepareForReuse()
+        imageView.kf.cancelDownloadTask() // 다운로드 취소
+        imageView.image = nil             // 기존 비트맵 이미지 제거
+    }
+    
     // 이미지 뷰: 셀의 배경 이미지를 보여준다
     private let imageView: UIImageView = {
         let imageView = UIImageView()
@@ -39,8 +45,26 @@ public final class ProfilePostCell: UICollectionViewCell {
         ])
     }
     
-    func configure(post: Post) {
+    func configure(post: Post, targetSize: CGSize) {
         let url = URL(string: post.imageURL)
-        imageView.kf.setImage(with: url)
+        
+        // let targetSize = contentView.bounds.size
+        let processor = DownsamplingImageProcessor(size: targetSize)
+        imageView.kf.setImage(
+            with: url,
+            options: [
+                .processor(processor),             // 다운샘플링으로 픽셀 수를 줄임
+                .backgroundDecode,                 // 디코딩 백그라운드 실행
+                .scaleFactor(UIScreen.main.scale), // 디스플레이 스케일에 맞게 이미지 처리
+                // .cacheOriginalImage             // 원본 이미지를 디스크 캐시에 저장
+            ]
+        ) { result in
+            switch result {
+            case .failure(let error):
+                print("Kingfisher error:", error)
+            case .success:
+                break
+            }
+        }
     }
 }

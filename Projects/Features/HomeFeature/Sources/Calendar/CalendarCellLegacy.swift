@@ -1,5 +1,5 @@
 //
-//  CalendarCell.swift
+//  CalendarCellLegacy.swift
 //  HomeFeature
 //
 //  Created by 김동현 on 2/9/26.
@@ -8,8 +8,11 @@
 import Foundation
 import FSCalendar
 import Kingfisher
+import RxSwift
 
-final class CalendarCell: FSCalendarCell {
+final class CalendarCellLegacy: FSCalendarCell {
+    
+    var disposeBag = DisposeBag()
     
     private var currentImageURL: String?
     
@@ -93,11 +96,9 @@ final class CalendarCell: FSCalendarCell {
                 // size 안전 체크
                 let targetSize = contentView.bounds.size
                 guard targetSize != .zero else {
-                    print("사이즈가 0입니다.")
+                    print("에러: \(targetSize)")
                     return
                 }
-                
-                // 다운샘플링
                 let processor = DownsamplingImageProcessor(size: targetSize)
                 
                 cellImageView.kf.setImage(

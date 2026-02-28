@@ -12,6 +12,7 @@ import Domain
 import RxRelay
 import Core
 import RxCocoa
+import Kingfisher
 
 final class FeedDetailViewController: UIViewController, PopableViewController {
     
