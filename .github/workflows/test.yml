@@ -111,7 +111,7 @@ jobs:
             -configuration Debug \
             -destination "id=$SIM_UDID" \
             -derivedDataPath DerivedData \
-            by-parallelizeTargets \
+            -parallelizeTargets \
             -jobs $(sysctl -n hw.ncpu)
 
       - name: Upload DerivedData
