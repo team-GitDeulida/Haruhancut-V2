@@ -7,9 +7,11 @@
 
 import UIKit
 import Core
+import Domain
 
 public protocol ProfileRouteTrigger {
-    
+    var onSettingButtonTapped: (() -> Void)? { get set }
+    var onImageTapped: ((Post) -> Void)? { get set }
 }
 
 public typealias ProfileViewModelType = ViewModelType & ProfileRouteTrigger

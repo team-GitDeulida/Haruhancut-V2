@@ -12,6 +12,7 @@ import Domain
 import RxRelay
 import Core
 import RxCocoa
+import Kingfisher
 
 final class FeedDetailViewController: UIViewController, PopableViewController {
     
@@ -77,22 +78,3 @@ final class FeedDetailViewController: UIViewController, PopableViewController {
     }
 }
 
-extension Reactive where Base: UIView {
-    /*
-     [이 확장이 없다면 해야하는 방식]
-     var imageTapped: Observable<Void> {
-         let tapGesture = UITapGestureRecognizer()
-         customView.imageView.isUserInteractionEnabled = true
-         customView.imageView.addGestureRecognizer(tapGesture)
-         return tapGesture.rx.event
-             .map { _ in () }
-     }
-     */
-    var tap: ControlEvent<Void> {
-        let gesture = UITapGestureRecognizer()
-        base.addGestureRecognizer(gesture)
-        base.isUserInteractionEnabled = true
-        let source = gesture.rx.event.map { _ in () }
-        return ControlEvent(events: source)
-    }
-}

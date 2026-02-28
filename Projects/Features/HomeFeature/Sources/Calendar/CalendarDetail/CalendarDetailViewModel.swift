@@ -83,7 +83,7 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
         
         input.reload
             .withUnretained(self)
-            .flatMapLatest { owner, _ -> Observable<HCGroup> in
+            .flatMap { owner, _ -> Observable<HCGroup> in
                 owner.groupUsecase.loadAndFetchGroup()
                     .catch { _ in .empty() } // 추후에 에러 상세 처리 예정
             }

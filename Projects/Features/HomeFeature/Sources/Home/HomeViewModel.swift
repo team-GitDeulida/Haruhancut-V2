@@ -15,6 +15,223 @@ import RxCocoa
 import Core
 
 public final class HomeViewModel: HomeViewModelType {
+
+    private let disposeBag = DisposeBag()
+    @Dependency private var userSession: UserSession
+    @Dependency private var groupSession: GroupSession
+
+    private let authUsecase: AuthUsecaseProtocol
+    private let groupUsecase: GroupUsecaseProtocol
+
+    // UI 상태 단일 소스
+    private let groupRelay = BehaviorRelay<HCGroup?>(value: nil)
+
+    public var userId: String? {
+        userSession.userId
+    }
+    
+    private var groupSessionObserverID: UUID?
+
+    // MARK: - Coordinator Trigger
+    public var onLogoutTapped: (() -> Void)?
+    public var onImageTapped: ((Post) -> Void)?
+    public var onProfileTapped: (() -> Void)?
+    public var onCameraTapped: ((CameraSource) -> Void)?
+    public var onCalendarImageTapped: (([Post], Date) -> Void)?
+
+    public struct Input {
+        let viewDidLoad: Observable<Void>
+        let refreshTapped: Observable<Void>
+
+        let imageTapped: Observable<Post>
+        let longPressed: Observable<Post>
+        let cameraButtonTapped: Observable<Void>
+        let deleteConfirmed: Observable<Post>
+    }
+
+    public struct Output {
+        let group: Driver<HCGroup>
+        let posts: Driver<[Post]>
+        let todayPosts: Driver<[Post]>
+        let didTodayUpload: Driver<Bool>
+        let error: Signal<Error>
+
+        let showLongPressedAlert: Signal<Post>
+        let showCameraAlert: Signal<Void>
+
+        let postsByDate: Driver<[String: [Post]]>
+    }
+
+    public init(groupUsecase: GroupUsecaseProtocol,
+                authUsecase: AuthUsecaseProtocol) {
+
+        self.groupUsecase = groupUsecase
+        self.authUsecase = authUsecase
+
+
+        // 초기 세션 값 즉시 반영 (빠른 로딩)
+        if let session = groupSession.entity {
+            groupRelay.accept(session)
+        }
+
+        // 세션 변경 감지 → relay 동기화
+        groupSessionObserverID = groupSession.bind { [weak self] session in
+            guard let session else { return }
+            self?.groupRelay.accept(session.toEntity())
+        }
+    }
+    
+    deinit {
+        if let id = groupSessionObserverID {
+            groupSession.removeObserver(id)
+        }
+    }
+
+    public func transform(input: Input) -> Output {
+
+        // MARK: - Feed Actions
+        input.imageTapped
+            .bind(onNext: { [weak self] post in
+                self?.onImageTapped?(post)
+            })
+            .disposed(by: disposeBag)
+
+        let showLongPressedAlert = input.longPressed
+            .asSignal(onErrorSignalWith: .empty())
+
+        let showCameraAlert = input.cameraButtonTapped
+            .asSignal(onErrorSignalWith: .empty())
+
+        // MARK: - Delete Post
+        let deleteResult = input.deleteConfirmed
+            .withUnretained(self)
+            .flatMapLatest { owner, post -> Observable<Event<Void>> in
+                owner.groupUsecase.deletePost(post: post)
+                    .asObservable()
+                    .materialize()
+            }
+            .share()
+
+        /*
+        let deleteSuccessTrigger = deleteResult
+            .compactMap { $0.element }
+            .mapToVoid()
+         */
+
+        // MARK: - Reload Trigger
+        let reloadTrigger = Observable.merge(
+            input.viewDidLoad,
+            input.refreshTapped,
+            // deleteSuccessTrigger
+        )
+
+        // 서버 fetch → 세션 업데이트 (relay는 세션 통해 자동 갱신)
+        let result = reloadTrigger
+            .withUnretained(self)
+            .flatMapLatest { owner, _ in
+                owner.groupUsecase
+                    .loadAndFetchGroup()
+                    .materialize()
+            }
+            .share()
+
+        let error = Observable.merge(
+            result.compactMap { $0.error },
+            deleteResult.compactMap { $0.error }
+        )
+
+        // MARK: - State Streams
+        let group = groupRelay
+            .compactMap { $0 }
+            .asDriver(onErrorDriveWith: .empty())
+
+        let posts = group
+            .map { group in
+                let allPosts = group.postsByDate.flatMap { $0.value }
+                return allPosts.sorted { $0.createdAt < $1.createdAt }
+            }
+            .asDriver(onErrorDriveWith: .empty())
+
+        let todayPosts = posts
+            .map { posts in
+                posts
+                    .filter { $0.userId == self.userSession.userId }
+                    .filter { $0.isToday }
+            }
+
+        let didTodayUpload = todayPosts
+            .map { !$0.isEmpty }
+            .distinctUntilChanged()
+
+        let postsByDate = group
+            .map { $0.postsByDate }
+
+        return Output(
+            group: group,
+            posts: posts,
+            todayPosts: todayPosts,
+            didTodayUpload: didTodayUpload,
+            error: error.asSignal(onErrorSignalWith: .empty()),
+            showLongPressedAlert: showLongPressedAlert,
+            showCameraAlert: showCameraAlert,
+            postsByDate: postsByDate
+        )
+    }
+}
+
+/*
+ // 학습 후 사용 예정
+ groupSession.nonNilObservable
+         .map { $0.toEntity() }
+         .bind(to: groupRelay)
+         .disposed(by: disposeBag)
+ */
+public extension SessionContext {
+
+    var observable: Observable<Model?> {
+        Observable.create { [weak self] observer in
+            guard let self else {
+                observer.onCompleted()
+                return Disposables.create()
+            }
+
+            // 현재 값 즉시 방출 + 이후 변경 감지
+            let id = self.bind { model in
+                observer.onNext(model)
+            }
+
+            return Disposables.create {
+                self.removeObserver(id)
+            }
+        }
+        .share(replay: 1, scope: .whileConnected)
+    }
+
+    var nonNilObservable: Observable<Model> {
+        observable.compactMap { $0 }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+/*
+import Foundation
+import HomeFeatureInterface
+import RxSwift
+import RxRelay
+import Domain
+import RxCocoa
+import Core
+
+public final class HomeViewModel: HomeViewModelType {
     
     private let disposeBag = DisposeBag()
     @Dependency private var userSession: UserSession
@@ -23,6 +240,7 @@ public final class HomeViewModel: HomeViewModelType {
     // MARK: - Properties
     private let authUsecase: AuthUsecaseProtocol
     private let groupUsecase: GroupUsecaseProtocol
+    private let groupRelay = BehaviorRelay<HCGroup?>(value: nil)
     public var userId: String? {
         userSession.userId
     }
@@ -71,22 +289,6 @@ public final class HomeViewModel: HomeViewModelType {
     
     public func transform(input: Input) -> Output {
         
-        // MARK: - 그룹 세션 관찰
-        let group = Observable<HCGroup>.create { observer in
-            // 세션 업데이트마다 방출
-            let id = self.groupSession.bind { session in
-                if let session {
-                    observer.onNext(session.toEntity())
-                }
-            }
-            
-            // 구독 해제시 바인딩 제거
-            return Disposables.create {
-                self.groupSession.removeObserver(id)
-            }
-        }
-        .share() /// Rx는 기본적으로 Cold Observable이다 구독자가 2명 이상이면 블록이 2번이상 실행됨.. 중복방지를위함
-        
         // MARK: - Feed
         input.imageTapped
             .bind(onNext: { [weak self] post in
@@ -102,6 +304,59 @@ public final class HomeViewModel: HomeViewModelType {
         let showCameraAlert = input.cameraButtonTapped
             .asSignal(onErrorSignalWith: .empty())
         
+        // 삭제처리
+        let deleteResult = input.deleteConfirmed
+            .withUnretained(self)
+            .flatMapLatest { owner, post -> Observable<Event<Void>> in
+                owner.groupUsecase.deletePost(post: post)
+                    .asObservable()
+                    .materialize()
+            }
+            .share()
+        
+        // 삭제 성공 시 reload 트리거를 위한 Void 스트림
+        let deleteSuccessTrigger = deleteResult
+            .compactMap { $0.element }
+            .mapToVoid()
+        
+        // MARK: - Reload Trigger
+        // 최초로딩 / 재로딩 / 새로고침 / 삭제 성공 후 리로드
+        let reloadTrigger = Observable.merge(
+            input.viewDidLoad,
+            input.refreshTapped,
+            deleteSuccessTrigger
+        )
+        
+        // result: Observable<Event<HCGroup>>
+        // 그룹 데이터를 캐시 + 서버 순으로 가져온다
+        let groupResult = reloadTrigger
+            .withUnretained(self)
+            .flatMapLatest { owner, _ in
+                owner.groupUsecase
+                    .loadAndFetchGroup()
+                    .do(onNext: { group in
+                        owner.groupRelay.accept(group)
+                    })
+                    .materialize() // 에러 발생 시 스트림 이 끊기지 않도록 해준다
+            }
+            .share() /// 아래서 group, error가 모두 result를 구독하는데 요청 1번만 하도록 하기 위함
+    
+      
+//        let group = groupResult
+//            .compactMap { $0.element }
+   
+        
+        let group = groupRelay
+            .compactMap { $0 }
+            .asDriver(onErrorDriveWith: .empty())
+        
+        // load 실패, delete 실패를 하나의 error 스트림으로 병합
+        let error = Observable.merge(
+            groupResult.compactMap { $0.error },
+            deleteResult.compactMap { $0.error }
+        )
+        
+        // MARK: - Posts
         // 그룹의 모든 post를 정렬하여 하나의 배열로 변환
         let posts = group
             .map { group in
@@ -123,44 +378,6 @@ public final class HomeViewModel: HomeViewModelType {
             .map { !$0.isEmpty }
             .distinctUntilChanged()
         
-        // 삭제처리
-        let deleteResult = input.deleteConfirmed
-            .withUnretained(self)
-            .flatMapLatest { owner, post -> Observable<Event<Void>> in
-                owner.groupUsecase.deletePost(post: post)
-                    .asObservable()
-                    .materialize()
-            }
-            .share()
-        
-        // 삭제 성공 시 reload 트리거를 위한 Void 스트림
-        let deleteSuccessTrigger = deleteResult
-            .compactMap { $0.element }
-            .mapToVoid()
-        
-        // 최초로딩 / 재로딩 / 새로고침 / 삭제 성공 후 리로드
-        let loadTrigger = Observable.merge(
-            input.viewDidLoad,
-            input.refreshTapped,
-            deleteSuccessTrigger
-        )
-        
-        // result: Observable<Event<HCGroup>>
-        // 그룹 데이터를 캐시 + 서버 순으로 가져온다
-        let result = loadTrigger
-            .withUnretained(self)
-            .flatMapLatest { owner, _ in
-                owner.groupUsecase.loadAndFetchGroup()
-                    .materialize() // 에러 발생 시 스트림 이 끊기지 않도록 해준다
-            }
-            .share() /// 아래서 group, error가 모두 result를 구독하는데 요청 1번만 하도록 하기 위함
-        
-         // load 실패, delete 실패를 하나의 error 스트림으로 병합
-        let error = Observable.merge(
-            result.compactMap { $0.error },
-            deleteResult.compactMap { $0.error }
-        )
-        
         // MARK: - Calendar
         let postsByDate = group
             .map { $0.postsByDate }
@@ -180,8 +397,7 @@ public final class HomeViewModel: HomeViewModelType {
 
 
 
-
-
+*/
 
 
 

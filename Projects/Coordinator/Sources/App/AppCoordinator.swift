@@ -149,7 +149,7 @@ private extension AppCoordinator {
     // MARK: - Bind Session
     // 로그인 / 로그아웃 등 앱 실행 중 발생하는 상태 변화에 반응한다
     func observeSession() {
-        userSession.observe { [weak self] (user: SessionUser?) in
+        userSession.observe { [weak self] (user: Domain.User?) in
             guard let self = self else { return }
             self.routeBySession()
         }

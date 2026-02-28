@@ -44,3 +44,20 @@ public extension Date {
         return relativeFormatter.localizedString(for: self, relativeTo: Date())
     }
 }
+
+/*
+public extension Date {
+
+    private static let dateKeyFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    static func fromDateKey(_ key: String) -> Date? {
+        return dateKeyFormatter.date(from: key)
+    }
+}
+*/

@@ -18,6 +18,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         
+        // 이미지 캐싱
+        AppConfiguration.configureImageCache()
+        
         // 1. scene 캡처
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
