@@ -7,7 +7,7 @@
 #          └ AppTests.xctest
 
 # build-and-test.yml
-name: 하루한컷 Build & Test
+name: 하루한컷 Build & Test 최적화중
 
 on:
   workflow_dispatch:
