@@ -1,18 +1,5 @@
-# DerivedData/
-#   ├ Core/
-#   │   └ Build/
-#   │       └ Products/
-#   ├ Data/
-#   │   └ Build/
-#   │       └ Products/
-#   └ App/
-#       └ Build/
-#           └ Products/
-#               └ Debug-iphonesimulator/
-#                   └ Haruhancut.app
-
 # build-and-test.yml
-name: 하루한컷 Build & Test 최적화중
+name: 하루한컷 Build & Test
 
 on:
   workflow_dispatch:
@@ -116,26 +103,25 @@ jobs:
           [ -z "$UDID" ] && echo "Simulator not found" && exit 1
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
-      - name: Build For Testing (Parallel per scheme)
+      - name: Boot Simulator
+        run: xcrun simctl bootstatus "$SIM_UDID" -b
+
+      - name: Build For Testing (All Schemes)
         run: |
           for scheme in Core Data App; do
-            echo "🚀 Building $scheme"
             xcodebuild build-for-testing \
               -workspace Haruhancut.xcworkspace \
               -scheme $scheme \
               -configuration Debug \
               -destination "id=$SIM_UDID" \
-              -derivedDataPath DerivedData/$scheme \
-              -parallelizeTargets \
-              -jobs $(sysctl -n hw.ncpu) &
+              -derivedDataPath DerivedData
           done
-          wait
 
       - name: Upload DerivedData
         uses: actions/upload-artifact@v4
         with:
           name: derived-data
-          path: DerivedData/*/Build/Products
+          path: DerivedData/Build/Products
 
       - name: Upload Workspace
         uses: actions/upload-artifact@v4
@@ -175,7 +161,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: derived-data
-          path: DerivedData
+          path: DerivedData/Build/Products
 
       - name: Download Workspace
         uses: actions/download-artifact@v4
@@ -193,6 +179,9 @@ jobs:
           [ -z "$UDID" ] && echo "Simulator not found" && exit 1
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
+      - name: Boot Simulator
+        run: xcrun simctl bootstatus "$SIM_UDID" -b
+
       - name: Run Tests
         run: |
           xcodebuild test-without-building \
@@ -200,7 +189,7 @@ jobs:
             -scheme ${{ matrix.module }} \
             -configuration Debug \
             -destination "id=$SIM_UDID" \
-            -derivedDataPath DerivedData/${{ matrix.module }}
+            -derivedDataPath DerivedData
 
   # =====================================================
   # 3. Notify

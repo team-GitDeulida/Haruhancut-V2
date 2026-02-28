@@ -1,5 +1,18 @@
+# DerivedData/
+#   ├ Core/
+#   │   └ Build/
+#   │       └ Products/
+#   ├ Data/
+#   │   └ Build/
+#   │       └ Products/
+#   └ App/
+#       └ Build/
+#           └ Products/
+#               └ Debug-iphonesimulator/
+#                   └ Haruhancut.app
+
 # build-and-test.yml
-name: 하루한컷 Build & Test
+name: 하루한컷 Build & Test 최적화중
 
 on:
   workflow_dispatch:
@@ -33,18 +46,11 @@ permissions:
   issues: write
   pull-requests: write
 
-# =====================================================
 # 1. Build For Testing
-# =====================================================
 jobs:
   build:
     name: Build For Testing
     runs-on: macos-15
-
-    # pr -> build skip
-    # if: |
-    #   github.event_name != 'pull_request' ||
-    #   inputs.triggered_by_command == 'true'
 
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +98,7 @@ jobs:
           tuist install
           tuist generate --no-open
 
-      # ✅ UUID Resolve
+      # UUID Resolve
       - name: Resolve Simulator UUID
         run: |
           SIM_NAME="iPhone 16"
@@ -103,25 +109,26 @@ jobs:
           [ -z "$UDID" ] && echo "Simulator not found" && exit 1
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
-      - name: Boot Simulator
-        run: xcrun simctl bootstatus "$SIM_UDID" -b
-
-      - name: Build For Testing (All Schemes)
+      - name: Build For Testing (Parallel per scheme)
         run: |
           for scheme in Core Data App; do
+            echo "🚀 Building $scheme"
             xcodebuild build-for-testing \
               -workspace Haruhancut.xcworkspace \
               -scheme $scheme \
               -configuration Debug \
               -destination "id=$SIM_UDID" \
-              -derivedDataPath DerivedData
+              -derivedDataPath DerivedData/$scheme \
+              -parallelizeTargets \
+              -jobs $(sysctl -n hw.ncpu) &
           done
+          wait
 
       - name: Upload DerivedData
         uses: actions/upload-artifact@v4
         with:
           name: derived-data
-          path: DerivedData/Build/Products
+          path: DerivedData/*/Build/Products
 
       - name: Upload Workspace
         uses: actions/upload-artifact@v4
@@ -131,9 +138,7 @@ jobs:
             Haruhancut.xcworkspace
             **/*.xcodeproj
 
-  # =====================================================
-  # 2️. Matrix Test
-  # =====================================================
+  # 2. Matrix Test
   test:
     name: Test / ${{ matrix.module }}
     runs-on: macos-15
@@ -161,14 +166,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: derived-data
-          path: DerivedData/Build/Products
+          path: DerivedData
 
       - name: Download Workspace
         uses: actions/download-artifact@v4
         with:
           name: workspace
 
-      # ✅ 동일 UUID resolve
+      # 동일 UUID resolve
       - name: Resolve Simulator UUID
         run: |
           SIM_NAME="iPhone 16"
@@ -179,9 +184,6 @@ jobs:
           [ -z "$UDID" ] && echo "Simulator not found" && exit 1
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
 
-      - name: Boot Simulator
-        run: xcrun simctl bootstatus "$SIM_UDID" -b
-
       - name: Run Tests
         run: |
           xcodebuild test-without-building \
@@ -189,11 +191,9 @@ jobs:
             -scheme ${{ matrix.module }} \
             -configuration Debug \
             -destination "id=$SIM_UDID" \
-            -derivedDataPath DerivedData
+            -derivedDataPath DerivedData/${{ matrix.module }}
 
-  # =====================================================
   # 3. Notify
-  # =====================================================
   notify:
     name: Notify Result
     runs-on: macos-15
