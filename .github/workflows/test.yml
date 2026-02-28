@@ -1,3 +1,11 @@
+# DerivedData/
+#  └ Build/
+#      └ Products/
+#          ├ Debug-iphonesimulator/
+#          ├ CoreTests.xctest
+#          ├ DataTests.xctest
+#          └ AppTests.xctest
+
 # build-and-test.yml
 name: 하루한컷 Build & Test
 
@@ -111,7 +119,7 @@ jobs:
               -scheme $scheme \
               -configuration Debug \
               -destination "id=$SIM_UDID" \
-              -derivedDataPath DerivedData/$scheme \
+              -derivedDataPath DerivedData \
               -parallelizeTargets \
               -jobs $(sysctl -n hw.ncpu) &
           done
