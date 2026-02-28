@@ -1,0 +1,262 @@
+# build-and-test.yml
+name: 하루한컷 Build & Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      triggered_by_command:
+        description: "Triggered by PR command"
+        required: false
+        default: "false"
+      pr_number:
+        description: "PR number"
+        required: false
+
+  schedule:
+    # UTC 22:00 = KST 07:00
+    - cron: "0 22 * * *"
+
+  # PR 댓글 명령어로도 트리거 가능
+  # issue_comment:
+  #   types: [created]
+
+  # PR이 열릴 때마다 실행 (main, develop 브랜치 대상)
+  pull_request:
+    branches: [main]
+
+  # main 브랜치에 푸시될 때마다 실행 (PR 병합 포함)
+  # push:
+  #   branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+# =====================================================
+# 1. Build For Testing
+# =====================================================
+jobs:
+  build:
+    name: Build For Testing
+    runs-on: macos-15
+
+    # pr -> build skip
+    # if: |
+    #   github.event_name != 'pull_request' ||
+    #   inputs.triggered_by_command == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Shared.xcconfig
+        run: |
+          mkdir -p Projects/Shared/Configs
+          cat << 'EOF' > Projects/Shared/Configs/Shared.xcconfig
+          ${{ secrets.SHARED_XCCONFIG }}
+          EOF
+
+      - name: Select Xcode 16.4
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+
+      # key: spm-${{ runner.os }}-xcode16.4-${{ hashFiles('**/Package.resolved') }}
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - name: Cache Tuist
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.tuist/Dependencies
+            ~/.tuist/Cache
+            Tuist/Dependencies/.build
+          key: tuist-${{ runner.os }}-${{ hashFiles('Tuist/Dependencies.swift') }}
+          restore-keys: |
+            tuist-${{ runner.os }}-
+
+      - name: Install Tuist
+        run: |
+          brew tap tuist/tuist
+          brew install tuist@4.115.0
+
+      - name: Generate
+        run: |
+          tuist install
+          tuist generate --no-open
+
+      # ✅ UUID Resolve
+      - name: Resolve Simulator UUID
+        run: |
+          SIM_NAME="iPhone 16"
+          SIM_OS="18.5"
+          UDID=$(xcrun simctl list devices available | \
+            grep "iOS ${SIM_OS}" -A 20 | \
+            grep "^ *${SIM_NAME} (" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          [ -z "$UDID" ] && echo "Simulator not found" && exit 1
+          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
+
+      - name: Boot Simulator
+        run: xcrun simctl bootstatus "$SIM_UDID" -b
+
+      
+
+      - name: Build For Testing (App only)
+        run: |
+          xcodebuild build-for-testing \
+            -workspace Haruhancut.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath DerivedData \
+            by-parallelizeTargets \
+            -jobs $(sysctl -n hw.ncpu)
+
+      - name: Upload DerivedData
+        uses: actions/upload-artifact@v4
+        with:
+          name: derived-data
+          path: DerivedData/Build/Products
+
+      - name: Upload Workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace
+          path: |
+            Haruhancut.xcworkspace
+            **/*.xcodeproj
+
+  # =====================================================
+  # 2️. Matrix Test
+  # =====================================================
+  test:
+    name: Test / ${{ matrix.module }}
+    runs-on: macos-15
+    needs: build
+
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [Core, Data, App]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+
+      - name: Create Shared.xcconfig
+        run: |
+          mkdir -p Projects/Shared/Configs
+          cat << 'EOF' > Projects/Shared/Configs/Shared.xcconfig
+          ${{ secrets.SHARED_XCCONFIG }}
+          EOF
+
+      - name: Download DerivedData
+        uses: actions/download-artifact@v4
+        with:
+          name: derived-data
+          path: DerivedData/Build/Products
+
+      - name: Download Workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace
+
+      # ✅ 동일 UUID resolve
+      - name: Resolve Simulator UUID
+        run: |
+          SIM_NAME="iPhone 16"
+          SIM_OS="18.5"
+          UDID=$(xcrun simctl list devices available | \
+            grep "iOS ${SIM_OS}" -A 20 | \
+            grep "^ *${SIM_NAME} (" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          [ -z "$UDID" ] && echo "Simulator not found" && exit 1
+          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
+
+      - name: Boot Simulator
+        run: xcrun simctl bootstatus "$SIM_UDID" -b
+
+      - name: Run Tests
+        run: |
+          xcodebuild test-without-building \
+            -workspace Haruhancut.xcworkspace \
+            -scheme ${{ matrix.module }} \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath DerivedData
+
+  # =====================================================
+  # 3. Notify
+  # =====================================================
+  notify:
+    name: Notify Result
+    runs-on: macos-15
+    needs: test
+    if: always()
+
+    steps:
+      # PR일 때만 코멘트
+      - name: Comment success (PR only)
+        # PR이 성공이고, 이벤트가 PR일 때만 코멘트
+        if: needs.test.result == 'success' && github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ✅ 하루한컷 패키지를 성공적으로 빌드하고 테스트했습니다.
+      # PR이 실패이고, 이벤트가 PR일 때만 코멘트
+      - name: Comment failure (PR only)
+        if: needs.test.result != 'success' && github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ❌ **하루한컷 iOS CI 실패**
+            - 일부 모듈 테스트 실패
+
+      # 메일은 모든 이벤트에서
+      - name: Send email on success
+        if: needs.test.result == 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ✅ 하루한컷 iOS CI 성공
+          body: |
+            CI 성공 🎉
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Actor: ${{ github.actor }}
+            URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: indextrown@gmail.com
+          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
+
+      - name: Send email on failure
+        if: needs.test.result != 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ❌ 하루한컷 iOS CI 실패
+          body: |
+            CI 실패 발생 ❌
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Actor: ${{ github.actor }}
+            URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: indextrown@gmail.com
+          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
