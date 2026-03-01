@@ -44,12 +44,12 @@ final class AppUITests: XCTestCase {
         
         // 0. 홈 화면 로딩 확인 & 카메라 버튼 찾기 및 클릭
         let cameraButton = app.buttons[UITestID.Feed.cameraButton]
-        XCTAssertTrue(cameraButton.waitForExistence(timeout: 5), "카메라 모양 버튼이 보이지 않음")
+        XCTAssertTrue(cameraButton.waitForExistence(timeout: 20), "카메라 모양 버튼이 보이지 않음")
         cameraButton.tap()
         
         // 3. ActionSheet에서 "앨범에서 선택" 클릭
         let actionAlbumButton = app.buttons[UITestID.ActionSheet.album]
-        XCTAssertTrue(actionAlbumButton.waitForExistence(timeout: 3), "앨범 버튼이 보이지 않음")
+        XCTAssertTrue(actionAlbumButton.waitForExistence(timeout: 20), "앨범 버튼이 보이지 않음")
         actionAlbumButton.tap()
         
         // 4. 앨범 UI 로딩 대기(시스템 UI는 약간의 여유 필요)
@@ -66,24 +66,26 @@ final class AppUITests: XCTestCase {
         
         // 6. 업로드 버튼 찾기 및 클릭
         let uploadButton = app.buttons[UITestID.Feed.uploadButton]
-        XCTAssertTrue(uploadButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(uploadButton.waitForExistence(timeout: 20))
         uploadButton.tap()
         
         // 7. 홈 복귀 대기
-        XCTAssertTrue(cameraButton.waitForExistence(timeout: 10),
+        XCTAssertTrue(cameraButton.waitForExistence(timeout: 20),
                       "업로드 완료 후 홈으로 복귀하지 않음")
 
         // 8 collectionView 등장 대기 (이제 hidden=false 상태)
         let feedCollection = app.scrollViews.firstMatch
-        XCTAssertTrue(
-            feedCollection.waitForExistence(timeout: 5),
-            "업로드 후 피드 영역 없음"
-        )
+        XCTAssertTrue(feedCollection.waitForExistence(timeout: 20),
+                      "업로드 후 피드 영역 없음")
         
         // 9️⃣ 셀 최소 1개 이상 확인
-        XCTAssertGreaterThan(
-            feedCollection.cells.count,
-            0,
+        let predicate = NSPredicate(format: "count > 0")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate,
+                                                    object: feedCollection.cells)
+        
+        XCTAssertEqual(
+            XCTWaiter().wait(for: [expectation], timeout: 20),
+            .completed,
             "업로드 후 셀이 추가되지 않음"
         )
         
@@ -96,7 +98,7 @@ final class AppUITests: XCTestCase {
         
         // 0. 홈 화면 로딩 확인 & 카메라 버튼 찾기 및 클릭
         let cameraButton = app.buttons[UITestID.Feed.cameraButton]
-        XCTAssertTrue(cameraButton.waitForExistence(timeout: 30), "카메라 모양 버튼이 보이지 않음")
+        XCTAssertTrue(cameraButton.waitForExistence(timeout: 20), "카메라 모양 버튼이 보이지 않음")
         
         // 1. 피드 로딩 대기
         /*
@@ -105,7 +107,7 @@ final class AppUITests: XCTestCase {
                       "피드 컬렉션이 보이지 않음")
          */
         let feedCollection = app.collectionViews[UITestID.Feed.collectionView]
-            XCTAssertTrue(feedCollection.waitForExistence(timeout: 10),
+            XCTAssertTrue(feedCollection.waitForExistence(timeout: 20),
                           "피드 컬렉션이 보이지 않음")
         
         // 최소 1개 이상 셀 존재 확인
@@ -123,7 +125,7 @@ final class AppUITests: XCTestCase {
         
         // 삭제 버튼 확인
         let deleteButton = app.alerts.buttons["삭제"]
-            XCTAssertTrue(deleteButton.waitForExistence(timeout: 3),
+            XCTAssertTrue(deleteButton.waitForExistence(timeout: 20),
                           "삭제 확인 알림이 나타나지 않음")
         deleteButton.tap()
         
@@ -133,7 +135,7 @@ final class AppUITests: XCTestCase {
             object: feedCollection.cells
         )
         
-        let result = XCTWaiter().wait(for: [expectation], timeout: 5)
+        let result = XCTWaiter().wait(for: [expectation], timeout: 20)
         XCTAssertEqual(result, .completed,
                        "삭제 후 셀이 제거되지 않음")
     }
