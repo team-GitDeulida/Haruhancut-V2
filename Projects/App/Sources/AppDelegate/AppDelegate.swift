@@ -47,7 +47,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // AppLifeCycle
         registerDependencies()
         
-        
         // Firebase
         FirebaseConfiguration.shared.setLoggerLevel(.error)
         FirebaseApp.configure()

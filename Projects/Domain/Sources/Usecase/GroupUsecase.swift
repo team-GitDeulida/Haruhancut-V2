@@ -12,6 +12,7 @@ import UIKit
 enum DomainError: Error {
     case missingGroupId
     case missingDomainSession
+    case userNotFound
 }
 
 public protocol GroupUsecaseProtocol {

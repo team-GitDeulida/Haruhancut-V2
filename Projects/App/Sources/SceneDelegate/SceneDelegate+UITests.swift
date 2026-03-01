@@ -11,24 +11,23 @@ import Domain
 
 extension SceneDelegate {
     func configureForUITests() {
-        let arguments = ProcessInfo.processInfo.arguments
-        guard arguments.contains("-UITest") else { return }
+        let enviroment = ProcessInfo.processInfo.environment
+        guard let uid = enviroment["TEST_USER_UID"] else { return }
+        
+        let authUsecase = DIContainer.shared.resolve(AuthUsecaseProtocol.self)
         let userSession = DIContainer.shared.resolve(UserSession.self)
+        let groupSession = DIContainer.shared.resolve(GroupSession.self)
         
-        var uid: String?
-        var hasGroup = false
+        // 1. 테스트 시작 시 세션 초기화
+        userSession.clear()
+        groupSession.clear()
+        Logger.d("테스트 시작: 기존 세션 초기화")
         
-        if let index = arguments.firstIndex(of: "-MockUID"),
-           arguments.count > index + 1 {
-            uid = arguments[index + 1]
-        }
-        
-        if arguments.contains("-HasGroup") {
-            hasGroup = true
-        }
-        
-        if let uid {
-            userSession.mockLogin(uid: uid, hasGroup: hasGroup)
-        }
+        // 2. 테스트 유저 주입
+        authUsecase.bootstrapUserSession(uid: uid)
+            .subscribe()
+            .disposed(by: disposeBag)
     }
 }
+
+

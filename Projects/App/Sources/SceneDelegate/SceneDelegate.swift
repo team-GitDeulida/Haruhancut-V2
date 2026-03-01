@@ -9,9 +9,11 @@ import UIKit
 import Coordinator
 import Domain
 import KakaoSDKAuth
+import RxSwift
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
+    let disposeBag = DisposeBag()
     var window: UIWindow?
     var appCoordinator: AppCoordinator?
 
@@ -46,11 +48,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         
+        guard let url = URLContexts.first?.url else { return }
+        
         // 카카오 로그인
-        if let url = URLContexts.first?.url {
-            if (AuthApi.isKakaoTalkLoginUrl(url)) {
-                _ = AuthController.rx.handleOpenUrl(url: url)
-            }
+        if AuthApi.isKakaoTalkLoginUrl(url) {
+            _ = AuthController.rx.handleOpenUrl(url: url)
         }
     }
 

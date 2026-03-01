@@ -59,6 +59,33 @@ extension User {
              isPushEnabled: true
         )
     }
+    
+    static var mockUser: User {
+        User(uid: "ea0PjmlvbvYjD2IRAU0vyrq6hz42",
+             registerDate: .now,
+             loginPlatform: .apple,
+             nickname: "애플동",
+             profileImageURL: "https://firebasestorage.googleapis.com:443/v0/b/haruhancut-kor.firebasestorage.app/o/users%2Fea0PjmlvbvYjD2IRAU0vyrq6hz42%2Fprofile.jpg?alt=media&token=2944dd6f-c427-4dd5-a635-601a2fbf0c51",
+             fcmToken: "eG_Jsw***",
+             birthdayDate: .now,
+             gender: .other,
+             isPushEnabled: true,
+             groupId: "-OT12dNjZiv2ZddIVFLT"
+        )
+    }
+    
+    static var mockUser2: User {
+        User(uid: "T9RQRMJQOeUl8pb52y1SEfpS7nj1",
+             registerDate: .now,
+             loginPlatform: .kakao,
+             nickname: "Index",
+             profileImageURL: nil,
+             birthdayDate: .now,
+             gender: .other,
+             isPushEnabled: true,
+             groupId: "-Okw4Mg5pfc9QfqySuEA"
+        )
+    }
 }
 
 extension User: CustomStringConvertible {
@@ -99,57 +126,8 @@ extension User: CustomStringConvertible {
 
 // MARK: - User Session
 public typealias UserSession = SessionContext<User>
-/*
-public struct SessionUser: Codable, Equatable, CustomStringConvertible {
-    public var userId: String
-    public var groupId: String?
-    public var nickname: String
-    public var profileImageURL: String?
-    public var fcmToken: String?
-    public var description: String {
-        """
-        
-        SessionUser(
-        - userId:          \(userId),
-        - groupId:         \(groupId ?? "nil"),
-        - nickname:        \(nickname),
-        - profileImageURL: \(profileImageURL ?? "nil"),
-        - fcmToken:        \(fcmToken ?? "nil")
-        )
-        """
-    }
 
-    public init(
-        userId: String,
-        groupId: String?,
-        nickname: String,
-        profileImageURL: String?,
-        fcmToken: String?
-    ) {
-        self.userId = userId
-        self.groupId = groupId
-        self.nickname = nickname
-        self.profileImageURL = profileImageURL
-        self.fcmToken = fcmToken
-    }
-
-    public init(user: User) {
-        self.userId = user.uid
-        self.groupId = user.groupId
-        self.nickname = user.nickname
-        self.profileImageURL = user.profileImageURL
-        self.fcmToken = user.fcmToken
-    }
-}
- */
-
-//extension User {
-//    public func toSession() -> SessionUser {
-//        return SessionUser(user: self)
-//    }
-//}
-
-
+// == User Session
 public extension SessionContext where Model == User {
     var userId: String? { session?.uid }
     var groupId: String? { session?.groupId }
@@ -157,15 +135,5 @@ public extension SessionContext where Model == User {
     var profileImageURL: String? { session?.profileImageURL }
     var fcmToken: String? { session?.fcmToken }
     var hasGroup: Bool { groupId != nil }
-    func mockLogin(uid: String, hasGroup: Bool) {
-        let sessionUser = SessionUser(
-            userId: uid,
-            groupId: hasGroup ? "TEST_GROUP_ID" : nil,
-            nickname: "UITestUser",
-            profileImageURL: nil,
-            fcmToken: nil
-        )
-        
-        update(sessionUser)
-    }
 }
+

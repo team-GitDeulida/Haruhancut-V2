@@ -35,3 +35,13 @@ public extension UIView {
         }
     }
 }
+
+// button.uiTestID(UITestID.Home.cameraButton)
+public extension UIView {
+    @discardableResult
+    func uiTestID(_ id: String) -> Self {
+        // self.isAccessibilityElement = true
+        self.accessibilityIdentifier = id
+        return self
+    }
+}
