@@ -134,20 +134,20 @@ private extension AppCoordinator {
         userSession.hasSession &&
         (isUITest || Auth.auth().currentUser != nil)
         
-        // 1️⃣ 로그인 안 됨
+        // 1. 로그인 안 됨
         guard isLoggedIn else {
             startLoginFlowCoordinator()
             return
         }
 
-        // 2️⃣ 로그인 됐는데 그룹 없음
+        // 2. 로그인 됐는데 그룹 없음
         guard userSession.hasGroup else {
             startGroupFlowCoordinator()
             print("그룹 플로우")
             return
         }
 
-        // 3️⃣ 로그인 + 그룹 있음
+        // 3. 로그인 + 그룹 있음
         startHomeFlowCoordinator()
     }
     
