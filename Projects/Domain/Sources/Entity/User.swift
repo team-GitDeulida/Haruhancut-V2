@@ -59,33 +59,6 @@ extension User {
              isPushEnabled: true
         )
     }
-    
-    static var mockUser: User {
-        User(uid: "ea0PjmlvbvYjD2IRAU0vyrq6hz42",
-             registerDate: .now,
-             loginPlatform: .apple,
-             nickname: "애플동",
-             profileImageURL: "https://firebasestorage.googleapis.com:443/v0/b/haruhancut-kor.firebasestorage.app/o/users%2Fea0PjmlvbvYjD2IRAU0vyrq6hz42%2Fprofile.jpg?alt=media&token=2944dd6f-c427-4dd5-a635-601a2fbf0c51",
-             fcmToken: "eG_Jsw***",
-             birthdayDate: .now,
-             gender: .other,
-             isPushEnabled: true,
-             groupId: "-OT12dNjZiv2ZddIVFLT"
-        )
-    }
-    
-    static var mockUser2: User {
-        User(uid: "T9RQRMJQOeUl8pb52y1SEfpS7nj1",
-             registerDate: .now,
-             loginPlatform: .kakao,
-             nickname: "Index",
-             profileImageURL: nil,
-             birthdayDate: .now,
-             gender: .other,
-             isPushEnabled: true,
-             groupId: "-Okw4Mg5pfc9QfqySuEA"
-        )
-    }
 }
 
 extension User: CustomStringConvertible {
