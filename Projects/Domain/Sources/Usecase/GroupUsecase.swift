@@ -30,7 +30,7 @@ public protocol GroupUsecaseProtocol {
     func addComment(post: Post, text: String) -> Single<Void>
     func deleteComment(post: Post, commentId: String) -> Single<Void>
     func uploadImageAndUploadPost(image: UIImage) -> Observable<Void>
-    func deletePost(post: Post) -> Single<Void>
+    func deletePostAndReload(post: Post) -> Observable<Void>
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
@@ -142,14 +142,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let path = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)/comments/\(commentId)"
         return self.groupRepository.addComment(path: path, value: newComment)
     }
-    
-    /// Deletes a comment from the specified post in the current user's group.
-    ///
-    /// If the current user has no `groupId` in session, the call is a no-op and completes without error.
-    /// - Parameters:
-    ///   - post: The post containing the comment; `post.createdAt` and `post.postId` are used to build the deletion path.
-    ///   - commentId: The identifier of the comment to delete.
-    /// - Returns: `Void` when the deletion completes successfully.
+
     public func deleteComment(post: Post, commentId: String) -> Single<Void> {
         guard let groupId = userSession.groupId else {
             return .error(DomainError.missingDomainSession)
@@ -160,9 +153,6 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return self.groupRepository.deleteComment(path: path)
     }
     
-    /// Uploads an image, creates a post that references the uploaded image, and refreshes the group's cached data.
-    /// - Parameter image: The image to upload and attach to the new post.
-    /// - Returns: `Void` if the upload, post creation, and group refresh complete successfully; emits an error otherwise.
     public func uploadImageAndUploadPost(image: UIImage) -> Observable<Void> {
         guard let userId = userSession.userId,
               let nickname = userSession.nickname,
@@ -201,7 +191,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             }
     }
     
-    public func deletePost(post: Post) -> Single<Void> {
+    public func deletePostAndReload(post: Post) -> Observable<Void> {
         guard let groupId = userSession.groupId else {
             return .deferred { .error(DomainError.missingDomainSession) }
         }
@@ -214,6 +204,10 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             .catch { _ in .just(()) }   // 스토리지 삭제 실패는 무시하고 계속 진행
             .flatMap {
                 self.groupRepository.deleteValue(path: dbPath)
+            }.asObservable()
+            .flatMap { _ in
+                self.loadAndFetchGroup()
             }
+            .mapToVoid()
     }
 }

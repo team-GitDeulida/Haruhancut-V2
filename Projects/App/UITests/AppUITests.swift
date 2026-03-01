@@ -23,13 +23,19 @@ final class AppUITests: XCTestCase {
         super.tearDown()
     }
     
-    //    func test_app_launch() {
-    //        // 앱이 정상적으로 실행되는지 확인
-    //        XCTAssertTrue(app.state == .runningForeground)
-    //        sleep(5)
-    //    }
+    func test_app_launch() {
+        // 앱이 정상적으로 실행되는지 확인
+        XCTAssertTrue(app.state == .runningForeground)
+        sleep(5)
+    }
     
-    func test_home_upload() {
+    func test_home_upload_and_delete_flow() {
+        uploadPost()
+        deletePost()
+    }
+    
+    // 업로드
+    func uploadPost() {
         
         // 1. 초기 피드 접근 및 카운트 저장
 //        let feedCollection = app.scrollViews[UITestID.Feed.collectionView]
@@ -83,6 +89,53 @@ final class AppUITests: XCTestCase {
         
         // 5호 타입아웃
         sleep(5)
+    }
+    
+    // 삭제
+    func deletePost() {
+        
+        // 0. 홈 화면 로딩 확인 & 카메라 버튼 찾기 및 클릭
+        let cameraButton = app.buttons[UITestID.Feed.cameraButton]
+        XCTAssertTrue(cameraButton.waitForExistence(timeout: 5), "카메라 모양 버튼이 보이지 않음")
+        
+        // 1. 피드 로딩 대기
+        /*
+        let feedCollection = app.scrollViews.firstMatch
+        XCTAssertTrue(feedCollection.waitForExistence(timeout: 10),
+                      "피드 컬렉션이 보이지 않음")
+         */
+        let feedCollection = app.collectionViews[UITestID.Feed.collectionView]
+            XCTAssertTrue(feedCollection.waitForExistence(timeout: 10),
+                          "피드 컬렉션이 보이지 않음")
+        
+        // 최소 1개 이상 셀 존재 확인
+        XCTAssertGreaterThan(feedCollection.cells.count,
+                                 0,
+                                 "삭제 테스트를 위한 셀이 없음")
+        
+        // 초기 셀 카운트 개수
+        let initialCount = feedCollection.cells.count
+        
+        // 첫번째 셀 롱프레스
+        let firstCell = feedCollection.cells.element(boundBy: 0)
+            XCTAssertTrue(firstCell.exists, "첫 번째 셀이 존재하지 않음")
+        firstCell.press(forDuration: 1.0)
+        
+        // 삭제 버튼 확인
+        let deleteButton = app.alerts.buttons["삭제"]
+            XCTAssertTrue(deleteButton.waitForExistence(timeout: 3),
+                          "삭제 확인 알림이 나타나지 않음")
+        deleteButton.tap()
+        
+        // 셀 감소 확인
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "count == %d", initialCount - 1),
+            object: feedCollection.cells
+        )
+        
+        let result = XCTWaiter().wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(result, .completed,
+                       "삭제 후 셀이 제거되지 않음")
     }
 }
 
