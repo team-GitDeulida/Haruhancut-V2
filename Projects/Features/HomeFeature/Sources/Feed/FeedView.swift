@@ -6,6 +6,7 @@
 
 import UIKit
 import DSKit
+import Core
 
 final class FeedView: UIView {
     
@@ -36,6 +37,7 @@ final class FeedView: UIView {
         button.tintColor = .mainWhite
         button.setPreferredSymbolConfiguration(UIImage.SymbolConfiguration(pointSize: 70.scaled), forImageIn: .normal)
         button.imageView?.contentMode = .scaleAspectFit
+        button.uiTestID(UITestID.Feed.cameraButton)
         return button
     }()
     
@@ -69,6 +71,8 @@ final class FeedView: UIView {
             self.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
+        
+        collectionView.accessibilityIdentifier = UITestID.Feed.collectionView
     }
 
     // MARK: - Constraints

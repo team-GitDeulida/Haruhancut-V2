@@ -39,6 +39,11 @@ public protocol AuthUsecaseProtocol {
     func generateFcmToken() -> Single<String>
     func syncFcmIfNeeded() -> Single<Void>
     func loadAndFetchUser() -> Observable<User>
+
+    // MARK: - Test
+    #if DEBUG
+    func bootstrapUserSession(uid: String) -> Single<User>
+    #endif
 }
 
 public final class AuthUsecaseImpl: AuthUsecaseProtocol {
@@ -240,3 +245,21 @@ extension AuthUsecaseImpl {
             .map { $0.element }
     }
 }
+
+// MARK: - Test
+#if DEBUG
+extension AuthUsecaseImpl {
+    public func bootstrapUserSession(uid: String) -> Single<User> {
+        repository.fetchUser(uid: uid) // Single<User?>
+            .flatMap { user -> Single<User> in
+                guard let user = user else {
+                    return .error(DomainError.userNotFound)
+                }
+                return .just(user)
+            }
+            .do(onSuccess: { [weak self] user in
+                self?.userSession.update(user)
+            })
+    }
+}
+#endif

@@ -99,57 +99,8 @@ extension User: CustomStringConvertible {
 
 // MARK: - User Session
 public typealias UserSession = SessionContext<User>
-/*
-public struct SessionUser: Codable, Equatable, CustomStringConvertible {
-    public var userId: String
-    public var groupId: String?
-    public var nickname: String
-    public var profileImageURL: String?
-    public var fcmToken: String?
-    public var description: String {
-        """
-        
-        SessionUser(
-        - userId:          \(userId),
-        - groupId:         \(groupId ?? "nil"),
-        - nickname:        \(nickname),
-        - profileImageURL: \(profileImageURL ?? "nil"),
-        - fcmToken:        \(fcmToken ?? "nil")
-        )
-        """
-    }
 
-    public init(
-        userId: String,
-        groupId: String?,
-        nickname: String,
-        profileImageURL: String?,
-        fcmToken: String?
-    ) {
-        self.userId = userId
-        self.groupId = groupId
-        self.nickname = nickname
-        self.profileImageURL = profileImageURL
-        self.fcmToken = fcmToken
-    }
-
-    public init(user: User) {
-        self.userId = user.uid
-        self.groupId = user.groupId
-        self.nickname = user.nickname
-        self.profileImageURL = user.profileImageURL
-        self.fcmToken = user.fcmToken
-    }
-}
- */
-
-//extension User {
-//    public func toSession() -> SessionUser {
-//        return SessionUser(user: self)
-//    }
-//}
-
-
+// == User Session
 public extension SessionContext where Model == User {
     var userId: String? { session?.uid }
     var groupId: String? { session?.groupId }
@@ -158,3 +109,4 @@ public extension SessionContext where Model == User {
     var fcmToken: String? { session?.fcmToken }
     var hasGroup: Bool { groupId != nil }
 }
+

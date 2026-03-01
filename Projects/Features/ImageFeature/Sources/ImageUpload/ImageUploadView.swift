@@ -6,6 +6,7 @@
 
 import UIKit
 import DSKit
+import Core
 
 final class ImageUploadView: UIView {
     
@@ -31,6 +32,7 @@ final class ImageUploadView: UIView {
     // 이미지 업로드 버튼
     lazy var uploadButton: HCUploadButton = {
         let button = HCUploadButton(title: "업로드")
+        button.uiTestID(UITestID.Feed.uploadButton)
         return button
     }()
 

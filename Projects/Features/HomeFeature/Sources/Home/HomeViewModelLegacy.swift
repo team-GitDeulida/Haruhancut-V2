@@ -5,7 +5,7 @@
 //  Created by 김동현 on 1/16/26.
 //
 // https://ios-development.tistory.com/872
-
+/*
 import Foundation
 import HomeFeatureInterface
 import RxSwift
@@ -240,3 +240,4 @@ public final class HomeViewModelLegacy: HomeViewModelType {
 //                }
 //            )
 //            .disposed(by: disposeBag)
+*/

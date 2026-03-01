@@ -9,9 +9,11 @@ import UIKit
 import Coordinator
 import Domain
 import KakaoSDKAuth
+import RxSwift
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
+    let disposeBag = DisposeBag()
     var window: UIWindow?
     var appCoordinator: AppCoordinator?
 
@@ -33,6 +35,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // 5. AppCoordinator 생성
         let appCoordinator = AppCoordinator(navigationController: navigationController)
         self.appCoordinator = appCoordinator
+        self.configureForUITests()
         appCoordinator.start()
 
         // 4. navigationController로 window의 root view controller를 설정
@@ -45,11 +48,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         
+        guard let url = URLContexts.first?.url else { return }
+        
         // 카카오 로그인
-        if let url = URLContexts.first?.url {
-            if (AuthApi.isKakaoTalkLoginUrl(url)) {
-                _ = AuthController.rx.handleOpenUrl(url: url)
-            }
+        if AuthApi.isKakaoTalkLoginUrl(url) {
+            _ = AuthController.rx.handleOpenUrl(url: url)
         }
     }
 
