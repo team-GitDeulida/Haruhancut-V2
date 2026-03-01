@@ -25,7 +25,12 @@ extension SceneDelegate {
         
         // 2. 테스트 유저 주입
         authUsecase.bootstrapUserSession(uid: uid)
-            .subscribe()
+            .subscribe(onSuccess: { user in
+                Logger.d("테스트 유저 부트스트랩 성공: \(user.uid)")
+            }, onFailure: { error in
+                Logger.d("⚠️ 테스트 유저 부트스트랩 실패: \(error)")
+                assertionFailure("UI 테스트 사용자 설정 실패 - UID: \(uid)")
+            })
             .disposed(by: disposeBag)
     }
 }
