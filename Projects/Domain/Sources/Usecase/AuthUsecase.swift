@@ -245,6 +245,7 @@ extension AuthUsecaseImpl {
 }
 
 // MARK: - Test
+#if DEBUG
 extension AuthUsecaseImpl {
     public func bootstrapUserSession(uid: String) -> Single<User> {
         repository.fetchUser(uid: uid) // Single<User?>
@@ -259,3 +260,4 @@ extension AuthUsecaseImpl {
             })
     }
 }
+#endif
