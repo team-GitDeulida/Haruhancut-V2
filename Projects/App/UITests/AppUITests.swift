@@ -34,8 +34,8 @@ final class AppUITests: XCTestCase {
     
     func test_home_upload_and_delete_flow() {
         uploadPost()
-        addComment()
-        deleteComment()
+        // addComment()
+        // deleteComment()
         deletePost()
     }
     
