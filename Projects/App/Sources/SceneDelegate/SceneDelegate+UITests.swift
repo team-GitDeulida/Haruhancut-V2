@@ -11,8 +11,8 @@ import Domain
 
 extension SceneDelegate {
     func configureForUITests() {
-        let enviroment = ProcessInfo.processInfo.environment
-        guard let uid = enviroment["TEST_USER_UID"] else { return }
+        let environment = ProcessInfo.processInfo.environment
+        guard let uid = environment["TEST_USER_UID"] else { return }
         
         let authUsecase = DIContainer.shared.resolve(AuthUsecaseProtocol.self)
         let userSession = DIContainer.shared.resolve(UserSession.self)
