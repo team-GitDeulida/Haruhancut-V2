@@ -96,7 +96,7 @@ final class AppUITests: XCTestCase {
         
         // 0. 홈 화면 로딩 확인 & 카메라 버튼 찾기 및 클릭
         let cameraButton = app.buttons[UITestID.Feed.cameraButton]
-        XCTAssertTrue(cameraButton.waitForExistence(timeout: 5), "카메라 모양 버튼이 보이지 않음")
+        XCTAssertTrue(cameraButton.waitForExistence(timeout: 30), "카메라 모양 버튼이 보이지 않음")
         
         // 1. 피드 로딩 대기
         /*

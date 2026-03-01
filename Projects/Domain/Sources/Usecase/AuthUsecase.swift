@@ -41,7 +41,9 @@ public protocol AuthUsecaseProtocol {
     func loadAndFetchUser() -> Observable<User>
 
     // MARK: - Test
+    #if DEBUG
     func bootstrapUserSession(uid: String) -> Single<User>
+    #endif
 }
 
 public final class AuthUsecaseImpl: AuthUsecaseProtocol {
