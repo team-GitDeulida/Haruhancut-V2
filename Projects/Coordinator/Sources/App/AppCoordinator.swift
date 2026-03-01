@@ -124,7 +124,12 @@ private extension AppCoordinator {
         Auth.auth().currentUser != nil
          */
         
+        #if DEBUG
         let isUITest = ProcessInfo.processInfo.arguments.contains("-UITest")
+        #else
+        let isUITest = false
+        #endif
+        
         let isLoggedIn =
         userSession.hasSession &&
         (isUITest || Auth.auth().currentUser != nil)
