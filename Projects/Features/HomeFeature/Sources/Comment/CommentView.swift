@@ -7,6 +7,7 @@
 import UIKit
 import Domain
 import DSKit
+import Core
 
 public final class CommentView: UIView {
     
@@ -26,6 +27,7 @@ public final class CommentView: UIView {
         tv.register(CommentCell.self, forCellReuseIdentifier: CommentCell.reuseIdentifier)
         tv.separatorStyle = .none /// 셀 사이의 구분선(separator) 을 제거
         tv.backgroundColor = .clear
+        tv.uiTestID(UITestID.Comment.tableView)
         return tv
     }()
     

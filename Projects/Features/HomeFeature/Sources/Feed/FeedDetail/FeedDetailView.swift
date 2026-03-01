@@ -8,6 +8,7 @@ import UIKit
 import DSKit
 import Domain
 import Kingfisher
+import Core
 
 final class FeedDetailView: UIView {
     
@@ -30,6 +31,7 @@ final class FeedDetailView: UIView {
     
     lazy var commentButton: HCCommentButton = {
         let button = HCCommentButton(image: UIImage(systemName: "message")!, count: 0)
+        button.uiTestID(UITestID.FeedDetail.commentButton)
         return button
     }()
 
