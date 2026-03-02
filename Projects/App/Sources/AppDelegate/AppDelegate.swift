@@ -54,6 +54,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // fcm(MessagingDelegate), fcm -> session save
         Messaging.messaging().delegate = self
         
+        // 알림 권한 호출
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            guard granted else { return }
+            
+            DispatchQueue.main.async {
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+        }
+        
         // Kakao
         if let nativeAppKey: String = Bundle.main.infoDictionary?["KAKAO_NATIVE_APP_KEY"] as? String {
             RxKakaoSDK.initSDK(appKey: nativeAppKey, loggingEnable: false)

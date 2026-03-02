@@ -63,10 +63,13 @@ public final class ProfileCoordinator: Coordinator {
             }
         }
         
-        
         // 설정 버튼
         profile.vm.onSettingButtonTapped = { [weak self] in
-            print("설정 트리거")
+            guard let self = self else { return }
+            var setting = builder.makeSetting()
+            
+            // 모든 설정 세팅 끝난 후 push
+            self.navigationController.pushViewController(setting.vc, animated: true)
         }
         
         // 모든 세팅 끝난 후 push

@@ -90,4 +90,8 @@ public final class AuthRepositoryImpl: AuthRepositoryProtocol {
     public func generateFcmToken() -> Single<String> {
         return firebaseAuthManager.generateFcmToken()
     }
+    
+    public func signOut() -> Single<Void> {
+        return firebaseAuthManager.signOut()
+    }
 }

@@ -116,6 +116,7 @@ public protocol FirebaseAuthManagerProtocol {
     // 유저 삭제 (Auth + DB)
     func deleteUser(uid: String) -> Single<Void>
     func patchUser(uid: String, fields: [String: Any]) -> Single<Void>       // patch
+    func signOut() -> Single<Void>
     
     
     // MARK: - 그룹관련
@@ -430,6 +431,19 @@ extension FirebaseAuthManager {
                         single(.success(()))
                     }
                 }
+            return Disposables.create()
+        }
+    }
+    
+    public func signOut() -> Single<Void> {
+        return Single.create { single in
+            do {
+                try Auth.auth().signOut()
+                single(.success(()))
+            } catch {
+                single(.failure(FirebaseError.unknown(error)))
+            }
+            
             return Disposables.create()
         }
     }

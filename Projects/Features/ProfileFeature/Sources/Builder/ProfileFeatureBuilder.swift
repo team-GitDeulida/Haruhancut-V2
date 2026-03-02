@@ -12,6 +12,7 @@ import Domain
 
 public protocol ProfileFeatureBuildable {
     func makeProfile() -> ProfilePresentable
+    func makeSetting() -> SettingPresentable
 }
 
 public final class ProfileFeatureBuilder {
@@ -27,6 +28,13 @@ extension ProfileFeatureBuilder: ProfileFeatureBuildable {
                                   authUsecase: authUsecase,
                                   groupUsecase: gropUsecase)
         let vc = ProfileViewController(viewModel: vm)
+        return (vc, vm)
+    }
+    
+    public func makeSetting() -> SettingPresentable {
+        @Dependency var authUsecase: AuthUsecaseProtocol
+        let vm = SettingViewModel(authUsecase: authUsecase)
+        let vc = SettingViewController(settingViewModel: vm)
         return (vc, vm)
     }
 }

@@ -14,6 +14,7 @@ public protocol AuthRepositoryProtocol {
     func loginWithKakao() -> Single<String>
     func loginWithApple() -> Single<(String, String)>
     func authenticateUser(providerID: String, idToken: String, rawNonce: String?) -> Single<String>
+    func signOut() -> Single<Void>
     
     // MARK: - User
     func registerUserToRealtimeDatabase(user: User) -> Single<User>

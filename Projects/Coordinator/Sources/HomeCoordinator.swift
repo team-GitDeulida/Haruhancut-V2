@@ -29,17 +29,6 @@ public final class HomeCoordinator: NSObject, Coordinator  {
         let builder = HomeFeatureBuilder() // (vc, vm) 리턴
         var home = builder.makeHome()
         
-        home.vm.onLogoutTapped = { [weak self] in
-            guard let self = self else { return }
-            
-            // 로그인 화면으로 이동
-            (self.parentCoordinator as? AppCoordinator)?
-                .logoutWithRotation()
-            
-            // HomeCoordinator 종료
-            self.parentCoordinator?.childDidFinish(self)
-        }
-        
         // 프로필은 홈 자식이 아니므로 코디네이터를 따로 둠(poppable)
         home.vm.onProfileTapped = { [weak self] in
             guard let self = self else { return }

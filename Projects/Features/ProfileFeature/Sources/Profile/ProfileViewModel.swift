@@ -43,6 +43,19 @@ final class ProfileViewModel: ProfileViewModelType {
     
     func transform(input: Input) -> Output {
         
+        // MARK: - Coordinator
+        input.onImageTapped
+            .bind(with: self, onNext: { owner, post in
+                owner.onImageTapped?(post)
+            })
+            .disposed(by: disposeBag)
+        
+        input.onSettingButtonTapped
+            .bind(with: self, onNext: { owner, _ in
+                owner.onSettingButtonTapped?()
+            })
+            .disposed(by: disposeBag)
+        
         // 유저
         let user = authUsecase
             .loadAndFetchUser()
@@ -73,28 +86,8 @@ final class ProfileViewModel: ProfileViewModelType {
                     .sorted { $0.createdAt > $1.createdAt }
             }
             .asDriver(onErrorJustReturn: [])
-
-        
-        // MARK: - Coordinator
-        input.onImageTapped
-            .bind(with: self, onNext: { owner, post in
-                owner.onImageTapped?(post)
-            })
-            .disposed(by: disposeBag)
-        
-        input.onSettingButtonTapped
-            .bind(with: self, onNext: { owner, _ in
-                owner.onSettingButtonTapped?()
-            })
-            .disposed(by: disposeBag)
         
         return Output(user: user.asDriver(onErrorDriveWith: .empty()),
                       myPosts: myPosts)
     }
 }
-
-
-
-
-
-

@@ -44,6 +44,7 @@ extension AppDelegate {
         // usecase
         let authUseCase = AuthUsecaseImpl(authRepository: authRepository,
                                           userSession: userSession,
+                                          groupSession: groupSession,
                                           fcmTokenStore: fcmTokenStore)
         DIContainer.shared.register(AuthUsecaseProtocol.self, dependency: authUseCase)
         
