@@ -17,13 +17,10 @@ import UIKit
 public final class FeedDetailViewModel: FeedDetailViewModelType {
     
     // MARK: - Coordinator Trigger
-    public var onCommentTapped: (() -> Void)?
+    public var onCommentTapped: ((Post) -> Void)?
     public var onImagePreviewTapped: ((String) -> Void)?
     
     @Dependency private var userSession: UserSession
-    public var currentPost: Post {
-        postRelay.value
-    }
     private let groupUsecase: GroupUsecaseProtocol
     private let disposeBag = DisposeBag()
     private let postRelay: BehaviorRelay<Post>
@@ -36,6 +33,7 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
     }
     
     public struct Output {
+        let post: Driver<Post>
         let commentCount: Driver<Int>
     }
     
@@ -43,24 +41,24 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
         self.groupUsecase = groupUsecase
         self.postRelay = BehaviorRelay(value: post)
     }
-    
 
     public func transform(input: Input) -> Output {
         
+        // MARK: - Coordinator
         input.imageTapped
             .bind(with: self, onNext: { owner, _ in
-                owner.onImagePreviewTapped?(owner.currentPost.imageURL)
+                owner.onImagePreviewTapped?(owner.postRelay.value.imageURL)
             }).disposed(by: disposeBag)
         
         input.commentButtonTapped
-            .bind(with: self, onNext: { owner, _ in
-                owner.onCommentTapped?()
+            .withLatestFrom(postRelay)
+            .bind(with: self, onNext: { owner, post in
+                owner.onCommentTapped?(post)
             }).disposed(by: disposeBag)
         
         let commentCount = postRelay
             .map { $0.comments.count }
             .asDriver(onErrorJustReturn: 0)
-        
         
         input.reload
             .withUnretained(self)
@@ -79,7 +77,8 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
             .bind(to: postRelay)
             .disposed(by: disposeBag)
         
-        return Output(commentCount: commentCount)
+        return Output(post: postRelay.asDriver(),
+                      commentCount: commentCount)
     }
 }
 

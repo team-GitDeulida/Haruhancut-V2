@@ -115,15 +115,6 @@ public final class CommentViewModel {
             }
             .asDriver(onErrorJustReturn: false)
         
-        /*
-         // 성공시만 reload
-         filter { $0 } ==
-         if success == true {
-             emit()
-         }
-         */
-
-        
         return Output(comments: comments,
                       sendResult: sendResult,
                       deleteResult: deleteResult)

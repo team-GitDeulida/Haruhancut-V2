@@ -41,7 +41,7 @@ public final class ProfileCoordinator: Coordinator {
             self.navigationController.pushViewController(feedDetail.vc, animated: true)
             
             // 댓글
-            feedDetail.vm.onCommentTapped = { [weak self] in
+            feedDetail.vm.onCommentTapped = { [weak self] post in
                 guard let self = self else { return }
                 
                 let commentVC = builder.makeComment(post: post)

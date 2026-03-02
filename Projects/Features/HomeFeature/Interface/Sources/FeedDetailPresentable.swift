@@ -8,9 +8,10 @@
 import Foundation
 import Core
 import UIKit
+import Domain
 
 public protocol FeedDetailTrigger {
-    var onCommentTapped: (() -> Void)? { get set }
+    var onCommentTapped: ((Post) -> Void)? { get set }
     var onImagePreviewTapped: ((String) -> Void)? { get set }
 }
 

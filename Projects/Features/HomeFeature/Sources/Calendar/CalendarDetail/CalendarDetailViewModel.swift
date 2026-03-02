@@ -12,6 +12,22 @@ import RxRelay
 import RxCocoa
 import HomeFeatureInterface
 
+/*
+ A.withLatestFrom(B)
+ - A가 이벤트를 발생시킬 때 B의 최근 값을 가져온다
+ - currentIndex가 바뀌는 순간 postRelay의 posts 배열을 가져온다
+ - (index, posts)
+ 
+ combineLatest는 A나 B둘중 하나라도 바뀌면 실행됨
+ withLatestFrom은 A가 바뀔 때만 실행됨
+ */
+/*
+let commentCount = input.currentIndex
+    .withLatestFrom(postsRelay) { index, posts -> Int in
+        guard posts.indices.contains(index) else { return 0 }
+        return posts[index].comments.count
+    }.asDriver(onErrorJustReturn: 0)
+ */
 public final class CalendarDetailViewModel: CalendarDetailViewModelType {
     
     // MARK: - Coordinator Trigger
@@ -45,7 +61,8 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
     }
     
     public func transform(input: Input) -> Output {
-
+        
+        // MARK: - Coordinator
         input.imageTapped
             .bind(with: self, onNext: { owner, post in
                 owner.onImagePreviewTapped?(post.imageURL)
@@ -55,23 +72,6 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
             .bind(with: self, onNext: { owner, post in
                 owner.onCommentTapped?(post)
             }).disposed(by: disposeBag)
-
-        /*
-         A.withLatestFrom(B)
-         - A가 이벤트를 발생시킬 때 B의 최근 값을 가져온다
-         - currentIndex가 바뀌는 순간 postRelay의 posts 배열을 가져온다
-         - (index, posts)
-         
-         combineLatest는 A나 B둘중 하나라도 바뀌면 실행됨
-         withLatestFrom은 A가 바뀔 때만 실행됨
-         */
-        /*
-        let commentCount = input.currentIndex
-            .withLatestFrom(postsRelay) { index, posts -> Int in
-                guard posts.indices.contains(index) else { return 0 }
-                return posts[index].comments.count
-            }.asDriver(onErrorJustReturn: 0)
-         */
         
         // 둘중 하나라도 방출되야 하기떄문에 combineLatest 사용
         let commentCount = Observable
@@ -81,6 +81,7 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
             }
             .asDriver(onErrorJustReturn: 0)
         
+        // 리로드
         input.reload
             .withUnretained(self)
             .flatMap { owner, _ -> Observable<HCGroup> in

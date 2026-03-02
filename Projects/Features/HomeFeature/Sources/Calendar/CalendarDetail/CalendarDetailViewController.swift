@@ -53,7 +53,16 @@ final class CalendarDetailViewController: UIViewController {
     }
     
     private func bindViewModel() {
+        
+        // Notification
+        let reload = NotificationCenter.default.rx
+            .notification(.homeCommentDidChange)
+            .do(onNext: { _ in
+                Logger.d("Notification: 이벤트 받음")
+            })
+            .mapToVoid()
 
+        // 댓글버튼 탭
         let commentTapped = customView.commentButton.rx.tap
             .withUnretained(self)
             .compactMap { owner,  _ -> Post? in
@@ -63,14 +72,6 @@ final class CalendarDetailViewController: UIViewController {
                 }
                 return owner.viewModel.posts[index]
             }
-        
-        // Notification
-        let reload = NotificationCenter.default.rx
-            .notification(.homeCommentDidChange)
-            .do(onNext: { _ in
-                Logger.d("Notification: 이벤트 받음")
-            })
-            .mapToVoid()
         
         let input = CalendarDetailViewModel.Input(
             imageTapped: customView.collectionView.rx.modelSelected(Post.self).asObservable(),

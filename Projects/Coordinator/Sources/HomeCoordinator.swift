@@ -75,7 +75,7 @@ public final class HomeCoordinator: NSObject, Coordinator  {
             var feedDetail = builder.makeFeed(post: post)
             
             // Comment 띄우기
-            feedDetail.vm.onCommentTapped = { [weak self] in
+            feedDetail.vm.onCommentTapped = { [weak self] post in
                 guard let self = self else { return }
                 
                 let commentVC = builder.makeComment(post: post)

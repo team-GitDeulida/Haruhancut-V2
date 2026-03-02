@@ -45,11 +45,11 @@ final class CommentViewController: UIViewController {
             .disposed(by: disposeBag)
         
         // 댓글 전송
-        let sendTap = customView.chattingView.sendButton.rx.tap // ControlEvent<Void>
+        let sendTap = customView.chattingView.sendButton.rx.tap
             .map { [weak self] in
                 self?.customView.chattingView.text ?? ""
-            } // Observable<String>
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) } // Observable<String>
+            }
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .share() // 이벤트를 한 번만 실행하고 여러 구독자에게 공유
         

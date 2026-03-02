@@ -26,7 +26,7 @@ final class FeedDetailViewController: UIViewController, PopableViewController {
     
     init(viewModel: FeedDetailViewModel) {
         self.viewModel = viewModel
-        self.customView = FeedDetailView(post: viewModel.currentPost)
+        self.customView = FeedDetailView()
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -68,6 +68,13 @@ final class FeedDetailViewController: UIViewController, PopableViewController {
             commentButtonTapped: customView.commentButton.rx.tap.asObservable(),
             reload: reload)
         let output = viewModel.transform(input: input)
+        
+        // post 바인딩
+        output.post
+            .drive(with: self, onNext: { owner, post in
+                owner.customView.configure(post: post)
+            })
+            .disposed(by: disposeBag)
         
         // 게시물 업데이트 감지 후 댓글 수 반영을 한다
         output.commentCount

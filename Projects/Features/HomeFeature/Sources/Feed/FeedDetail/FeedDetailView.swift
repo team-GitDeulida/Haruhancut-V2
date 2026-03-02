@@ -12,7 +12,7 @@ import Core
 
 final class FeedDetailView: UIView {
     
-    var post: Post
+    // var post: Post
     
     var currentImageRenderSize: CGSize {
         imageView.bounds.size
@@ -36,12 +36,10 @@ final class FeedDetailView: UIView {
     }()
 
     // MARK: - Initializer
-    init(post: Post) {
-        self.post = post
+    init() {
         super.init(frame: .zero)
         setupUI()
         setupConstraints()
-        configure()
     }
 
     required init?(coder: NSCoder) {
@@ -77,7 +75,7 @@ final class FeedDetailView: UIView {
         ])
     }
     
-    func configure() {
+    func configure(post: Post) {
         let url = URL(string: post.imageURL)
         
         let width = UIScreen.main.bounds.width - 40
