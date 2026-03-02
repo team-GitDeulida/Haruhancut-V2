@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Core
 
 // MARK: - CustomView Template
 public class BaseView: UIView {
@@ -118,6 +119,7 @@ public final class ChattingView: BaseView {
     private let chattingTextView: ChattingTextView = {
         let view = ChattingTextView()
         view.isScrollEnabled = false
+        view.uiTestID(UITestID.Comment.inputTextView)
         return view
     }()
     
@@ -129,6 +131,7 @@ public final class ChattingView: BaseView {
         button.backgroundColor = .hcColor
         button.layer.cornerRadius = 15
         button.clipsToBounds = true
+        button.uiTestID(UITestID.Comment.sendButton)
         return button
     }()
     
