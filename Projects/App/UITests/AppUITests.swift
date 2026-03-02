@@ -29,7 +29,7 @@ final class AppUITests: XCTestCase {
     func test_app_launch() {
         // 앱이 정상적으로 실행되는지 확인
         XCTAssertTrue(app.state == .runningForeground)
-        sleep(5)
+        // sleep(5)
     }
     
     func test_home_upload_and_delete_flow() {
