@@ -34,8 +34,8 @@ final class AppUITests: XCTestCase {
     
     func test_home_upload_and_delete_flow() {
         uploadPost()
-        // addComment()
-        // deleteComment()
+        addComment()
+        deleteComment()
         deletePost()
     }
     
@@ -52,17 +52,33 @@ final class AppUITests: XCTestCase {
         XCTAssertTrue(actionAlbumButton.waitForExistence(timeout: 20), "앨범 버튼이 보이지 않음")
         actionAlbumButton.tap()
         
-        // 2. 앨범 UI 로딩 대기(시스템 UI는 약간의 여유 필요)
-        sleep(2)
-        
-        // 3. 화면에 실제로 터치 가능한(hittable) 이미지 찾기
-        guard let firstPhoto = app.images
+        // 2. 앨범 이미지가 실제로 존재할 때까지 기다림
+        let imagesQuery = app.images
+
+        let imageLoadedPredicate = NSPredicate(format: "count > 0")
+        let imageExpectation = XCTNSPredicateExpectation(
+            predicate: imageLoadedPredicate,
+            object: imagesQuery
+        )
+
+        let waitResult = XCTWaiter().wait(for: [imageExpectation], timeout: 20)
+
+        guard waitResult == .completed else {
+            XCTFail("앨범 이미지 로딩 실패 (사진이 없거나 접근 실패)")
+            return
+        }
+
+        // 3. 실제 hittable 이미지 찾기
+        let firstPhoto = imagesQuery
             .allElementsBoundByIndex
-            .first(where: { $0.isHittable }) else {
+            .first(where: { $0.exists && $0.isHittable })
+
+        guard let photo = firstPhoto else {
             XCTFail("앨범에서 선택 가능한 이미지가 없음")
             return
         }
-        firstPhoto.tap()
+
+        photo.tap()
         
         // 4. 업로드 버튼 찾기 및 클릭
         let uploadButton = app.buttons[UITestID.Feed.uploadButton]
