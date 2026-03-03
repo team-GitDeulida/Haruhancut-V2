@@ -11,6 +11,7 @@ import RxRelay
 import SafariServices
 import Data
 import RxCocoa
+import RxDataSources
 
 final class SettingViewController: UIViewController {
     private let settingViewModel: SettingViewModel
@@ -39,8 +40,8 @@ final class SettingViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setDelegate()
-        bindViewModel()
+        bind()
+        // bindViewModel()
     }
     
     /// 사용자가 알림을 설정 앱에서 끄고 돌아왔을 경우도 감지를 위함
@@ -48,151 +49,248 @@ final class SettingViewController: UIViewController {
         super.viewDidAppear(animated)
 
         // 알림 권한이 꺼졌다면 알림 토글도 꺼짐으로 표시
-        checkNotificationAuthorization { [weak self] isAuthorized in
-            guard let self else { return }
-
-            if !isAuthorized {
-                // 🔥 세션만 변경
-                self.settingViewModel.userSession
-                    .update(\.isPushEnabled, false)
-            }
-
-            DispatchQueue.main.async {
-                self.customView.tableView.reloadData()
-            }
-        }
+//        checkNotificationAuthorization { [weak self] isAuthorized in
+//            guard let self else { return }
+//
+//            if !isAuthorized {
+//                // 🔥 세션만 변경
+//                self.settingViewModel.userSession
+//                    .update(\.isPushEnabled, false)
+//            }
+//
+//            DispatchQueue.main.async {
+//                self.customView.tableView.reloadData()
+//            }
+//        }
     }
     
-    // MARK: - setDelegate
-    private func setDelegate() {
-        customView.tableView.delegate = self
-        customView.tableView.dataSource = self
-    }
-
-    // MARK: - Bindings
-    private func bindViewModel() {
-        
-        let toggleCells = customView.tableView.rx
-            .willDisplayCell
-            .compactMap { cell, indexPath -> SettingCell? in
-                guard let cell = cell as? SettingCell else { return nil }
-                let option = self.customView.sections[indexPath.section].options[indexPath.row]
-                if case .toggle = option {
-                    return cell
-                }
-                return nil
-            }
-            .share()
-        
-        let toggleTapped = customView.tableView.rx
-            .willDisplayCell /// 테이블뷰가 셀을 화면에 표시하려고 할 때 이벤트 발생
-            .compactMap { cell, _ in cell as? SettingCell } /// SettingCell만 찾겠다
-            .flatMapLatest { $0.toggleSwitch.rx.isOn.skip(1) }
-        
-        let input = SettingViewModel.Input(logoutTapped: customView.logoutButton.rx.tap.asObservable(),
-                                           notificationToggleTapped: toggleTapped)
-        
+    func bind() {
+        let viewDidAppear = rx.methodInvoked(#selector(UIViewController.viewDidAppear(_:))).mapToVoid()
+        let toggleTapped = PublishRelay<Bool>()
+        // viewModel
+        let input = SettingViewModel.Input(
+            logoutTapped: customView.logoutButton.rx.tap.asObservable(),
+            notificationToggleTapped: toggleTapped.asObservable())
         let output = settingViewModel.transform(input: input)
         
-        // 상태가 바뀌면 화면에 보이는 토글 셀 업데이트
-        output.notificationState
-            .drive(onNext: { [weak self] isOn in
-                guard let self else { return }
-                self.customView.tableView.visibleCells
-                    .compactMap { $0 as? SettingCell }
-                    .forEach { $0.toggleSwitch.isOn = isOn }
-            })
-            .disposed(by: disposeBag)
-        
-        output.notificationState
-            .drive(with: self, onNext: { owner, isOn in
-                if isOn {
-                    self.checkNotificationAuthorization { isAuthorized in
-                        DispatchQueue.main.async {
-                            if !isAuthorized {
-                                self.showNotificationPermissionAlert()
-                            }
-                        }
-                    }
+        let dataSource = RxTableViewSectionedReloadDataSource<SettingSection>(
+            configureCell: { [weak self] dataSource, tableView, indexPath, item in
+                guard let self = self else { return UITableViewCell() }
+                
+                guard let cell = tableView.dequeueReusableCell(withIdentifier: SettingCell.reuseIdentifier,
+                                                               for: indexPath
+                ) as? SettingCell else {
+                    return UITableViewCell()
                 }
-            })
-            .disposed(by: disposeBag)
-        
-        
-        /*
-        let inut = SettingViewModel.Input(logoutTapped: customView.logoutButton.rx.tap.asObservable(),
-                                          notificationToggleTapped: notificationToggleSubject.asObservable(),
-                                          cellTapped: cellSelectedSubject.asObservable())
-        
-        let output = settingViewModel.transform(input: inut)
-        
-        
-        /// 알림 스위치 탭
-        output.notificationResult
-            .drive(onNext: { isOn in
-                if isOn {
-                    self.checkNotificationAuthorization { isAuthorized in
-                        DispatchQueue.main.async {
-                            if isAuthorized {
-                                /// 알림 권한이 있으면 on
-                                self.settingViewModel.alertOn()
-                            } else {
-                                /// 알림 권한이 없으면 off 유지 + UI 토글 원래대로 되돌리기
-                                self.showNotificationPermissionAlert()
-                                
-                                /// 강제로 토글 false로 되돌림
-                                self.resetNotificationToggleToOff()
-                            }
-                        }
-                    }
-                } else {
-                    /// off일때는 그대로 유지
-                    self.settingViewModel.alertOff()
+                cell.selectionStyle = .none
+                cell.bindeCell(option: item)
+                
+                // toggle 상태 세팅
+                if case .toggle = item {
+                    cell.toggleSwitch.rx
+                        .isOn
+                        .skip(1)
+                        .bind(to: toggleTapped)
+                        .disposed(by: cell.disposeBag)
+                    
+                    output.notificationState
+                        .drive(cell.toggleSwitch.rx.isOn)
+                        .disposed(by: cell.disposeBag)
+                    
                 }
-            })
+                return cell
+        })
+        
+        // 헤더
+        dataSource.titleForHeaderInSection = { dataSource, index in
+            dataSource.sectionModels[index].header
+        }
+        
+        // Section 바인딩
+        Observable.just(customView.sections)
+            .bind(to: customView.tableView.rx.items(dataSource: dataSource))
             .disposed(by: disposeBag)
         
-        /// 셀 선택
-        output.selectionResult
-            .drive(onNext: { [weak self] indexPath in
-                guard let self = self else { return }
-                let option = self.customView.sections[indexPath.section].options[indexPath.row]
-                switch option {
-                case .toggle:
-                    break
-                case .version:
-                    print("버전 정보 보기")
-                case .privacyPolicy:
-                    guard let url = URL(string: Constants.Notion.privatePolicy) else { return }
-                    let safariVC = SFSafariViewController(url: url)
-                    self.present(safariVC, animated: true)
-                case .announce:
-                    guard let url = URL(string: Constants.Notion.announce) else { return }
-                    let safariVC = SFSafariViewController(url: url)
-                    self.present(safariVC, animated: true)
-                case .logout:
-                    print("로그아웃 클릭됨")
-                case .withdraw:
-                    print("회원 탈퇴 클릭됨")
-                    AlertManager.showConfirmation(on: self, title: "회원탈퇴", message: "정말로 탈퇴하시겠습니까?") { [weak self] in
-                        guard let self = self else { return }
-                        let uid = self.settingViewModel.user.uid
-                        
-                        self.settingViewModel.deleteUser(uid: uid)
-                            .drive(onNext: { [weak self] success in
-                                if success {
-                                    self?.coordinator?.startLogin()
-                                } else {
-                                    AlertManager.showError(on: self!, message: "회원 탈퇴에 실패했습니다.")
-                                }
-                            })
-                            .disposed(by: self.disposeBag)
-                    }
-                }
+        output.showPermissionALert
+            .emit(with: self, onNext: { owner, _ in
+                // 알림기능
+                owner.showNotificationPermissionAlert()
             })
             .disposed(by: disposeBag)
-*/
     }
+}
+
+extension SettingViewController {
+    // MARK: - 사용자에게 설정으로 유도하는 알림창
+    func showNotificationPermissionAlert() {
+        let alert = UIAlertController(
+            title: "알림이 비활성화되어 있어요",
+            message: "알림을 받으려면 설정 > 하루한컷에서 접근 권한을 허용해주세요.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default, handler: { _ in
+            self.openAppSettings()
+        }))
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel, handler: nil))
+        present(alert, animated: true, completion: nil)
+    }
+    
+    // MARK: - 설정 앱으로 이동 함수
+    func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString),
+              UIApplication.shared.canOpenURL(url) else { return }
+        UIApplication.shared.open(url, options: [:], completionHandler: nil)
+    }
+}
+
+
+
+/*
+// 셀 선택
+customView.tableView.rx
+    .modelSelected(SettingOption.self)
+    .bind(with: self, onNext: { owner, option in
+        
+    })
+    .disposed(by: disposeBag)
+
+// 토글 이벤트
+customView.tableView.rx
+    .willDisplayCell
+    .compactMap { $0.cell as? SettingCell }
+    .flatMapLatest { $0.toggleSwitch.rx.isOn.skip(1) }
+    .bind(with: self, onNext: { owner, isOn in
+        // owner.settingViewModel.
+        print("토글 이벤트")
+    })
+    .disposed(by: disposeBag)
+*/
+
+
+/*
+// MARK: - Bindings
+private func bindViewModel() {
+    
+    let toggleCells = customView.tableView.rx
+        .willDisplayCell
+        .compactMap { cell, indexPath -> SettingCell? in
+            guard let cell = cell as? SettingCell else { return nil }
+            let option = self.customView.sections[indexPath.section].options[indexPath.row]
+            if case .toggle = option {
+                return cell
+            }
+            return nil
+        }
+        .share()
+    
+    let toggleTapped = customView.tableView.rx
+        .willDisplayCell /// 테이블뷰가 셀을 화면에 표시하려고 할 때 이벤트 발생
+        .compactMap { cell, _ in cell as? SettingCell } /// SettingCell만 찾겠다
+        .flatMapLatest { $0.toggleSwitch.rx.isOn.skip(1) }
+    
+    let input = SettingViewModel.Input(logoutTapped: customView.logoutButton.rx.tap.asObservable(),
+                                       notificationToggleTapped: toggleTapped)
+    
+    let output = settingViewModel.transform(input: input)
+    
+    // 상태가 바뀌면 화면에 보이는 토글 셀 업데이트
+    output.notificationState
+        .drive(onNext: { [weak self] isOn in
+            guard let self else { return }
+            self.customView.tableView.visibleCells
+                .compactMap { $0 as? SettingCell }
+                .forEach { $0.toggleSwitch.isOn = isOn }
+        })
+        .disposed(by: disposeBag)
+    
+    output.notificationState
+        .drive(with: self, onNext: { owner, isOn in
+            if isOn {
+                self.checkNotificationAuthorization { isAuthorized in
+                    DispatchQueue.main.async {
+                        if !isAuthorized {
+                            self.showNotificationPermissionAlert()
+                        }
+                    }
+                }
+            }
+        })
+        .disposed(by: disposeBag)
+    
+    
+    /*
+    let inut = SettingViewModel.Input(logoutTapped: customView.logoutButton.rx.tap.asObservable(),
+                                      notificationToggleTapped: notificationToggleSubject.asObservable(),
+                                      cellTapped: cellSelectedSubject.asObservable())
+    
+    let output = settingViewModel.transform(input: inut)
+    
+    
+    /// 알림 스위치 탭
+    output.notificationResult
+        .drive(onNext: { isOn in
+            if isOn {
+                self.checkNotificationAuthorization { isAuthorized in
+                    DispatchQueue.main.async {
+                        if isAuthorized {
+                            /// 알림 권한이 있으면 on
+                            self.settingViewModel.alertOn()
+                        } else {
+                            /// 알림 권한이 없으면 off 유지 + UI 토글 원래대로 되돌리기
+                            self.showNotificationPermissionAlert()
+                            
+                            /// 강제로 토글 false로 되돌림
+                            self.resetNotificationToggleToOff()
+                        }
+                    }
+                }
+            } else {
+                /// off일때는 그대로 유지
+                self.settingViewModel.alertOff()
+            }
+        })
+        .disposed(by: disposeBag)
+    
+    /// 셀 선택
+    output.selectionResult
+        .drive(onNext: { [weak self] indexPath in
+            guard let self = self else { return }
+            let option = self.customView.sections[indexPath.section].options[indexPath.row]
+            switch option {
+            case .toggle:
+                break
+            case .version:
+                print("버전 정보 보기")
+            case .privacyPolicy:
+                guard let url = URL(string: Constants.Notion.privatePolicy) else { return }
+                let safariVC = SFSafariViewController(url: url)
+                self.present(safariVC, animated: true)
+            case .announce:
+                guard let url = URL(string: Constants.Notion.announce) else { return }
+                let safariVC = SFSafariViewController(url: url)
+                self.present(safariVC, animated: true)
+            case .logout:
+                print("로그아웃 클릭됨")
+            case .withdraw:
+                print("회원 탈퇴 클릭됨")
+                AlertManager.showConfirmation(on: self, title: "회원탈퇴", message: "정말로 탈퇴하시겠습니까?") { [weak self] in
+                    guard let self = self else { return }
+                    let uid = self.settingViewModel.user.uid
+                    
+                    self.settingViewModel.deleteUser(uid: uid)
+                        .drive(onNext: { [weak self] success in
+                            if success {
+                                self?.coordinator?.startLogin()
+                            } else {
+                                AlertManager.showError(on: self!, message: "회원 탈퇴에 실패했습니다.")
+                            }
+                        })
+                        .disposed(by: self.disposeBag)
+                }
+            }
+        })
+        .disposed(by: disposeBag)
+*/
 }
 
 extension SettingViewController {
@@ -283,3 +381,4 @@ extension SettingViewController: UITableViewDelegate {
         cellSelectedSubject.onNext(indexPath)
     }
 }
+*/

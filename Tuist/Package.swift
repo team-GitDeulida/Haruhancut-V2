@@ -85,6 +85,12 @@ let package = Package(
             url: "https://github.com/ReactiveX/RxSwift.git",
             from: "6.9.0"
         ),
+
+        .package(
+            url: "https://github.com/RxSwiftCommunity/RxDataSources.git", 
+            from: "5.0.0"
+        ),
+
         .package(
             url: "https://github.com/airbnb/lottie-ios.git",
             from: "4.6.0"

@@ -6,10 +6,20 @@
 //
 
 import UIKit
+import RxSwift
+import RxDataSources
 
 struct SettingSection {
     let header: String?
-    var options: [SettingOption]
+    var items: [SettingOption]
+}
+
+// MARK: - RxDataSourcs
+extension SettingSection: SectionModelType {
+    init(original: SettingSection, items: [SettingOption]) {
+        self = original
+        self.items = items
+    }
 }
 
 enum SettingOption {
@@ -45,6 +55,12 @@ enum SettingOption {
 }
 
 final class SettingCell: UITableViewCell {
+
+    var disposeBag = DisposeBag()
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        disposeBag = DisposeBag() // 재사용 시 구독 초기화
+    }
     
     // MARK: - UI
     private let leftLabel: UILabel = {

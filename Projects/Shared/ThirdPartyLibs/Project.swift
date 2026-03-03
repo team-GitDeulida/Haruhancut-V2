@@ -18,6 +18,7 @@ let project = Project(
                 .external(name: "RxSwift"),
                 .external(name: "RxCocoa"),
                 .external(name: "RxRelay"),
+                .external(name: "RxDataSources"),
                 // .external(name: "RxTest"),
                 // .external(name: "RxBlocking"),
 

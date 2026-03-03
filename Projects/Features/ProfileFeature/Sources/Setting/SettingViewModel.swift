@@ -5,11 +5,22 @@
 //  Created by 김동현 on 3/2/26.
 //
 
+/*
+ 사용자가 토글을 누름
+         ↓
+ toggleFlow (핵심 로직)
+         ↓
+ (최종상태, alert필요여부)
+         ↓
+ 1️⃣ UI 상태로 보냄
+ 2️⃣ alert Signal로 보냄
+ */
 import RxSwift
 import Domain
 import Core
 import RxCocoa
 import ProfileFeatureInterface
+import UserNotifications
 
 final class SettingViewModel: SettingViewModelType {
     
@@ -22,6 +33,7 @@ final class SettingViewModel: SettingViewModelType {
     @Dependency var groupSession: GroupSession
     
     struct Input {
+        
         /// 로그아웃 버튼 이벤트
         let logoutTapped: Observable<Void>
         
@@ -32,10 +44,25 @@ final class SettingViewModel: SettingViewModelType {
     struct Output {
         // 알림 토글 상태 결과
         let notificationState: Driver<Bool>
+                
+        // 알림 권한 알림창
+        let showPermissionALert: Signal<Void>
     }
     
     init(authUsecase: AuthUsecaseProtocol) {
         self.authUsecase = authUsecase
+    }
+    
+    // 푸시 알림 권한이 허용되어 있는지 확인한다.
+    private func notificationAuthorization() -> Observable<UNAuthorizationStatus> {
+        Observable.create { observer in
+            UNUserNotificationCenter.current()
+                .getNotificationSettings { settings in
+                    observer.onNext(settings.authorizationStatus)
+                    observer.onCompleted()
+                }
+            return Disposables.create()
+        }
     }
     
     func transform(input: Input) -> Output {
@@ -49,43 +76,115 @@ final class SettingViewModel: SettingViewModelType {
             .subscribe()
             .disposed(by: disposeBag)
         
-        // 최초 토글 상태(현재 세션 값)
+        // 1. 최초 화면 토글 상태(현재 세션 값)
         let initialState = Observable.just(userSession.session?.isPushEnabled ?? false)
         
-        // 토글 탭 & 로직 처리 후 결과
-        let afterState = input.notificationToggleTapped
+        // 2. 사용자가 토글을 누를 때
+        // - (최종 토글 상태, alert 필요 여부)
+        let toggleFlow = input.notificationToggleTapped
             .withUnretained(self)
-            .flatMapLatest { owner, isOn -> Observable<Bool> in
+            .flatMapLatest { owner, isOn -> Observable<(Bool, Bool)> in
+                
                 guard let sessionUser = owner.userSession.session else {
-                    return Observable.just(false)
+                    return Observable.just((false, false))
                 }
                 
                 // 1. 기존 값 저장
                 let beforeIsPushEnabled = sessionUser.isPushEnabled
                 
-                // 2. 세션 먼저 변경(낙관적 업데이트)
-                owner.userSession.update(\.isPushEnabled, isOn)
+                // 🔴 OFF → 바로 서버 반영
+                if !isOn {
+                    // 2. 세션 먼저 변경(낙관적 업데이트)
+                    owner.userSession.update(\.isPushEnabled, false)
+                    
+                    // 3. 서버 반영
+                    var updatedUser = sessionUser
+                    updatedUser.isPushEnabled = false
+                    
+                    return owner.authUsecase.updateUser(user: updatedUser)
+                        .map { _ in (false, false) }
+                        .asObservable()
+                        .catch { error in
+                            // 4. 실패 시 롤백
+                            owner.userSession.update(\.isPushEnabled, beforeIsPushEnabled)
+                            return Observable.just((beforeIsPushEnabled, false))
+                        }
+                }
                 
-                // 3. 서버 반영
-                var updatedUser = sessionUser
-                updatedUser.isPushEnabled = isOn
-                
-                return owner.authUsecase.updateUser(user: updatedUser)
-                    .map(\.isPushEnabled)
-                    .asObservable()
-                    .catch { error in
-                        // 4. 실패 시 롤백
-                        owner.userSession.update(\.isPushEnabled, beforeIsPushEnabled)
-                        return Observable.just(beforeIsPushEnabled)
+                // 🟢 ON → 권한 확인
+                return owner.requestIfNeeded() // 권한을 확인한다
+                    .flatMapLatest { granted -> Observable<(Bool, Bool)> in
+                        // 권한 거절
+                        guard granted else {
+                            return .just((false, true)) // false, alert 필요
+                        }
+                        
+                        // 2. 세션 먼저 변경(낙관적 업데이트)
+                        owner.userSession.update(\.isPushEnabled, true)
+                        
+                        // 3. 서버 반영
+                        var updatedUser = sessionUser
+                        updatedUser.isPushEnabled = true
+                        
+                        return owner.authUsecase.updateUser(user: updatedUser)
+                            .map { _ in (true, false) } // 성공 시
+                            .asObservable()
+                            .catch { error in           // 실패시
+                                // 4. 실패 시 롤백
+                                owner.userSession.update(\.isPushEnabled, beforeIsPushEnabled)
+                                return .just((beforeIsPushEnabled, false))
+                            }
                     }
+                    .share()
             }
   
         
-        // merge
+        // merge(UI 상태)
+        // - (최종 토글 상태, alert 필요 여부)에서 최종 토글 상태 꺼냄
         let notificationState = Observable
-            .merge(initialState, afterState)
+            .merge(initialState, toggleFlow.map { $0.0 })
             .asDriver(onErrorJustReturn: false)
+        
+        // alert
+        // - (최종 토글 상태, alert 필요 여부)에서 alert 필요 여부 꺼냄
+        let showPermissionALert = toggleFlow
+            .filter { $0.1 }
+            .mapToVoid()
+            .asSignal(onErrorSignalWith: .empty())
 
-        return Output(notificationState: notificationState)
+        return Output(notificationState: notificationState,
+                      showPermissionALert: showPermissionALert)
+    }
+    
+    
+    func requestIfNeeded() -> Observable<Bool> {
+        Observable.create { observer in
+            UNUserNotificationCenter.current()
+                .getNotificationSettings { settings in
+                    switch settings.authorizationStatus {
+                    // 시스템 팝업 띄움
+                    case .notDetermined:
+                        UNUserNotificationCenter.current()
+                            .requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+                                observer.onNext(granted)
+                                observer.onCompleted()
+                            }
+                    // true
+                    case .authorized:
+                        observer.onNext(true)
+                        observer.onCompleted()
+                        
+                    // false
+                    case .denied:
+                        observer.onNext(false)
+                        observer.onCompleted()
+                        
+                    default:
+                        observer.onNext(false)
+                        observer.onCompleted()
+                    }
+                }
+            return Disposables.create()
+        }
     }
 }

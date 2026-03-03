@@ -14,15 +14,15 @@ final class SettingView: UIView {
     
     // 섹션별 데이터
     lazy var sections = [
-        SettingSection(header: "앱 설정", options: [
+        SettingSection(header: "앱 설정", items: [
             .toggle(title: "알림 설정"), // UserDefaultsManager.shared.loadNotificationEnabled()
         ]),
-        SettingSection(header: "정보", options: [
+        SettingSection(header: "정보", items: [
             .version(title: "버전 정보", detail: "\(appVersion)"),
             .privacyPolicy(title: "개인정보처리방침"),
             .announce(title: "공지사항")
         ]),
-        SettingSection(header: "계정 관리", options: [
+        SettingSection(header: "계정 관리", items: [
             .withdraw(title: "회원 탈퇴")
         ])
     ]
