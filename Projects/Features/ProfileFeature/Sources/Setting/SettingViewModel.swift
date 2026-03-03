@@ -148,8 +148,8 @@ final class SettingViewModel: SettingViewModelType {
                                 return .just((beforeIsPushEnabled, false))
                             }
                     }
-                    .share()
             }
+            .share(replay: 1, scope: .whileConnected)
   
         
         // merge(UI 상태)
