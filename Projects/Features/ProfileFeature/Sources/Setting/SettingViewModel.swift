@@ -183,7 +183,7 @@ final class SettingViewModel: SettingViewModelType {
                                 observer.onCompleted()
                             }
                     // true
-                    case .authorized:
+                    case .authorized, .provisional, .ephemeral:
                         observer.onNext(true)
                         observer.onCompleted()
                         
@@ -192,7 +192,7 @@ final class SettingViewModel: SettingViewModelType {
                         observer.onNext(false)
                         observer.onCompleted()
                         
-                    default:
+                    @unknown default:
                         observer.onNext(false)
                         observer.onCompleted()
                     }
