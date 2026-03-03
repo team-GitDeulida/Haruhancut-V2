@@ -15,7 +15,7 @@ final class SettingView: UIView {
     // 섹션별 데이터
     lazy var sections = [
         SettingSection(header: "앱 설정", items: [
-            .toggle(title: "알림 설정"), // UserDefaultsManager.shared.loadNotificationEnabled()
+            .toggle(title: "알림 설정")
         ]),
         SettingSection(header: "정보", items: [
             .version(title: "버전 정보", detail: "\(appVersion)"),

@@ -108,5 +108,6 @@ public extension SessionContext where Model == User {
     var profileImageURL: String? { session?.profileImageURL }
     var fcmToken: String? { session?.fcmToken }
     var hasGroup: Bool { groupId != nil }
+    var platform: User.LoginPlatform? { session?.loginPlatform }
 }
 

@@ -35,6 +35,7 @@ public protocol AuthUsecaseProtocol {
     func signIn(platform: User.LoginPlatform) -> Single<SignInResult>
     func signUp(user: User, profileImage: UIImage?) -> Single<Void>
     func signOut() -> Single<Void>
+    func deleteUserAuthAndData() -> Single<Void>
     
     // MARK: - FCM
     func generateFcmToken() -> Single<String>
@@ -180,10 +181,30 @@ extension AuthUsecaseImpl {
             }
     }
     
-    
     public func signOut() -> Single<Void> {
         
         return self.repository.signOut()
+            .do(onSuccess: { [weak self] in
+                guard let self = self else { return }
+                self.userSession.clear()
+                self.groupSession.clear()
+            })
+    }
+    
+    public func deleteUserAuthAndData() -> Single<Void> {
+        
+        guard let uid = userSession.userId,
+              let platform = userSession.platform else {
+            return .error(DomainError.missingDomainSession)
+        }
+        
+        return repository.reauthenticate(platform: platform)
+            .flatMap {
+                self.repository.deleteAuthUser()
+            }
+            .flatMap {
+                self.repository.deleteDBUser(uid: uid)
+            }
             .do(onSuccess: { [weak self] in
                 guard let self = self else { return }
                 self.userSession.clear()

@@ -126,6 +126,7 @@ extension SignUpViewModel {
 
                     return self.authUsecase.generateFcmToken()
                         .asObservable()
+                        .catchAndReturn("noToken")
                         .flatMapLatest { token -> Observable<User> in
                             var userWithToken = user
                             userWithToken.fcmToken = token
@@ -141,7 +142,11 @@ extension SignUpViewModel {
                         })
                         .map { Step.finish }
                         .do(onError: { [weak self] error in
-                            self?.errorRelay.accept(error as! LoginError)
+                            if let loginError = error as? LoginError {
+                                self?.errorRelay.accept(loginError)
+                            } else {
+                                self?.errorRelay.accept(.unknown(error))
+                            }
                         })
                         .catchAndReturn(.profile) // 실패 시 현재 단계 유지
 

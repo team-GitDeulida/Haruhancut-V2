@@ -39,6 +39,9 @@ final class SettingViewModel: SettingViewModelType {
         
         /// 알림 토글 이벤트
         let notificationToggleTapped : Observable<Bool>
+        
+        /// 회원탈퇴 버튼 이벤트
+        let withdrawalTapped: Observable<Void>
     }
     
     struct Output {
@@ -68,10 +71,20 @@ final class SettingViewModel: SettingViewModelType {
     func transform(input: Input) -> Output {
         
         // MARK: - Coordinator
+        // 로그아웃
         input.logoutTapped// output안줄거다 owner.authUsecase.signOut()으로 로그아웃 정상처리된다 이대로유지
             .withUnretained(self)
             .flatMapLatest { owner, _ in
                 owner.authUsecase.signOut()
+            }
+            .subscribe()
+            .disposed(by: disposeBag)
+        
+        // 회원탈퇴
+        input.withdrawalTapped
+            .withUnretained(self)
+            .flatMapLatest { owner, _ in
+                return owner.authUsecase.deleteUserAuthAndData()
             }
             .subscribe()
             .disposed(by: disposeBag)
@@ -157,7 +170,7 @@ final class SettingViewModel: SettingViewModelType {
     }
     
     
-    func requestIfNeeded() -> Observable<Bool> {
+    private func requestIfNeeded() -> Observable<Bool> {
         Observable.create { observer in
             UNUserNotificationCenter.current()
                 .getNotificationSettings { settings in

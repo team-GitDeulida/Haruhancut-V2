@@ -49,6 +49,33 @@ public final class AuthRepositoryImpl: AuthRepositoryProtocol {
                                                     rawNonce: rawNonce)
     }
     
+    public func reauthenticate(platform: User.LoginPlatform) -> Single<Void> {
+
+        switch platform {
+
+        case .kakao:
+            return kakaoLoginManager.login()
+                .flatMap { token in
+                    self.firebaseAuthManager.reauthenticate(
+                        providerID: "kakao",
+                        idToken: token,
+                        rawNonce: nil
+                    )
+                }
+
+        case .apple:
+            return appleLoginManager.login()
+                .flatMap { idToken, rawNonce in
+                    self.firebaseAuthManager.reauthenticate(
+                        providerID: "apple",
+                        idToken: idToken,
+                        rawNonce: rawNonce
+                    )
+                }
+        }
+    }
+
+    
     public func registerUserToRealtimeDatabase(user: User) -> Single<User> {
         return firebaseAuthManager
             .registerUserToRealtimeDatabase(user: user)
@@ -58,7 +85,7 @@ public final class AuthRepositoryImpl: AuthRepositoryProtocol {
         return firebaseAuthManager.fetchUser(uid: uid)
             .catch { error in
                 if case LoginError.noUser = error {
-                    return .just(nil)
+                    return .error(LoginError.unknown(error))
                 }
                 return .error(error)
             }
@@ -70,12 +97,12 @@ public final class AuthRepositoryImpl: AuthRepositoryProtocol {
             // MARK:  인프라로 변환 안함 .catch { _ in return .error(LoginError.updateUserError) }
     }
     
-    public func deleteUser(uid: String) -> Single<Void> {
-        return firebaseAuthManager.deleteUser(uid: uid)
-//            .do(onSuccess: { [weak self] in
-//                self?.userSession.clear()
-//            })
-            .map { () }
+    public func deleteAuthUser() -> Single<Void> {
+        return firebaseAuthManager.deleteAuthUser()
+    }
+    
+    public func deleteDBUser(uid: String) -> Single<Void> {
+        return firebaseAuthManager.deleteDBUser(uid: uid)
     }
     
     public func patchUser(uid: String, fields: [String: Any]) -> Single<Void> {

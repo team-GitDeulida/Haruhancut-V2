@@ -101,6 +101,9 @@ public protocol FirebaseAuthManagerProtocol {
     // func authenticateUser(prividerID: String, idToken: String, rawNonce: String?) -> Single<Void>
     func authenticateUser(providerID: String, idToken: String, rawNonce: String?) -> Single<String>
     
+    // 탈퇴를 위한 재인증 로직
+    func reauthenticate(providerID: String, idToken: String, rawNonce: String?) -> Single<Void>
+    
     // Realtime DB 유저 생성
     func registerUserToRealtimeDatabase(user: Domain.User) -> Single<Domain.User>
     
@@ -114,7 +117,8 @@ public protocol FirebaseAuthManagerProtocol {
     func updateUser(user: Domain.User) -> Single<Void>
     
     // 유저 삭제 (Auth + DB)
-    func deleteUser(uid: String) -> Single<Void>
+    func deleteAuthUser() -> Single<Void>
+    func deleteDBUser(uid: String) -> Single<Void>
     func patchUser(uid: String, fields: [String: Any]) -> Single<Void>       // patch
     func signOut() -> Single<Void>
     
@@ -331,6 +335,35 @@ extension FirebaseAuthManager {
             }
         }
     
+    public func reauthenticate(
+        providerID: String,
+        idToken: String,
+        rawNonce: String?
+    ) -> Single<Void> {
+
+        guard let provider = ProviderID(rawValue: providerID),
+              let currentUser = Auth.auth().currentUser else {
+            return .error(FirebaseError.permissionDenied)
+        }
+
+        let credential = OAuthProvider.credential(
+            providerID: provider.authProviderID,
+            idToken: idToken,
+            rawNonce: rawNonce ?? ""
+        )
+
+        return Single.create { single in
+            currentUser.reauthenticate(with: credential) { _, error in
+                if let error {
+                    single(.failure(FirebaseError.unknown(error)))
+                } else {
+                    single(.success(()))
+                }
+            }
+            return Disposables.create()
+        }
+    }
+    
     /// Firebase Realtime Database에 유저 정보를 저장하고, 저장된 User를 반환 - create
     /// - Parameter user: 저장할 User 객체
     /// - Returns: Result<User, LoginError>
@@ -374,11 +407,29 @@ extension FirebaseAuthManager {
         return updateValue(path: path, value: dto)
     }
 
+    /// firebase auth 유저 삭제 - delete
+    /// - Returns: Void
+    public func deleteAuthUser() -> Single<Void> {
+        guard let currentUser = Auth.auth().currentUser else {
+            return .error(FirebaseError.permissionDenied)
+        }
+
+        return Single.create { single in
+            currentUser.delete { error in
+                if let error {
+                    single(.failure(FirebaseError.unknown(error)))
+                } else {
+                    single(.success(()))
+                }
+            }
+            return Disposables.create()
+        }
+    }
     
     /// 유저 삭제 - delete
     /// - Parameter uid: Uid
     /// - Returns: 삭제유무
-    public func deleteUser(uid: String) -> Single<Void> {
+    public func deleteDBUser(uid: String) -> Single<Void> {
         return fetchUser(uid: uid)
             // 1) user 읽어서 groupId 확인
             .flatMap { user -> Single<Void> in
@@ -393,26 +444,9 @@ extension FirebaseAuthManager {
                 // 1-2 그룹이 없으면 이 단계는 스킵되지만 성공으로 간주한다
                 return .just(()) // Observable<Void>
             }
-            // 2) users/{uid} 삭제
+            // 2) RealTime users/{uid} 삭제
             .flatMap { _ -> Single<Void> in
                 self.deleteValue(path: "users/\(uid)")
-            }
-            // 3) Firebase Auth 계정 삭제
-            .flatMap { _ -> Single<Void> in
-                guard let currentUser = Auth.auth().currentUser, currentUser.uid == uid else {
-                    return .error(FirebaseError.permissionDenied)
-                }
-                
-                return Single.create { single in
-                    currentUser.delete { error in
-                        if let error = error {
-                            single(.failure(FirebaseError.unknown(error)))
-                        } else {
-                            single(.success(()))
-                        }
-                    }
-                    return Disposables.create()
-                }
             }
     }
     

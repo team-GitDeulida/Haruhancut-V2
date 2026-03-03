@@ -18,6 +18,12 @@ let project = Project(
             infoPlist: .extendingDefault(with: [
                 // 앱 이름 설정
                 "CFBundleDisplayName": "하루한컷",
+
+                // 앱 버전 설정
+                "CFBundleShortVersionString": "1.1.0",
+
+                // 빌드 번호 설정
+                "CFBundleVersion": "1",
                 
                 // 사진 촬영 권한
                 "NSCameraUsageDescription": "하루한컷은 일상 사진을 촬영해 가족·친구와 공유하기 위해 카메라 권한이 필요합니다.",
