@@ -71,9 +71,9 @@ final class SettingView: UIView {
             tableView.topAnchor.constraint(equalTo: self.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: self.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: self.bottomAnchor),
+            tableView.bottomAnchor.constraint(equalTo: self.logoutButton.topAnchor, constant: -12),
             
-            logoutButton.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -50),
+            logoutButton.bottomAnchor.constraint(equalTo: self.safeAreaLayoutGuide.bottomAnchor, constant: -10),
             logoutButton.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 10),
             logoutButton.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -10),
             logoutButton.heightAnchor.constraint(equalToConstant: 50)

@@ -112,12 +112,12 @@ final class SettingViewController: UIViewController {
                 case .privacyPolicy:
                     guard let url = URL(string: Constants.Notion.privatePolicy) else { return }
                     let safariVC = SFSafariViewController(url: url)
-                    self.present(safariVC, animated: true)
+                    owner.present(safariVC, animated: true)
                 // 공지사항
                 case .announce:
                     guard let url = URL(string: Constants.Notion.announce) else { return }
                     let safariVC = SFSafariViewController(url: url)
-                    self.present(safariVC, animated: true)
+                    owner.present(safariVC, animated: true)
                     
                 // 회원탈퇴 알림창
                 case .withdraw:

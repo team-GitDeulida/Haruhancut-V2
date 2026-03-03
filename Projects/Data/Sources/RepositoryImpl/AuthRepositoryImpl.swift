@@ -85,7 +85,7 @@ public final class AuthRepositoryImpl: AuthRepositoryProtocol {
         return firebaseAuthManager.fetchUser(uid: uid)
             .catch { error in
                 if case LoginError.noUser = error {
-                    return .error(LoginError.unknown(error))
+                    return .just(nil)
                 }
                 return .error(error)
             }
