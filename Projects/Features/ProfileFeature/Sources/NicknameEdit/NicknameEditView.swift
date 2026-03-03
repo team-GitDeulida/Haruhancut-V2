@@ -10,12 +10,9 @@ import DSKit
 
 final class NicknameEditView: UIView {
     
-    // MARK: - Dynamic
-    private var dynamicConstraint: NSLayoutConstraint?
-    
     // MARK: - UI Component
-    private lazy var mainLabel: UILabel = HCLabel(type: .main(text: "변경하실 닉네임을 입력해주세요."))
-    private lazy var subLabel: UILabel = HCLabel(type: .sub(text: "닉네임은 언제든지 변경할 수 있어요!"))
+    private let mainLabel: UILabel = HCLabel(type: .main(text: "변경하실 닉네임을 입력해주세요."))
+    private let subLabel: UILabel = HCLabel(type: .sub(text: "닉네임은 언제든지 변경할 수 있어요!"))
     lazy var textField: UITextField = HCTextField(placeholder: "닉네임")
     private lazy var hStackView: UIStackView = {
         let st = UIStackView(arrangedSubviews: [
@@ -40,20 +37,12 @@ final class NicknameEditView: UIView {
         super.init(frame: frame)
         setupUI()
         setupConstraints()
-        
-        if let constraint = dynamicConstraint {
-            self.bindKeyboard(to: constraint)
-        }
     }
     
     // 외부 터치 시 키보드 내리기
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesBegan(touches, with: event)
         endEditing(true)
-    }
-    
-    deinit {
-        NotificationCenter.default.removeObserver(self)
     }
 
     required init?(coder: NSCoder) {
@@ -72,8 +61,6 @@ final class NicknameEditView: UIView {
     // MARK: - Constraints
     private func setupConstraints() {
         
-        dynamicConstraint = endButton.bottomAnchor.constraint(equalTo: self.safeAreaLayoutGuide.bottomAnchor, constant: -10)
-        
         NSLayoutConstraint.activate([
             // hStackView
             hStackView.topAnchor.constraint(equalTo: self.safeAreaLayoutGuide.topAnchor, constant: 30),
@@ -89,7 +76,12 @@ final class NicknameEditView: UIView {
             endButton.centerXAnchor.constraint(equalTo: self.safeAreaLayoutGuide.centerXAnchor),
             endButton.leadingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             endButton.heightAnchor.constraint(equalToConstant: 50),
-            dynamicConstraint!
+            
+            // 키보드에 자동 반응
+            endButton.bottomAnchor.constraint(
+                equalTo: keyboardLayoutGuide.topAnchor,
+                constant: -10
+            )
         ])
     }
 }

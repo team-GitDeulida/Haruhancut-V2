@@ -219,10 +219,10 @@ extension AuthUsecaseImpl {
         
         return repository.reauthenticate(platform: platform)
             .flatMap {
-                self.repository.deleteAuthUser()
+                self.repository.deleteDBUser(uid: uid)
             }
             .flatMap {
-                self.repository.deleteDBUser(uid: uid)
+                self.repository.deleteAuthUser()
             }
             .do(onSuccess: { [weak self] in
                 guard let self = self else { return }
