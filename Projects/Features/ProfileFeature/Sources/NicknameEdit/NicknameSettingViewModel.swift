@@ -8,6 +8,7 @@
 import RxSwift
 import RxCocoa
 import Domain
+import ProfileFeatureInterface
 
 final class NicknameEditViewModel: NicknameEditViewModelType {
     
