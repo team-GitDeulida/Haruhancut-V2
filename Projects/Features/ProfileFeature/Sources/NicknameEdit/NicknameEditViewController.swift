@@ -7,6 +7,7 @@
 
 import UIKit
 import RxSwift
+import RxCocoa
 
 final class NicknameEditViewController: UIViewController {
     private let viewModel: NicknameEditViewModel
@@ -50,8 +51,8 @@ final class NicknameEditViewController: UIViewController {
         /// 닉네임 유효성에 따라 버튼의 UI 상태 업데이트
         output.isNicknameValid
             .drive(with: self, onNext: { owner, isValid in
-                self.customView.endButton.isEnabled = isValid
-                self.customView.endButton.alpha = isValid ? 1 : 0.5
+                owner.customView.endButton.isEnabled = isValid
+                owner.customView.endButton.alpha = isValid ? 1 : 0.5
             })
             .disposed(by: disposeBag)
         
