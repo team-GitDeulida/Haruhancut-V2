@@ -13,6 +13,7 @@ import Domain
 public protocol ProfileFeatureBuildable {
     func makeProfile() -> ProfilePresentable
     func makeSetting() -> SettingPresentable
+    func makeNicknameEdit() -> NicknameEditPresentable
 }
 
 public final class ProfileFeatureBuilder {
@@ -35,6 +36,13 @@ extension ProfileFeatureBuilder: ProfileFeatureBuildable {
         @Dependency var authUsecase: AuthUsecaseProtocol
         let vm = SettingViewModel(authUsecase: authUsecase)
         let vc = SettingViewController(settingViewModel: vm)
+        return (vc, vm)
+    }
+
+    public func makeNicknameEdit() -> NicknameEditPresentable {
+        @Dependency var authUsecase: AuthUsecaseProtocol
+        let vm = NicknameEditViewModel(authUsecase: authUsecase)
+        let vc = NicknameEditViewController(viewModel: vm)
         return (vc, vm)
     }
 }

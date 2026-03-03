@@ -15,7 +15,7 @@ final class AppUITests: XCTestCase {
         app.launchArguments.append("-UITest")
         
         // 테스트 유저 정보
-        app.launchEnvironment["TEST_USER_UID"] = "T9RQRMJQOeUl8pb52y1SEfpS7nj1"
+        app.launchEnvironment["TEST_USER_UID"] = "cDpXBXCFoseitthAHknJmVDPbch2"
         app.launch()
     }
     

@@ -50,7 +50,7 @@ public struct User: Codable, Equatable {
 
 extension User {
     public static var sampleUser1: User {
-        User(uid: "stub-uid",
+        User(uid: "테스트유저",
              registerDate: Date(),
              loginPlatform: .apple,
              nickname: "stub-nickname-apple",

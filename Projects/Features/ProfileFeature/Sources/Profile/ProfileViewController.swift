@@ -72,6 +72,10 @@ final class ProfileViewController: UIViewController, PopableViewController {
     private func bindViewModel() {
         
         // MARK: - 프로필 컬렉션 셀 터치
+        let onNicknameEditButtonTapped = customView.editButton.rx
+            .tap
+            .asObservable()
+        
         let onImageTapped = customView.collectionView.rx
             .modelSelected(Post.self)
             .asObservable()
@@ -86,11 +90,16 @@ final class ProfileViewController: UIViewController, PopableViewController {
                 Logger.d("Notification: 이벤트 받음")
             })
             .mapToVoid()
-            
         
-        let input = ProfileViewModel.Input(onSettingButtonTapped: onSettingButtonTapped,
+        let viewWillAppear = rx
+            .methodInvoked(#selector(UIViewController.viewWillAppear(_:)))
+            .map { _ in }
+            
+        let input = ProfileViewModel.Input(onNicknameEditButtonTapped: onNicknameEditButtonTapped,
+                                           onSettingButtonTapped: onSettingButtonTapped,
                                            onImageTapped: onImageTapped,
-                                           reload: reload)
+                                           reload: reload,
+                                           viewWillAppear: viewWillAppear)
         let output = viewModel.transform(input: input)
         
         // MARK: - 프로필 유저 사진

@@ -30,6 +30,7 @@ public protocol AuthUsecaseProtocol {
 
     func updateUser(user: User) -> Single<User>
     func uploadImage(user: User, image: UIImage) -> Single<URL>
+    func updateNicknameAndReloadSession(nickname: String) -> Single<User>
     
     // MARK: - Sign
     func signIn(platform: User.LoginPlatform) -> Single<SignInResult>
@@ -80,6 +81,24 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     /// - Returns: 이미지url
     public func uploadImage(user: User, image: UIImage) -> Single<URL> {
         return repository.uploadImage(user: user, image: image)
+    }
+    
+    
+    /// 닉네임 업데이트 및 세션 갱신
+    /// - Parameter nickname: 새 닉네임
+    /// - Returns: 변경된 유저
+    public func updateNicknameAndReloadSession(nickname: String) -> Single<User> {
+        guard var currentUser = userSession.session else {
+            return .error(DomainError.missingDomainSession)
+        }
+        
+        currentUser.nickname = nickname
+        return repository.updateUser(user: currentUser)
+            .flatMap { _ in
+                self.loadAndFetchUser()
+                    .takeLast(1)
+                    .asSingle()
+            }
     }
 }
 
