@@ -87,15 +87,15 @@ jobs:
           restore-keys: tuist-${{ runner.os }}-
 
       # DerivedData Cache
-      - name: Cache DerivedData
-        uses: actions/cache@v4
-        with:
-          path: |
-            DerivedData/Build
-            DerivedData/ModuleCache.noindex
-          key: deriveddata-${{ runner.os }}-xcode16.4-ios18.5-${{ matrix.module }}
-          restore-keys: |
-            deriveddata-${{ runner.os }}-xcode16.4-ios18.5-${{ matrix.module }}-
+      # - name: Cache DerivedData
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       DerivedData/Build
+      #       DerivedData/ModuleCache.noindex
+      #     key: deriveddata-${{ runner.os }}-xcode16.4-ios18.5-${{ matrix.module }}
+      #     restore-keys: |
+      #       deriveddata-${{ runner.os }}-xcode16.4-ios18.5-${{ matrix.module }}-
 
       - name: Install Tuist
         run: |
