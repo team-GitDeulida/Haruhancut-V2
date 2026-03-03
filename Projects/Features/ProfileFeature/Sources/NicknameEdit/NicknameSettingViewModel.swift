@@ -47,8 +47,11 @@ final class NicknameEditViewModel: NicknameEditViewModelType {
         input.endButtonTapped
             .withLatestFrom(trimmedNickname)
             .withUnretained(self)
-            .flatMapLatest { owner, newNickname -> Single<User> in
-                return owner.authUsecase.updateNicknameAndReloadSession(nickname: newNickname)
+            .flatMapLatest { owner, newNickname -> Observable<User> in
+                return owner.authUsecase
+                    .updateNicknameAndReloadSession(nickname: newNickname)
+                    .asObservable()
+                    .catch { _ in .empty() } // 추후 명시적인 에러 알림 추가
             }
             .observe(on: MainScheduler.instance)
             .bind(with: self, onNext: { owner, _ in
