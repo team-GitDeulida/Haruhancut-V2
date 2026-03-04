@@ -72,7 +72,8 @@ final class MemberViewModel: MemberViewModelType {
             .asDriver(onErrorJustReturn: [])
         
         let inviteCode = input.inviteCellTapped
-                .map { [weak self] _ in self?.groupSession.inviteCode ?? "" }
+                .compactMap { [weak self] _ in self?.groupSession.inviteCode }
+                .filter { !$0.isEmpty }
                 .asDriver(onErrorJustReturn: "")
         
         // MARK: - Coordinator
