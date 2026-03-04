@@ -21,11 +21,15 @@ final class ProfileViewModel: ProfileViewModelType {
     private let groupUsecase: GroupUsecaseProtocol
     
     // MARK: - Coordinator Trigger
+    var onProfileImageTapped: ((String) -> Void)?
+    var onProfileImageEditButtonTapped: (() -> Void)?
     var onNicknameEditButtonTapped: (() -> Void)?
     var onSettingButtonTapped: (() -> Void)?
     var onImageTapped: ((Post) -> Void)?
     
     struct Input {
+        let onProfileImageTapped: Observable<Void>
+        let onProfileImageEditButtonTapped: Observable<Void>
         let onNicknameEditButtonTapped: Observable<Void>
         let onSettingButtonTapped: Observable<Void>
         let onImageTapped: Observable<Post>
@@ -45,25 +49,6 @@ final class ProfileViewModel: ProfileViewModelType {
     }
     
     func transform(input: Input) -> Output {
-        
-        // MARK: - Coordinator
-        input.onNicknameEditButtonTapped
-            .bind(with: self, onNext: { owner, post in
-                owner.onNicknameEditButtonTapped?()
-            })
-            .disposed(by: disposeBag)
-        
-        input.onImageTapped
-            .bind(with: self, onNext: { owner, post in
-                owner.onImageTapped?(post)
-            })
-            .disposed(by: disposeBag)
-        
-        input.onSettingButtonTapped
-            .bind(with: self, onNext: { owner, _ in
-                owner.onSettingButtonTapped?()
-            })
-            .disposed(by: disposeBag)
         
         // 유저
         let reloadUser = input.viewWillAppear
@@ -101,6 +86,40 @@ final class ProfileViewModel: ProfileViewModelType {
                     .sorted { $0.createdAt > $1.createdAt }
             }
             .asDriver(onErrorJustReturn: [])
+        
+        // MARK: - Coordinator
+        input.onProfileImageTapped
+            .withLatestFrom(reloadUser)
+            .compactMap { $0.profileImageURL }
+            .bind(with: self, onNext: { owner, imageURL in
+                owner.onProfileImageTapped?(imageURL)
+            })
+            .disposed(by: disposeBag)
+        
+        input.onProfileImageEditButtonTapped
+            .bind(with: self, onNext: { owner, _ in
+                print("이미지 편집")
+                owner.onProfileImageEditButtonTapped?()
+            })
+            .disposed(by: disposeBag)
+        
+        input.onNicknameEditButtonTapped
+            .bind(with: self, onNext: { owner, post in
+                owner.onNicknameEditButtonTapped?()
+            })
+            .disposed(by: disposeBag)
+        
+        input.onImageTapped
+            .bind(with: self, onNext: { owner, post in
+                owner.onImageTapped?(post)
+            })
+            .disposed(by: disposeBag)
+        
+        input.onSettingButtonTapped
+            .bind(with: self, onNext: { owner, _ in
+                owner.onSettingButtonTapped?()
+            })
+            .disposed(by: disposeBag)
         
         return Output(user: reloadUser.asDriver(onErrorDriveWith: .empty()),
                       myPosts: myPosts)

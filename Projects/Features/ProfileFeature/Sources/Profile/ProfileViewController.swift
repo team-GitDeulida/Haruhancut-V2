@@ -71,11 +71,29 @@ final class ProfileViewController: UIViewController, PopableViewController {
     
     private func bindViewModel() {
         
-        // MARK: - 프로필 컬렉션 셀 터치
+        let onProfileImageTapped = customView.profileImageView.rx
+            .tap
+            .asObservable()
+            
+//        let onProfileImageTapped = Observable<Void>.create { [weak self] observer in
+//            self?.customView.profileImageView.onProfileTapped = {
+//                observer.onNext(())
+//            }
+//            return Disposables.create()
+//        }
+        
+        let onProfileImageEditButtonTapped = Observable<Void>.create { [weak self] observer in
+            self?.customView.profileImageView.onCameraTapped = {
+                observer.onNext(())
+            }
+            return Disposables.create()
+        }
+        
         let onNicknameEditButtonTapped = customView.editButton.rx
             .tap
             .asObservable()
         
+        // MARK: - 프로필 컬렉션 셀 터치
         let onImageTapped = customView.collectionView.rx
             .modelSelected(Post.self)
             .asObservable()
@@ -95,7 +113,9 @@ final class ProfileViewController: UIViewController, PopableViewController {
             .methodInvoked(#selector(UIViewController.viewWillAppear(_:)))
             .map { _ in }
             
-        let input = ProfileViewModel.Input(onNicknameEditButtonTapped: onNicknameEditButtonTapped,
+        let input = ProfileViewModel.Input(onProfileImageTapped: onProfileImageTapped,
+                                           onProfileImageEditButtonTapped: onProfileImageEditButtonTapped,
+                                           onNicknameEditButtonTapped: onNicknameEditButtonTapped,
                                            onSettingButtonTapped: onSettingButtonTapped,
                                            onImageTapped: onImageTapped,
                                            reload: reload,
