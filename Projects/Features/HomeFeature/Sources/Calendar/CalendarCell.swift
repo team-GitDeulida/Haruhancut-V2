@@ -81,6 +81,12 @@ final class CalendarCell: FSCalendarCell {
         let calendar = Calendar.current
         let isToday = calendar.isDateInToday(date)
         currentMonthFlag = isCurrentMonth
+        // titleLabel.textColor = isCurrentMonth ? .label : .gray700
+        
+        // 이미지 없는 날짜중 이번 달이 아니면 어두운 색
+        cellImageView.backgroundColor = currentMonthFlag
+        ? .gray500
+        : .gray700
 
         // 1. 이미지 처리
         if let imageURL,
@@ -119,7 +125,6 @@ final class CalendarCell: FSCalendarCell {
             currentImageURL = nil
             cellImageView.kf.cancelDownloadTask()
             cellImageView.image = nil
-            cellImageView.backgroundColor = .gray500
         }
 
         // 2. 오늘 테두리 처리
