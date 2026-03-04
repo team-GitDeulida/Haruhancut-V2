@@ -7,6 +7,8 @@
 
 import UIKit
 import MemberFeatureInterface
+import Core
+import Domain
 
 public protocol MemberFeatureBuildable {
     func makeMember() -> MemberPresentable
@@ -18,7 +20,14 @@ public final class MemberFeatureBuilder {
 
 extension MemberFeatureBuilder: MemberFeatureBuildable {
     public func makeMember() -> MemberPresentable {
-        let vm = MemberViewModel()
+        @Dependency var userSession: UserSession
+        @Dependency var groupSession: GroupSession
+        @Dependency var authUsecase: AuthUsecaseProtocol
+        @Dependency var groupUsecase: GroupUsecaseProtocol
+        let vm = MemberViewModel(userSession: userSession,
+                                 groupSession: groupSession,
+                                 authUsecase: authUsecase,
+                                 groupUsecase: groupUsecase)
         let vc = MemberViewController(viewModel: vm)
         return (vc, vm)
     }

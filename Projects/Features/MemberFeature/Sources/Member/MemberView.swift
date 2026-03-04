@@ -11,19 +11,18 @@ import DSKit
 final class MemberView: UIView {
     
     // MARK: - UI Component
-    private lazy var memberScrollView: UIScrollView = {
-        let scroll = UIScrollView()
-        scroll.showsHorizontalScrollIndicator = false
-        scroll.showsVerticalScrollIndicator = true
-        return scroll
-    }()
-    
-    lazy var memberStackView: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 16
-        stack.alignment = .leading
-        return stack
+    let collectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.minimumLineSpacing = 16
+        layout.scrollDirection = .vertical
+        
+        // .zero: 오토레이아웃
+        let collectionView = UICollectionView(frame: .zero,
+                                              collectionViewLayout: layout)
+        collectionView.register(MemberCell.self,
+                                forCellWithReuseIdentifier: MemberCell.reuseIdentifier)
+        collectionView.backgroundColor = .clear
+        return collectionView
     }()
     
     let titleLabel: UILabel = {
@@ -69,13 +68,10 @@ final class MemberView: UIView {
     // MARK: - UI Setup
     private func setupUI() {
         self.backgroundColor = .background
-        [titleStack, memberScrollView ].forEach {
+        [titleStack, collectionView].forEach {
             self.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
-        
-        memberScrollView.addSubview(memberStackView)
-        memberStackView.translatesAutoresizingMaskIntoConstraints = false
     }
 
     // MARK: - Constraints
@@ -85,20 +81,11 @@ final class MemberView: UIView {
             titleStack.topAnchor.constraint(equalTo: self.safeAreaLayoutGuide.topAnchor, constant: 40),
             titleStack.leadingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             
-            // scrollView
-            memberScrollView.topAnchor.constraint(equalTo: titleStack.bottomAnchor, constant: 20),
-            memberScrollView.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 20),
-            memberScrollView.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -20),
-            memberScrollView.bottomAnchor.constraint(equalTo: self.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            
-            // stackView inside scrollView
-            memberStackView.topAnchor.constraint(equalTo: memberScrollView.topAnchor),
-            memberStackView.bottomAnchor.constraint(equalTo: memberScrollView.bottomAnchor),
-            memberStackView.leadingAnchor.constraint(equalTo: memberScrollView.leadingAnchor),
-            memberStackView.trailingAnchor.constraint(equalTo: memberScrollView.trailingAnchor),
-            
-            // prevent horizontal scroll
-            memberStackView.widthAnchor.constraint(equalTo: memberScrollView.widthAnchor)
+            // collectionView
+            collectionView.topAnchor.constraint(equalTo: titleStack.bottomAnchor, constant: 20),
+            collectionView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
+            collectionView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
+            collectionView.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor)
         ])
     }
 }

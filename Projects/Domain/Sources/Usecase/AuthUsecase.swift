@@ -28,6 +28,7 @@ public enum SignInResult {
 
 public protocol AuthUsecaseProtocol {
 
+    func fetchUser(uid: String) -> Single<User?>
     func updateUser(user: User) -> Single<User>
     func uploadImage(user: User, image: UIImage) -> Single<URL>
     func updateNicknameAndReloadSession(nickname: String) -> Single<User>
@@ -66,6 +67,14 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
         self.userSession = userSession
         self.groupSession = groupSession
         self.fcmTokenStore = fcmTokenStore
+    }
+    
+    
+    /// 유저 정보 가져오기
+    /// - Parameter user: uid
+    /// - Returns: 유저
+    public func fetchUser(uid: String) -> Single<User?> {
+        return repository.fetchUser(uid: uid)
     }
     
     /// 유저 업데이트

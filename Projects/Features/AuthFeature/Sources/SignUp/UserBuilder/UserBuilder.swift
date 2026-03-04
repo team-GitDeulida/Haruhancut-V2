@@ -37,7 +37,7 @@ final class UserBuilder {
                         registerDate: .now,
                         loginPlatform: loginPlatform,
                         nickname: nickname ?? "", birthdayDate: birthday ?? .now, gender: .other, isPushEnabled: true)
-        print("테스트: \(user)")
+        // print("테스트: \(user)")
         return user
     }
 }
