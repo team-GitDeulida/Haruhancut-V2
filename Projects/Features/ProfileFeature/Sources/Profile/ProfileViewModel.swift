@@ -17,7 +17,11 @@ import UIKit
 final class ProfileViewModel: ProfileViewModelType {
 
     let disposeBag = DisposeBag()
+    
+    // vm reload trigger
     private let vmReloadTrigger = PublishRelay<Void>()
+    
+    private let vcIsLoadingRelay = BehaviorRelay<Bool>(value: false)
     
     // MARK: - Usecase
     private let userSession: UserSession
@@ -44,6 +48,7 @@ final class ProfileViewModel: ProfileViewModelType {
     struct Output {
         let user: Driver<User>
         let myPosts: Driver<[Post]>
+        let isLoading: Driver<Bool>
     }
     
     init(userSession: UserSession, authUsecase: AuthUsecaseProtocol, groupUsecase: GroupUsecaseProtocol) {
@@ -105,11 +110,16 @@ final class ProfileViewModel: ProfileViewModelType {
         input.onProfileImageEditButtonTapped
             .bind(with: self, onNext: { owner, _ in
                 owner.onProfileImageEditButtonTapped? { image in
+                    owner.vcIsLoadingRelay.accept(true)
                     owner.authUsecase
                         .updateProfileImageAndReloadSession(image: image)
-                        .subscribe(onSuccess: { _ in
-                            owner.vmReloadTrigger.accept(())
-                        })
+                        .subscribe(
+                            onSuccess: { _ in
+                                owner.vmReloadTrigger.accept(())
+                                owner.vcIsLoadingRelay.accept(false)
+                            }, onFailure: { _ in
+                                owner.vcIsLoadingRelay.accept(false)
+                            })
                         .disposed(by: owner.disposeBag)
                 }
             })
@@ -134,6 +144,7 @@ final class ProfileViewModel: ProfileViewModelType {
             .disposed(by: disposeBag)
         
         return Output(user: reloadUser.asDriver(onErrorDriveWith: .empty()),
-                      myPosts: myPosts)
+                      myPosts: myPosts,
+                      isLoading: vcIsLoadingRelay.asDriver())
     }
 }

@@ -74,13 +74,6 @@ final class ProfileViewController: UIViewController, PopableViewController {
         let onProfileImageTapped = customView.profileImageView.rx
             .tap
             .asObservable()
-            
-//        let onProfileImageTapped = Observable<Void>.create { [weak self] observer in
-//            self?.customView.profileImageView.onProfileTapped = {
-//                observer.onNext(())
-//            }
-//            return Disposables.create()
-//        }
         
         let onProfileImageEditButtonTapped = Observable<Void>.create { [weak self] observer in
             self?.customView.profileImageView.onCameraTapped = {
@@ -150,6 +143,20 @@ final class ProfileViewController: UIViewController, PopableViewController {
                 cell.configure(post: post, targetSize: size)
             }
             .disposed(by: disposeBag)
+        
+        // MARK: - 로딩 인디케이터
+        output.isLoading
+            .drive(with: self, onNext: { owner, isLoading in
+                switch isLoading {
+                case true:
+                    owner.setPopGestureEnabled(false)
+                    owner.showLoadingIndicator()
+                case false:
+                    owner.setPopGestureEnabled(true)
+                    owner.hideLoadingIndicator()
+                }
+            })
+            .disposed(by: disposeBag)
     }
     
     // MARK: - 셀 사이즈
@@ -172,7 +179,45 @@ extension ProfileViewController: UICollectionViewDelegateFlowLayout {
 }
 
 
+extension ProfileViewController {
+    // 로딩 UI
+    private func showLoadingIndicator() {
+        guard let rootView = self.navigationController?.view ?? self.view else { return }
+        let loadingView = UIView()
+        loadingView.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        loadingView.isUserInteractionEnabled = true
+        loadingView.translatesAutoresizingMaskIntoConstraints = false
 
+        let indicator = UIActivityIndicatorView(style: .large)
+        indicator.translatesAutoresizingMaskIntoConstraints = false
+        indicator.startAnimating()
+        loadingView.addSubview(indicator)
+
+        rootView.addSubview(loadingView)
+        self.customView.loadingView = loadingView
+
+        NSLayoutConstraint.activate([
+            loadingView.topAnchor.constraint(equalTo: rootView.topAnchor),
+            loadingView.bottomAnchor.constraint(equalTo: rootView.bottomAnchor),
+            loadingView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+            loadingView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+
+            indicator.centerXAnchor.constraint(equalTo: loadingView.centerXAnchor),
+            indicator.centerYAnchor.constraint(equalTo: loadingView.centerYAnchor)
+        ])
+    }
+    
+    // 로딩 UI 숨기기
+    private func hideLoadingIndicator() {
+        customView.loadingView?.removeFromSuperview()
+        customView.loadingView = nil
+    }
+    
+    // 제스처 잠금/해제
+    private func setPopGestureEnabled(_ enabled: Bool) {
+        self.navigationController?.interactivePopGestureRecognizer?.isEnabled = enabled
+    }
+}
 
 
 
