@@ -10,7 +10,7 @@ import Core
 import Domain
 
 public protocol MemberRouteTrigger {
-    
+    var onCellImageTapped: ((String) -> Void)? { get set }
 }
 
 public typealias MemberViewModelType = ViewModelType & MemberRouteTrigger

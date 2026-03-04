@@ -22,7 +22,16 @@ public final class MemberCoordinator: Coordinator {
     
     public func start() {
         let builder = MemberFeatureBuilder()
-        let member = builder.makeMember()
+        var member = builder.makeMember()
+        
+        member.vm.onCellImageTapped = { [weak self] imageURL in
+            guard let self = self else { return }
+            let previewCoordinator = ImagePreviewCoordinator(presentingViewController: self.navigationController,
+                                                             imageURL: imageURL)
+            previewCoordinator.parentCoordinator = self
+            self.childCoordinators.append(previewCoordinator)
+            previewCoordinator.start()
+        }
         
         navigationController.pushViewController(member.vc, animated: true)
     }

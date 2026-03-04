@@ -8,6 +8,7 @@
 import UIKit
 import RxSwift
 import RxCocoa
+import Core
 import Domain
 
 enum MemberItem {
@@ -49,13 +50,23 @@ final class MemberViewController: UIViewController {
     
     private func bindViewModel() {
         
-        // 맴버 클릭
-        let memberPreview = customView.collectionView.rx
-            .modelSelected(MemberCell.self)
-            .asObservable()
+        let itemSelected = customView.collectionView.rx
+            .modelSelected(MemberItem.self)
+            .share()
         
+        let inviteCellTapped = itemSelected
+            .compactMap { item -> Void? in
+                guard case .invite = item else { return nil }
+            }.mapToVoid()
         
-        let input = MemberViewModel.Input()
+        let memberCellTapped = itemSelected
+            .compactMap { item -> User? in
+                guard case .member(let user) = item else { return nil }
+                return user
+            }
+        
+        let input = MemberViewModel.Input(inviteCellTapped: inviteCellTapped,
+                                          memberCellTapped: memberCellTapped)
         let output = viewModel.transform(input: input)
         
         // 인원 수
@@ -87,16 +98,10 @@ final class MemberViewController: UIViewController {
             }
             .disposed(by: disposeBag)
         
-        // 셀 선택 이벤트
-        customView.collectionView.rx
-            .modelSelected(MemberItem.self)
-            .bind(with: self, onNext: { owner, item in
-                switch item {
-                case .invite:
-                    print("초대 버튼")
-                case .member(let user):
-                    print("멤버 버튼")
-                }
+        // 공유하기
+        output.inviteCode
+            .drive(with: self, onNext: { owner, inviteCode in
+                owner.shareInvitation(inviteCode: inviteCode)
             })
             .disposed(by: disposeBag)
     }
@@ -114,5 +119,38 @@ extension MemberViewController: UICollectionViewDelegateFlowLayout {
             width: collectionView.frame.width,
             height: 60
         )
+    }
+}
+
+extension MemberViewController {
+    // MARK: - 초대 함수
+    private func shareInvitation(inviteCode: String) {
+        // 1) 초대 메시지
+        let inviteURL = Constants.Notion.notionURL
+        let message = """
+우리 가족 그룹에 초대할게요!
+초대코드: \(inviteCode)
+
+앱이 궁금하다면 👉 
+\(inviteURL)
+
+앱 설치하기 🍎
+\(Constants.Appstore.appstoreURL)
+"""
+        // 2) UIActivityViewController 생성
+        let items: [Any] = [message]
+        let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        
+        // 3) iPad 대응(팝오버 위치)
+        if let pop = activityVC.popoverPresentationController {
+            pop.sourceView = self.view
+            pop.sourceRect = CGRect(x: view.bounds.midX,
+                                    y: view.bounds.midY,
+                                    width: 0, height: 0)
+            pop.permittedArrowDirections = []
+        }
+        
+        // 4) 공유 시트 표시
+        present(activityVC, animated: true)
     }
 }

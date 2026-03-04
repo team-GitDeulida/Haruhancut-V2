@@ -13,17 +13,23 @@ import RxSwift
 
 final class MemberViewModel: MemberViewModelType {
     
+    // MARK: - Coordinator Trigger
+    var onCellImageTapped: ((String) -> Void)?
+    
+    let disposeBag = DisposeBag()
     private let userSession: UserSession
     private let groupSession: GroupSession
     private let authUsecase: AuthUsecaseProtocol
     private let groupUsecase: GroupUsecaseProtocol
     
     struct Input {
-        
+        let inviteCellTapped: Observable<Void>
+        let memberCellTapped: Observable<User>
     }
     
     struct Output {
         let sortedMembers: Driver<[User]>
+        let inviteCode: Driver<String>
     }
     
     init(userSession: UserSession,
@@ -64,6 +70,19 @@ final class MemberViewModel: MemberViewModelType {
             }
             .asDriver(onErrorJustReturn: [])
         
-        return Output(sortedMembers: sortedMembers)
+        let inviteCode = input.inviteCellTapped
+                .map { [weak self] _ in self?.groupSession.inviteCode ?? "" }
+                .asDriver(onErrorJustReturn: "")
+        
+        // MARK: - Coordinator
+        input.memberCellTapped
+            .compactMap(\.profileImageURL)
+            .bind(with: self, onNext: { owner, imageURL in
+                owner.onCellImageTapped?(imageURL)
+            })
+            .disposed(by: disposeBag)
+        
+        return Output(sortedMembers: sortedMembers,
+                      inviteCode: inviteCode)
     }
 }
