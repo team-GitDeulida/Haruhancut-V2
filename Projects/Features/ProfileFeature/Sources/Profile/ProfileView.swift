@@ -12,6 +12,7 @@ import Kingfisher
 public final class ProfileView: UIView {
     
     // MARK: - UI Component
+    var loadingView: UIView?
     public lazy var profileImageView: ProfileImageView = {
         let imageView = ProfileImageView(size: 100, iconSize: 60)
         return imageView

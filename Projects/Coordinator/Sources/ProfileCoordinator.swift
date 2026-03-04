@@ -9,8 +9,10 @@ import Domain
 import ProfileFeature
 import UIKit
 import HomeFeature
+import ImageFeature
+import Core
 
-public final class ProfileCoordinator: Coordinator {
+public final class ProfileCoordinator: NSObject, Coordinator {
     
     public var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
@@ -23,6 +25,8 @@ public final class ProfileCoordinator: Coordinator {
         self.navigationController = navigationController
     }
     
+    private var imagePickerCompletion: ((UIImage) -> Void)?
+    
     public func start() {
         let builder = ProfileFeatureBuilder()
         var profile = builder.makeProfile()
@@ -31,6 +35,22 @@ public final class ProfileCoordinator: Coordinator {
         profile.vc.onPop = { [weak self] in
             guard let self else { return }
             self.parentCoordinator?.childDidFinish(self)
+        }
+        
+        // 프로필 미리보기
+        profile.vm.onProfileImageTapped = { [weak self] imageURL in
+            guard let self = self else { return }
+            let previewCoordinator = ImagePreviewCoordinator(presentingViewController: self.navigationController,
+                                                             imageURL: imageURL)
+            previewCoordinator.parentCoordinator = self
+            self.childCoordinators.append(previewCoordinator)
+            previewCoordinator.start()
+        }
+        
+        // 프로필 수정
+        profile.vm.onProfileImageEditButtonTapped = { [weak self] completion in
+            guard let self = self else { return }
+            profilePresentImagePicker(completion: completion)
         }
         
         // 게시글 터치
@@ -91,3 +111,59 @@ public final class ProfileCoordinator: Coordinator {
         self.navigationController.pushViewController(profile.vc, animated: true)
     }
 }
+
+extension ProfileCoordinator: UIImagePickerControllerDelegate & UINavigationControllerDelegate {
+    
+    func profilePresentImagePicker(completion: @escaping (UIImage) -> Void) {
+        // MARK: - Picker열떄 completion 저장
+        imagePickerCompletion = completion
+        
+        guard UIImagePickerController.isSourceTypeAvailable(.photoLibrary) else {
+            return
+        }
+        
+        let picker = UIImagePickerController()
+        picker.sourceType = .photoLibrary
+        picker.allowsEditing = false
+        picker.delegate = self
+        
+        // iPad 대응
+        // - ipad에서 UIImagePicker가 기본적으로 popOver로 뜨기 때문에 popOver 설정이 되어있지 않으면 delegate가 호출되지 않거나
+        // - 빈응이 없는 것 처럼 보일 수 있다
+        if let popover = picker.popoverPresentationController {
+            popover.sourceView = navigationController.view
+            popover.sourceRect = CGRect(
+                x: navigationController.view.bounds.midX,
+                y: navigationController.view.bounds.midY,
+                width: 0,
+                height: 0
+            )
+            popover.permittedArrowDirections = []
+        }
+        navigationController.present(picker, animated: true)
+    }
+    
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        
+        guard let image = info[.originalImage] as? UIImage else {
+            self.imagePickerCompletion = nil
+            picker.dismiss(animated: true)
+            return
+        }
+
+        // MARK: - Delegate에서 Completion 호출
+        picker.dismiss(animated: true) { [weak self] in
+            guard let self = self else { return }
+            self.imagePickerCompletion?(image)
+            self.imagePickerCompletion = nil
+        }
+    }
+    
+    public func imagePickerControllerDidCancel(
+        _ picker: UIImagePickerController
+    ) {
+        self.imagePickerCompletion = nil
+        picker.dismiss(animated: true)
+    }
+}
+

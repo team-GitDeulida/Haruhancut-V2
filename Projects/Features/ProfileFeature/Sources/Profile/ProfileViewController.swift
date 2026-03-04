@@ -71,11 +71,24 @@ final class ProfileViewController: UIViewController, PopableViewController {
     
     private func bindViewModel() {
         
-        // MARK: - 프로필 컬렉션 셀 터치
+        let onProfileImageTapped = customView.profileImageView.rx
+            .tap
+            .asObservable()
+        
+        let onProfileImageEditButtonTapped = Observable<Void>.create { [weak self] observer in
+            self?.customView.profileImageView.onCameraTapped = {
+                observer.onNext(())
+            }
+            return Disposables.create { [weak self] in
+                self?.customView.profileImageView.onCameraTapped = nil
+            }
+        }
+        
         let onNicknameEditButtonTapped = customView.editButton.rx
             .tap
             .asObservable()
         
+        // MARK: - 프로필 컬렉션 셀 터치
         let onImageTapped = customView.collectionView.rx
             .modelSelected(Post.self)
             .asObservable()
@@ -95,11 +108,13 @@ final class ProfileViewController: UIViewController, PopableViewController {
             .methodInvoked(#selector(UIViewController.viewWillAppear(_:)))
             .map { _ in }
             
-        let input = ProfileViewModel.Input(onNicknameEditButtonTapped: onNicknameEditButtonTapped,
+        let input = ProfileViewModel.Input(onProfileImageTapped: onProfileImageTapped,
+                                           onProfileImageEditButtonTapped: onProfileImageEditButtonTapped,
+                                           onNicknameEditButtonTapped: onNicknameEditButtonTapped,
                                            onSettingButtonTapped: onSettingButtonTapped,
                                            onImageTapped: onImageTapped,
                                            reload: reload,
-                                           viewWillAppear: viewWillAppear)
+                                           vcReloadTrigger: viewWillAppear)
         let output = viewModel.transform(input: input)
         
         // MARK: - 프로필 유저 사진
@@ -130,6 +145,21 @@ final class ProfileViewController: UIViewController, PopableViewController {
                 cell.configure(post: post, targetSize: size)
             }
             .disposed(by: disposeBag)
+        
+        // MARK: - 로딩 인디케이터
+        output.isLoading
+            .distinctUntilChanged()
+            .drive(with: self, onNext: { owner, isLoading in
+                switch isLoading {
+                case true:
+                    owner.setPopGestureEnabled(false)
+                    owner.showLoadingIndicator()
+                case false:
+                    owner.setPopGestureEnabled(true)
+                    owner.hideLoadingIndicator()
+                }
+            })
+            .disposed(by: disposeBag)
     }
     
     // MARK: - 셀 사이즈
@@ -152,7 +182,46 @@ extension ProfileViewController: UICollectionViewDelegateFlowLayout {
 }
 
 
+extension ProfileViewController {
+    // 로딩 UI
+    private func showLoadingIndicator() {
+        guard customView.loadingView == nil else { return }
+        guard let rootView = self.navigationController?.view ?? self.view else { return }
+        let loadingView = UIView()
+        loadingView.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        loadingView.isUserInteractionEnabled = true
+        loadingView.translatesAutoresizingMaskIntoConstraints = false
 
+        let indicator = UIActivityIndicatorView(style: .large)
+        indicator.translatesAutoresizingMaskIntoConstraints = false
+        indicator.startAnimating()
+        loadingView.addSubview(indicator)
+
+        rootView.addSubview(loadingView)
+        self.customView.loadingView = loadingView
+
+        NSLayoutConstraint.activate([
+            loadingView.topAnchor.constraint(equalTo: rootView.topAnchor),
+            loadingView.bottomAnchor.constraint(equalTo: rootView.bottomAnchor),
+            loadingView.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
+            loadingView.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
+
+            indicator.centerXAnchor.constraint(equalTo: loadingView.centerXAnchor),
+            indicator.centerYAnchor.constraint(equalTo: loadingView.centerYAnchor)
+        ])
+    }
+    
+    // 로딩 UI 숨기기
+    private func hideLoadingIndicator() {
+        customView.loadingView?.removeFromSuperview()
+        customView.loadingView = nil
+    }
+    
+    // 제스처 잠금/해제
+    private func setPopGestureEnabled(_ enabled: Bool) {
+        self.navigationController?.interactivePopGestureRecognizer?.isEnabled = enabled
+    }
+}
 
 
 

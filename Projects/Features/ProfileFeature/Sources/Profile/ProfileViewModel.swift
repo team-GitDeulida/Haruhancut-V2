@@ -10,10 +10,18 @@ import Domain
 import RxSwift
 import RxCocoa
 import Core
+import UIKit
 
+// MARK: - HomeViewModel: 세션 기반 입니다
+// MARK: - ProfileViewModel: 트리거 기반 입니다
 final class ProfileViewModel: ProfileViewModelType {
 
     let disposeBag = DisposeBag()
+    
+    // vm reload trigger
+    private let vmReloadTrigger = PublishRelay<Void>()
+    
+    private let vcIsLoadingRelay = BehaviorRelay<Bool>(value: false)
     
     // MARK: - Usecase
     private let userSession: UserSession
@@ -21,21 +29,26 @@ final class ProfileViewModel: ProfileViewModelType {
     private let groupUsecase: GroupUsecaseProtocol
     
     // MARK: - Coordinator Trigger
+    var onProfileImageTapped: ((String) -> Void)?
+    var onProfileImageEditButtonTapped: ((@escaping (UIImage) -> Void) -> Void)?
     var onNicknameEditButtonTapped: (() -> Void)?
     var onSettingButtonTapped: (() -> Void)?
     var onImageTapped: ((Post) -> Void)?
     
     struct Input {
+        let onProfileImageTapped: Observable<Void>
+        let onProfileImageEditButtonTapped: Observable<Void>
         let onNicknameEditButtonTapped: Observable<Void>
         let onSettingButtonTapped: Observable<Void>
         let onImageTapped: Observable<Post>
         let reload: Observable<Void>
-        let viewWillAppear: Observable<Void>
+        let vcReloadTrigger: Observable<Void> // viewWillAppear
     }
     
     struct Output {
         let user: Driver<User>
         let myPosts: Driver<[Post]>
+        let isLoading: Driver<Bool>
     }
     
     init(userSession: UserSession, authUsecase: AuthUsecaseProtocol, groupUsecase: GroupUsecaseProtocol) {
@@ -46,27 +59,10 @@ final class ProfileViewModel: ProfileViewModelType {
     
     func transform(input: Input) -> Output {
         
-        // MARK: - Coordinator
-        input.onNicknameEditButtonTapped
-            .bind(with: self, onNext: { owner, post in
-                owner.onNicknameEditButtonTapped?()
-            })
-            .disposed(by: disposeBag)
-        
-        input.onImageTapped
-            .bind(with: self, onNext: { owner, post in
-                owner.onImageTapped?(post)
-            })
-            .disposed(by: disposeBag)
-        
-        input.onSettingButtonTapped
-            .bind(with: self, onNext: { owner, _ in
-                owner.onSettingButtonTapped?()
-            })
-            .disposed(by: disposeBag)
-        
         // 유저
-        let reloadUser = input.viewWillAppear
+        let reloadUser = Observable.merge(
+            input.vcReloadTrigger,
+            vmReloadTrigger.asObservable())
             .withUnretained(self)
             .flatMapLatest { owner, _ in
                 owner.authUsecase
@@ -102,7 +98,53 @@ final class ProfileViewModel: ProfileViewModelType {
             }
             .asDriver(onErrorJustReturn: [])
         
+        // MARK: - Coordinator
+        input.onProfileImageTapped
+            .withLatestFrom(reloadUser)
+            .compactMap { $0.profileImageURL }
+            .bind(with: self, onNext: { owner, imageURL in
+                owner.onProfileImageTapped?(imageURL)
+            })
+            .disposed(by: disposeBag)
+        
+        input.onProfileImageEditButtonTapped
+            .bind(with: self, onNext: { owner, _ in
+                owner.onProfileImageEditButtonTapped? { image in
+                    owner.vcIsLoadingRelay.accept(true)
+                    owner.authUsecase
+                        .updateProfileImageAndReloadSession(image: image)
+                        .subscribe(
+                            onSuccess: { _ in
+                                owner.vmReloadTrigger.accept(())
+                                owner.vcIsLoadingRelay.accept(false)
+                            }, onFailure: { _ in
+                                owner.vcIsLoadingRelay.accept(false)
+                            })
+                        .disposed(by: owner.disposeBag)
+                }
+            })
+            .disposed(by: disposeBag)
+        
+        input.onNicknameEditButtonTapped
+            .bind(with: self, onNext: { owner, post in
+                owner.onNicknameEditButtonTapped?()
+            })
+            .disposed(by: disposeBag)
+        
+        input.onImageTapped
+            .bind(with: self, onNext: { owner, post in
+                owner.onImageTapped?(post)
+            })
+            .disposed(by: disposeBag)
+        
+        input.onSettingButtonTapped
+            .bind(with: self, onNext: { owner, _ in
+                owner.onSettingButtonTapped?()
+            })
+            .disposed(by: disposeBag)
+        
         return Output(user: reloadUser.asDriver(onErrorDriveWith: .empty()),
-                      myPosts: myPosts)
+                      myPosts: myPosts,
+                      isLoading: vcIsLoadingRelay.asDriver())
     }
 }

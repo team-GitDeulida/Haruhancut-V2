@@ -14,6 +14,8 @@ import Domain
 import RxCocoa
 import Core
 
+// MARK: - HomeViewModel: 세션 기반 입니다
+// MARK: - ProfileViewModel: 트리거 기반 입니다
 public final class HomeViewModel: HomeViewModelType {
 
     private let disposeBag = DisposeBag()
