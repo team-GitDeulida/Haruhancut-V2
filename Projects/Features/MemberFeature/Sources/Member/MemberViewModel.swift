@@ -52,6 +52,7 @@ final class MemberViewModel: MemberViewModelType {
                 return owner.authUsecase
                     .fetchUser(uid: uid)
                     .asObservable()
+                    .catchAndReturn(nil) // 부분 실패를 허용하고 성공한 멤버만 반환
                     .compactMap { $0 }
             }
             .toArray()
