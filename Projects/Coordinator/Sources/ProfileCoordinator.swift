@@ -43,6 +43,7 @@ public final class ProfileCoordinator: NSObject, Coordinator {
             let previewCoordinator = ImagePreviewCoordinator(presentingViewController: self.navigationController,
                                                              imageURL: imageURL)
             previewCoordinator.parentCoordinator = self
+            self.childCoordinators.append(previewCoordinator)
             previewCoordinator.start()
         }
         
@@ -145,6 +146,7 @@ extension ProfileCoordinator: UIImagePickerControllerDelegate & UINavigationCont
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         
         guard let image = info[.originalImage] as? UIImage else {
+            self.imagePickerCompletion = nil
             picker.dismiss(animated: true)
             return
         }
@@ -160,6 +162,7 @@ extension ProfileCoordinator: UIImagePickerControllerDelegate & UINavigationCont
     public func imagePickerControllerDidCancel(
         _ picker: UIImagePickerController
     ) {
+        self.imagePickerCompletion = nil
         picker.dismiss(animated: true)
     }
 }

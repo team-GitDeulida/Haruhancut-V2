@@ -79,7 +79,9 @@ final class ProfileViewController: UIViewController, PopableViewController {
             self?.customView.profileImageView.onCameraTapped = {
                 observer.onNext(())
             }
-            return Disposables.create()
+            return Disposables.create { [weak self] in
+                self?.customView.profileImageView.onCameraTapped = nil
+            }
         }
         
         let onNicknameEditButtonTapped = customView.editButton.rx
