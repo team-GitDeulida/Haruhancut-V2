@@ -30,6 +30,7 @@ public final class AppCoordinator: Coordinator {
     public var childCoordinators: [Coordinator] = []
     public var navigationController: UINavigationController
     @Dependency var userSession: UserSession
+    @Dependency var groupSession: GroupSession
     
     public init(navigationController: UINavigationController) {
         self.navigationController = navigationController
@@ -43,10 +44,31 @@ public final class AppCoordinator: Coordinator {
     
     // 로그인 플로우
     func startLoginFlowCoordinator() {
-        let authCoordinator = AuthCoordinator(navigationController: navigationController)
-        authCoordinator.parentCoordinator = self
-        childCoordinators.append(authCoordinator)
-        authCoordinator.start()
+        
+        // // 회전 애니메이션으로 로그아웃
+        UIView.transition(
+            with: navigationController.view,
+            duration: 0.4,
+            options: .transitionFlipFromLeft,
+            animations: {
+                
+                // 1. 모든 자식 코디네이터 제거
+                self.childCoordinators.removeAll()
+                
+                // 2.. 네비게이션 스택 초기화
+                self.navigationController.setViewControllers([], animated: false)
+                
+                // 새 AuthCoordinator 생성
+                let authCoordinator = AuthCoordinator(navigationController: self.navigationController)
+                authCoordinator.parentCoordinator = self
+                
+                // AuthCoordinator를 자식으로 등록
+                self.childCoordinators.append(authCoordinator)
+                
+                // AuthCoordinator 설정 시작
+                authCoordinator.start()
+            }
+        )
     }
     
     // 홈 플로우
@@ -93,23 +115,6 @@ public final class AppCoordinator: Coordinator {
         coordinator.parentCoordinator = self
         childCoordinators.append(coordinator)
         coordinator.start()
-    }
-    
-    // 로그아웃
-    func logoutWithRotation() {
-        // 회전 애니메이션으로 로그인 플로우 시작
-        UIView.transition(
-            with: navigationController.view,
-            duration: 0.4,
-            options: .transitionFlipFromLeft,
-            animations: {
-                // 로그아웃
-                try? Auth.auth().signOut()
-                
-                // 세션 정리 (상태 변경)
-                self.userSession.clear()
-            }
-        )
     }
 }
 

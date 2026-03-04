@@ -14,14 +14,16 @@ public protocol AuthRepositoryProtocol {
     func loginWithKakao() -> Single<String>
     func loginWithApple() -> Single<(String, String)>
     func authenticateUser(providerID: String, idToken: String, rawNonce: String?) -> Single<String>
+    func reauthenticate(platform: User.LoginPlatform) -> Single<Void>
+    func signOut() -> Single<Void>
     
     // MARK: - User
     func registerUserToRealtimeDatabase(user: User) -> Single<User>
-    // func fetchMyUser() -> Single<User>
     func fetchUser(uid: String) -> Single<User?>
     
     func updateUser(user: User) -> Single<User>
-    func deleteUser(uid: String) -> Single<Void>
+    func deleteAuthUser() -> Single<Void>
+    func deleteDBUser(uid: String) -> Single<Void>
     func patchUser(uid: String, fields: [String: Any]) -> Single<Void>
     
     // MARK: - Image

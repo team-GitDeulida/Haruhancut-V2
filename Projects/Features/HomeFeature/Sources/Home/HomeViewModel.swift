@@ -33,7 +33,6 @@ public final class HomeViewModel: HomeViewModelType {
     private var groupSessionObserverID: UUID?
 
     // MARK: - Coordinator Trigger
-    public var onLogoutTapped: (() -> Void)?
     public var onImageTapped: ((Post) -> Void)?
     public var onProfileTapped: (() -> Void)?
     public var onCameraTapped: ((CameraSource) -> Void)?

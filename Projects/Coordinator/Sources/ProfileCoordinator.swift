@@ -63,10 +63,28 @@ public final class ProfileCoordinator: Coordinator {
             }
         }
         
-        
         // 설정 버튼
         profile.vm.onSettingButtonTapped = { [weak self] in
-            print("설정 트리거")
+            guard let self = self else { return }
+            let setting = builder.makeSetting()
+            
+            // 모든 설정 세팅 끝난 후 push
+            self.navigationController.pushViewController(setting.vc, animated: true)
+        }
+        
+        // 닉네임 편집 버튼
+        profile.vm.onNicknameEditButtonTapped = { [weak self] in
+            guard let self = self else { return }
+            var nicknameEdit = builder.makeNicknameEdit()
+            
+            // 닉네임 편집 화면에서 성공 시 뒤로가기
+            nicknameEdit.vm.onPopButtonTapped = { [weak self] in
+                guard let self else { return }
+                self.navigationController.popViewController(animated: true)
+            }
+            
+            // 모든 설정 세팅 끝난 후 push
+            self.navigationController.pushViewController(nicknameEdit.vc, animated: true)
         }
         
         // 모든 세팅 끝난 후 push

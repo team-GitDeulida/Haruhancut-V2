@@ -9,7 +9,7 @@ import RxSwift
 import Core
 import UIKit
 
-enum DomainError: Error {
+public enum DomainError: Error {
     case missingGroupId
     case missingDomainSession
     case userNotFound

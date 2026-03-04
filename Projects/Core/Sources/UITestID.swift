@@ -8,6 +8,11 @@
 import Foundation
 
 public enum UITestID {
+    
+    public enum User {
+        public static let userId = "cDpXBXCFoseitthAHknJmVDPbch2"
+    }
+    
     public enum Feed {
         public static let collectionView = "feed_collectionView"
         public static let cameraButton = "feed_camera_button"

@@ -46,6 +46,7 @@ public enum LoginError: Error {
     case fetchUserError
     case deleteUserError
     case uploadImageError
+    case unknown(Error)
     
     var description: String {
         switch self {
@@ -77,6 +78,8 @@ public enum LoginError: Error {
             "⚠️ 이미지 업로드 실패"
         case .signInError:
             "⚠️ 파이어베이스 로그인 실패"
+        case .unknown(let error):
+            "⚠️ 알 수 없는 오류: \(error)"
         }
     }
 }

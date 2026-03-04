@@ -21,13 +21,16 @@ final class ProfileViewModel: ProfileViewModelType {
     private let groupUsecase: GroupUsecaseProtocol
     
     // MARK: - Coordinator Trigger
+    var onNicknameEditButtonTapped: (() -> Void)?
     var onSettingButtonTapped: (() -> Void)?
     var onImageTapped: ((Post) -> Void)?
     
     struct Input {
+        let onNicknameEditButtonTapped: Observable<Void>
         let onSettingButtonTapped: Observable<Void>
         let onImageTapped: Observable<Post>
         let reload: Observable<Void>
+        let viewWillAppear: Observable<Void>
     }
     
     struct Output {
@@ -43,18 +46,43 @@ final class ProfileViewModel: ProfileViewModelType {
     
     func transform(input: Input) -> Output {
         
+        // MARK: - Coordinator
+        input.onNicknameEditButtonTapped
+            .bind(with: self, onNext: { owner, post in
+                owner.onNicknameEditButtonTapped?()
+            })
+            .disposed(by: disposeBag)
+        
+        input.onImageTapped
+            .bind(with: self, onNext: { owner, post in
+                owner.onImageTapped?(post)
+            })
+            .disposed(by: disposeBag)
+        
+        input.onSettingButtonTapped
+            .bind(with: self, onNext: { owner, _ in
+                owner.onSettingButtonTapped?()
+            })
+            .disposed(by: disposeBag)
+        
         // 유저
-        let user = authUsecase
-            .loadAndFetchUser()
+        let reloadUser = input.viewWillAppear
+            .withUnretained(self)
+            .flatMapLatest { owner, _ in
+                owner.authUsecase
+                    .loadAndFetchUser()
+                    .catch { _ in .empty() }
+            }
+            .share(replay: 1) // output에서 여러 곳에서 쓰면 중복 호출 방지
         
         // 그룹
         let initialGroup = groupUsecase
             .loadAndFetchGroup()
         
         let reloadGroup = input.reload
-            .flatMapLatest { [weak self] _ -> Observable<HCGroup> in
-                guard let self else { return .empty() }
-                return self.groupUsecase
+            .withUnretained(self)
+            .flatMapLatest { owner, _-> Observable<HCGroup> in
+                return owner.groupUsecase
                     .loadAndFetchGroup()
                     .catch { _ in .empty() }
             }
@@ -73,28 +101,8 @@ final class ProfileViewModel: ProfileViewModelType {
                     .sorted { $0.createdAt > $1.createdAt }
             }
             .asDriver(onErrorJustReturn: [])
-
         
-        // MARK: - Coordinator
-        input.onImageTapped
-            .bind(with: self, onNext: { owner, post in
-                owner.onImageTapped?(post)
-            })
-            .disposed(by: disposeBag)
-        
-        input.onSettingButtonTapped
-            .bind(with: self, onNext: { owner, _ in
-                owner.onSettingButtonTapped?()
-            })
-            .disposed(by: disposeBag)
-        
-        return Output(user: user.asDriver(onErrorDriveWith: .empty()),
+        return Output(user: reloadUser.asDriver(onErrorDriveWith: .empty()),
                       myPosts: myPosts)
     }
 }
-
-
-
-
-
-

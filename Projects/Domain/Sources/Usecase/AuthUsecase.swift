@@ -30,10 +30,13 @@ public protocol AuthUsecaseProtocol {
 
     func updateUser(user: User) -> Single<User>
     func uploadImage(user: User, image: UIImage) -> Single<URL>
+    func updateNicknameAndReloadSession(nickname: String) -> Single<User>
     
     // MARK: - Sign
     func signIn(platform: User.LoginPlatform) -> Single<SignInResult>
     func signUp(user: User, profileImage: UIImage?) -> Single<Void>
+    func signOut() -> Single<Void>
+    func deleteUserAuthAndData() -> Single<Void>
     
     // MARK: - FCM
     func generateFcmToken() -> Single<String>
@@ -50,14 +53,17 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
 
     private let repository: AuthRepositoryProtocol
     private let userSession: UserSession
+    private let groupSession: GroupSession
     private let fcmTokenStore: FCMTokenStore
     
     public init(authRepository: AuthRepositoryProtocol,
                 userSession: UserSession,
+                groupSession: GroupSession,
                 fcmTokenStore: FCMTokenStore
     ) {
         self.repository = authRepository
         self.userSession = userSession
+        self.groupSession = groupSession
         self.fcmTokenStore = fcmTokenStore
     }
     
@@ -75,6 +81,24 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     /// - Returns: 이미지url
     public func uploadImage(user: User, image: UIImage) -> Single<URL> {
         return repository.uploadImage(user: user, image: image)
+    }
+    
+    
+    /// 닉네임 업데이트 및 세션 갱신
+    /// - Parameter nickname: 새 닉네임
+    /// - Returns: 변경된 유저
+    public func updateNicknameAndReloadSession(nickname: String) -> Single<User> {
+        guard var currentUser = userSession.session else {
+            return .error(DomainError.missingDomainSession)
+        }
+        
+        currentUser.nickname = nickname
+        return repository.updateUser(user: currentUser)
+            .flatMap { _ in
+                self.loadAndFetchUser()
+                    .takeLast(1)
+                    .asSingle()
+            }
     }
 }
 
@@ -131,7 +155,7 @@ extension AuthUsecaseImpl {
     }
 }
 
-// MARK: - Sign in / Sign Up
+// MARK: - Sign in / Sign Up / LogOut
 extension AuthUsecaseImpl {
     public func signUp(user: User, profileImage: UIImage?) -> Single<Void> {
         repository.registerUserToRealtimeDatabase(user: user)
@@ -142,7 +166,7 @@ extension AuthUsecaseImpl {
                     // 이미지가 없다면 바로 성공(Void) 반환
                     return .just(registeredUser)
                 }
-
+                
                 // 이미지가 있는 경우
                 return self.uploadImage(user: registeredUser, image: image)
                     .flatMap { url in
@@ -174,6 +198,37 @@ extension AuthUsecaseImpl {
                     self.userSession.update(user)
                 }
             }
+    }
+    
+    public func signOut() -> Single<Void> {
+        
+        return self.repository.signOut()
+            .do(onSuccess: { [weak self] in
+                guard let self = self else { return }
+                self.userSession.clear()
+                self.groupSession.clear()
+            })
+    }
+    
+    public func deleteUserAuthAndData() -> Single<Void> {
+        
+        guard let uid = userSession.userId,
+              let platform = userSession.platform else {
+            return .error(DomainError.missingDomainSession)
+        }
+        
+        return repository.reauthenticate(platform: platform)
+            .flatMap {
+                self.repository.deleteDBUser(uid: uid)
+            }
+            .flatMap {
+                self.repository.deleteAuthUser()
+            }
+            .do(onSuccess: { [weak self] in
+                guard let self = self else { return }
+                self.userSession.clear()
+                self.groupSession.clear()
+            })
     }
 }
 

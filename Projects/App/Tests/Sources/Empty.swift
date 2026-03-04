@@ -69,7 +69,7 @@ extension DataIntegrationTests {
             firebaseStorageManager: FirebaseStorageManager()
         )
 
-        let uid = "T9RQRMJQOeUl8pb52y1SEfpS7nj1"
+        let uid = UITestID.User.userId
 
         // when
         let user = try await repository.fetchUser(uid: uid).value

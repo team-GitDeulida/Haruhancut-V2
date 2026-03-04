@@ -50,7 +50,7 @@ public struct User: Codable, Equatable {
 
 extension User {
     public static var sampleUser1: User {
-        User(uid: "stub-uid",
+        User(uid: "테스트유저",
              registerDate: Date(),
              loginPlatform: .apple,
              nickname: "stub-nickname-apple",
@@ -108,5 +108,6 @@ public extension SessionContext where Model == User {
     var profileImageURL: String? { session?.profileImageURL }
     var fcmToken: String? { session?.fcmToken }
     var hasGroup: Bool { groupId != nil }
+    var platform: User.LoginPlatform? { session?.loginPlatform }
 }
 
