@@ -10,7 +10,7 @@ import Foundation
 public enum UITestID {
     
     public enum User {
-        public static let userId = "cDpXBXCFoseitthAHknJmVDPbch2"
+        public static let userId = "28Db9oQ9o2eJabqTSSylE7KC1ej1"
     }
     
     public enum Feed {
