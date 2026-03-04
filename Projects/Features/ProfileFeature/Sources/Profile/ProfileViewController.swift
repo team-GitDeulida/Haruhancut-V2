@@ -148,6 +148,7 @@ final class ProfileViewController: UIViewController, PopableViewController {
         
         // MARK: - 로딩 인디케이터
         output.isLoading
+            .distinctUntilChanged()
             .drive(with: self, onNext: { owner, isLoading in
                 switch isLoading {
                 case true:
@@ -184,6 +185,7 @@ extension ProfileViewController: UICollectionViewDelegateFlowLayout {
 extension ProfileViewController {
     // 로딩 UI
     private func showLoadingIndicator() {
+        guard customView.loadingView == nil else { return }
         guard let rootView = self.navigationController?.view ?? self.view else { return }
         let loadingView = UIView()
         loadingView.backgroundColor = UIColor.black.withAlphaComponent(0.3)
