@@ -91,7 +91,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: DerivedData
-          key: deriveddata-${{ runner.os }}-xcode16.4-${{ matrix.module }}-${{ hashFiles('**/project.pbxproj') }}
+          key: deriveddata-${{ runner.os }}-xcode16.4-${{ matrix.module }}-${{ hashFiles('Tuist.swift', 'Workspace.swift', 'Tuist/Package.swift', 'Projects/**/Project.swift') }}
           restore-keys: |
             deriveddata-${{ runner.os }}-xcode16.4-${{ matrix.module }}-
 
