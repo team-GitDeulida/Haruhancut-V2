@@ -90,12 +90,10 @@ jobs:
       - name: Cache DerivedData
         uses: actions/cache@v4
         with:
-          path: |
-            DerivedData/Build
-            DerivedData/ModuleCache.noindex
-          key: deriveddata-${{ runner.os }}-xcode16.4-ios18.5-${{ matrix.module }}
+          path: DerivedData
+          key: deriveddata-${{ runner.os }}-xcode16.4-${{ matrix.module }}-${{ hashFiles('**/project.pbxproj') }}
           restore-keys: |
-            deriveddata-${{ runner.os }}-xcode16.4-ios18.5-${{ matrix.module }}-
+            deriveddata-${{ runner.os }}-xcode16.4-${{ matrix.module }}-
 
       - name: Install Tuist
         run: |
@@ -165,3 +163,42 @@ jobs:
           body: |
             ❌ **하루한컷 iOS CI 실패**
             - 일부 모듈 테스트 실패
+
+      # 메일은 모든 이벤트에서
+      - name: Send email on success
+        if: needs.test.result == 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ✅ 하루한컷 iOS CI 성공
+          body: |
+            CI 성공 🎉
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Actor: ${{ github.actor }}
+            URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: indextrown@gmail.com
+          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
+
+      - name: Send email on failure
+        if: needs.test.result != 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ❌ 하루한컷 iOS CI 실패
+          body: |
+            CI 실패 발생 ❌
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Actor: ${{ github.actor }}
+            URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: indextrown@gmail.com
+          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
