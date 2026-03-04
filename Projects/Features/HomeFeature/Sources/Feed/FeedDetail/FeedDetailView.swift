@@ -85,11 +85,11 @@ final class FeedDetailView: UIView {
             return
         }
         
-        let processor = DownsamplingImageProcessor(size: targetSize)
+        // let processor = DownsamplingImageProcessor(size: targetSize)
         imageView.kf.setImage(
                 with: url,
                 options: [
-                    .processor(processor),
+                    // .processor(processor),
                     .backgroundDecode,
                     .scaleFactor(UIScreen.main.scale)
                 ]
