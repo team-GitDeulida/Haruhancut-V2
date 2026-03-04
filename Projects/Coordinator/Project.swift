@@ -19,6 +19,7 @@ let project = Project(
                 .project(target: "HomeFeature", path: "../Features/HomeFeature"),
                 .project(target: "OnboardingFeature", path: "../Features/OnboardingFeature"),
                 .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
+                .project(target: "MemberFeature", path: "../Features/MemberFeature"),
                 .project(target: "ImageFeature", path: "../Features/ImageFeature"),
                 .project(target: "Core", path: "../Core"),
                 .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs")

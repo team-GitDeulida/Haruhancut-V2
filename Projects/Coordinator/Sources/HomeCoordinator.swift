@@ -39,6 +39,15 @@ public final class HomeCoordinator: NSObject, Coordinator  {
             profileCoordinator.start()
         }
         
+        // 멤버는 홈 자식이 아니므로 코디네이터를 따로 둠
+        home.vm.onMemberTapped = { [weak self] in
+            guard let self = self else { return }
+            let memberCoordinator = MemberCoordinator(navigationController: self.navigationController)
+            memberCoordinator.parentCoordinator = self
+            self.childCoordinators.append(memberCoordinator)
+            memberCoordinator.start()
+        }
+        
         home.vm.onCameraTapped = { [weak self] source in
             guard let self = self else { return }
             

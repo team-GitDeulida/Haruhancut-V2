@@ -114,14 +114,15 @@ final class HomeViewController: UIViewController {
         self.navigationItem.leftBarButtonItem?.rx.tap
             .withUnretained(self)
             .subscribe(onNext: { vc, _ in
-                print("left")
+                vc.viewModel.onMemberTapped?()
             })
             .disposed(by: disposeBag)
         
         // right navi btn
         self.navigationItem.rightBarButtonItem?.rx.tap
-            .subscribe(onNext: {
-                self.viewModel.onProfileTapped?()
+            .withUnretained(self)
+            .subscribe(onNext: { vc, _ in
+                vc.viewModel.onProfileTapped?()
             })
             .disposed(by: disposeBag)
         

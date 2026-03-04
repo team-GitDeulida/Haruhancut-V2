@@ -24,7 +24,7 @@ public final class ImagePreviewCoordinator: Coordinator {
     }
     
     public func start() {
-        let previewVC = ImagePreViewController(imageURL: imageURL) // 어떻게하지
+        let previewVC = ImagePreViewController(imageURL: imageURL)
         previewVC.modalPresentationStyle = .fullScreen
         presentingViewController?.present(previewVC, animated: true)
     }
