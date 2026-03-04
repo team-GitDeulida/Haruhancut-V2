@@ -119,7 +119,7 @@ final class ProfileViewController: UIViewController, PopableViewController {
                                            onSettingButtonTapped: onSettingButtonTapped,
                                            onImageTapped: onImageTapped,
                                            reload: reload,
-                                           viewWillAppear: viewWillAppear)
+                                           vcReloadTrigger: viewWillAppear)
         let output = viewModel.transform(input: input)
         
         // MARK: - 프로필 유저 사진

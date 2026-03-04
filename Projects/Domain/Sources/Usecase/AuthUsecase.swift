@@ -31,6 +31,7 @@ public protocol AuthUsecaseProtocol {
     func updateUser(user: User) -> Single<User>
     func uploadImage(user: User, image: UIImage) -> Single<URL>
     func updateNicknameAndReloadSession(nickname: String) -> Single<User>
+    func updateProfileImageAndReloadSession(image: UIImage) -> Single<User>
     
     // MARK: - Sign
     func signIn(platform: User.LoginPlatform) -> Single<SignInResult>
@@ -94,6 +95,24 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
         
         currentUser.nickname = nickname
         return repository.updateUser(user: currentUser)
+            .flatMap { _ in
+                self.loadAndFetchUser()
+                    .takeLast(1)
+                    .asSingle()
+            }
+    }
+    
+    public func updateProfileImageAndReloadSession(image: UIImage) -> Single<User> {
+        guard let currentUser = userSession.session else {
+            return .error(DomainError.missingDomainSession)
+        }
+        
+        return repository.uploadImage(user: currentUser, image: image)
+            .flatMap { url -> Single<User> in
+                var updatedUser = currentUser
+                updatedUser.profileImageURL = url.absoluteString
+                return self.repository.updateUser(user: updatedUser)
+            }
             .flatMap { _ in
                 self.loadAndFetchUser()
                     .takeLast(1)

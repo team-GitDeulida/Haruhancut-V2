@@ -25,6 +25,8 @@ public final class ProfileCoordinator: NSObject, Coordinator {
         self.navigationController = navigationController
     }
     
+    private var imagePickerCompletion: ((UIImage) -> Void)?
+    
     public func start() {
         let builder = ProfileFeatureBuilder()
         var profile = builder.makeProfile()
@@ -45,9 +47,9 @@ public final class ProfileCoordinator: NSObject, Coordinator {
         }
         
         // 프로필 수정
-        profile.vm.onProfileImageEditButtonTapped = { [weak self] in
+        profile.vm.onProfileImageEditButtonTapped = { [weak self] completion in
             guard let self = self else { return }
-            profilePresentImagePicker()
+            profilePresentImagePicker(completion: completion)
         }
         
         // 게시글 터치
@@ -110,7 +112,11 @@ public final class ProfileCoordinator: NSObject, Coordinator {
 }
 
 extension ProfileCoordinator: UIImagePickerControllerDelegate & UINavigationControllerDelegate {
-    func profilePresentImagePicker() {
+    
+    func profilePresentImagePicker(completion: @escaping (UIImage) -> Void) {
+        // MARK: - Picker열떄 completion 저장
+        imagePickerCompletion = completion
+        
         guard UIImagePickerController.isSourceTypeAvailable(.photoLibrary) else {
             return
         }
@@ -143,14 +149,11 @@ extension ProfileCoordinator: UIImagePickerControllerDelegate & UINavigationCont
             return
         }
 
+        // MARK: - Delegate에서 Completion 호출
         picker.dismiss(animated: true) { [weak self] in
-//            let builder = ImageFeatureBuilder()
-//            var upload = builder.makeImageUpload(image: image)
-//            upload.vm.onUploadCompleted = { [weak self] in
-//                self?.navigationController.popViewController(animated: true)
-//            }
-//            
-//            self?.navigationController.pushViewController(upload.vc, animated: true)
+            guard let self = self else { return }
+            self.imagePickerCompletion?(image)
+            self.imagePickerCompletion = nil
         }
     }
     

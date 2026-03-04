@@ -10,10 +10,14 @@ import Domain
 import RxSwift
 import RxCocoa
 import Core
+import UIKit
 
+// MARK: - HomeViewModel: 세션 기반 입니다
+// MARK: - ProfileViewModel: 트리거 기반 입니다
 final class ProfileViewModel: ProfileViewModelType {
 
     let disposeBag = DisposeBag()
+    private let vmReloadTrigger = PublishRelay<Void>()
     
     // MARK: - Usecase
     private let userSession: UserSession
@@ -22,7 +26,7 @@ final class ProfileViewModel: ProfileViewModelType {
     
     // MARK: - Coordinator Trigger
     var onProfileImageTapped: ((String) -> Void)?
-    var onProfileImageEditButtonTapped: (() -> Void)?
+    var onProfileImageEditButtonTapped: ((@escaping (UIImage) -> Void) -> Void)?
     var onNicknameEditButtonTapped: (() -> Void)?
     var onSettingButtonTapped: (() -> Void)?
     var onImageTapped: ((Post) -> Void)?
@@ -34,7 +38,7 @@ final class ProfileViewModel: ProfileViewModelType {
         let onSettingButtonTapped: Observable<Void>
         let onImageTapped: Observable<Post>
         let reload: Observable<Void>
-        let viewWillAppear: Observable<Void>
+        let vcReloadTrigger: Observable<Void> // viewWillAppear
     }
     
     struct Output {
@@ -51,7 +55,9 @@ final class ProfileViewModel: ProfileViewModelType {
     func transform(input: Input) -> Output {
         
         // 유저
-        let reloadUser = input.viewWillAppear
+        let reloadUser = Observable.merge(
+            input.vcReloadTrigger,
+            vmReloadTrigger.asObservable())
             .withUnretained(self)
             .flatMapLatest { owner, _ in
                 owner.authUsecase
@@ -98,8 +104,14 @@ final class ProfileViewModel: ProfileViewModelType {
         
         input.onProfileImageEditButtonTapped
             .bind(with: self, onNext: { owner, _ in
-                print("이미지 편집")
-                owner.onProfileImageEditButtonTapped?()
+                owner.onProfileImageEditButtonTapped? { image in
+                    owner.authUsecase
+                        .updateProfileImageAndReloadSession(image: image)
+                        .subscribe(onSuccess: { _ in
+                            owner.vmReloadTrigger.accept(())
+                        })
+                        .disposed(by: owner.disposeBag)
+                }
             })
             .disposed(by: disposeBag)
         
