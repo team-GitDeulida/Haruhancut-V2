@@ -55,6 +55,11 @@ final class MemberCell: UICollectionViewCell {
         super.prepareForReuse()
         imageView.kf.cancelDownloadTask()
         imageView.image = nil
+        
+        imageView.contentMode = .scaleAspectFill
+        imageView.tintColor = .gray
+        circleView.backgroundColor = .gray300
+        nameLabel.text = nil
     }
     
     required init?(coder: NSCoder) {
@@ -97,6 +102,7 @@ final class MemberCell: UICollectionViewCell {
             imageView.kf.setImage(with: url)
             
         } else {
+            imageView.tintColor = .gray
             imageView.image = UIImage(systemName: "person.fill")
         }
     }
