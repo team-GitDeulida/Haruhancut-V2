@@ -36,6 +36,7 @@ public final class HomeViewModel: HomeViewModelType {
 
     // MARK: - Coordinator Trigger
     public var onImageTapped: ((Post) -> Void)?
+    public var onMemberTapped: (() -> Void)?
     public var onProfileTapped: (() -> Void)?
     public var onCameraTapped: ((CameraSource) -> Void)?
     public var onCalendarImageTapped: (([Post], Date) -> Void)?
