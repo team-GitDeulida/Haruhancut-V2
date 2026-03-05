@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import OnboardingFeature
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -24,8 +25,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         // 3. root view controller 설정
         let rootViewController = MainViewController()
+        
+        let builder = OnboardingFeatureBuilder()
+        let onboarding = builder.makeOnboarding()
 
-        window.rootViewController = rootViewController
+        window.rootViewController = onboarding.vc
         self.window = window
         window.makeKeyAndVisible()
     }
