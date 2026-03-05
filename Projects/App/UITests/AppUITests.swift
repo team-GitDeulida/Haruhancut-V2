@@ -17,6 +17,9 @@ final class AppUITests: XCTestCase {
         // 테스트 유저 정보
         app.launchEnvironment["TEST_USER_UID"] = UITestID.User.userId
         app.launch()
+        
+        // 시스템 알림 권한 허용
+        handleSystemAlerts()
     }
     
     override func tearDown() {
@@ -24,12 +27,6 @@ final class AppUITests: XCTestCase {
         // 앱 종료
         app.terminate()
         super.tearDown()
-    }
-    
-    func test_app_launch() {
-        // 앱이 정상적으로 실행되는지 확인
-        XCTAssertTrue(app.state == .runningForeground)
-        // sleep(5)
     }
     
     func test_home_upload_and_delete_flow() {
@@ -79,7 +76,7 @@ final class AppUITests: XCTestCase {
         }
 
         photo.tap()
-        
+
         // 4. 업로드 버튼 찾기 및 클릭
         let uploadButton = app.buttons[UITestID.Feed.uploadButton]
         XCTAssertTrue(uploadButton.waitForExistence(timeout: 20))
@@ -275,6 +272,37 @@ final class AppUITests: XCTestCase {
         XCTAssertTrue(cameraButton.waitForExistence(timeout: 10),
                       "홈으로 복귀하지 않음")
     }
+    
+    // 시스템 알림권한 허용
+    func handleSystemAlerts() {
+
+        addUIInterruptionMonitor(withDescription: "System Dialog") { alert -> Bool in
+            
+            if alert.buttons["허용"].exists {
+                alert.buttons["허용"].tap()
+                return true
+            }
+
+            if alert.buttons["확인"].exists {
+                alert.buttons["확인"].tap()
+                return true
+            }
+
+            if alert.buttons["OK"].exists {
+                alert.buttons["OK"].tap()
+                return true
+            }
+
+            if alert.buttons["Allow"].exists {
+                alert.buttons["Allow"].tap()
+                return true
+            }
+
+            return false
+        }
+
+        app.tap()
+    }
 }
 
 
@@ -303,3 +331,9 @@ XCTAssertTrue(feedCollection.waitForExistence(timeout: 10),
 //let firstPhoto = app.images.firstMatch
 //XCTAssertTrue(firstPhoto.waitForExistence(timeout: 5))
 //firstPhoto.tap()
+
+//func test_app_launch() {
+//    // 앱이 정상적으로 실행되는지 확인
+//    XCTAssertTrue(app.state == .runningForeground)
+//    // sleep(5)
+//}
