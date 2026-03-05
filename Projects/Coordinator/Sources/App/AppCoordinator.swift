@@ -42,14 +42,8 @@ public final class AppCoordinator: Coordinator {
     
     // 로그인플로우 or 홈 플로우
     public func start() {
-        
-        // 첫 설치시 온보딩 화면 실행
-        if !hasSeenOnboarding {
-            startOnboardingFlowCoordinator()
-            return
-        }
-        
-        startSessionFlow()
+        observeSession()
+        routeBySession()
     }
     
     // 온보딩 플로우
@@ -65,12 +59,6 @@ public final class AppCoordinator: Coordinator {
         childCoordinators.append(coordinator)
 
         coordinator.start()
-    }
-    
-    // 세션 플로우
-    func startSessionFlow() {
-        observeSession()
-        routeBySession()
     }
     
     // 로그인 플로우
@@ -154,17 +142,18 @@ extension AppCoordinator {
     // MARK: - Root Flow
     // 앱 최초 실행 시 진입할 플로우를 결정한다
     func routeBySession() {
-        /*
-        let isLoggedIn =
-        userSession.hasSession &&
-        Auth.auth().currentUser != nil
-         */
-        
+
         #if DEBUG
         let isUITest = ProcessInfo.processInfo.arguments.contains("-UITest")
         #else
         let isUITest = false
         #endif
+        
+        // 온보딩 (UITest는 skip)
+        if !hasSeenOnboarding && !isUITest {
+            startOnboardingFlowCoordinator()
+            return
+        }
         
         let isLoggedIn =
         userSession.hasSession &&

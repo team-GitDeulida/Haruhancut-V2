@@ -34,7 +34,7 @@ public final class OnboardingCoordinator: Coordinator {
                 guard let appCoordinator = self.parentCoordinator as? AppCoordinator else { return }
 
                 appCoordinator.childDidFinish(self)
-                appCoordinator.startSessionFlow()
+                appCoordinator.routeBySession()
             }
         }
 
