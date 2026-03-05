@@ -32,12 +32,43 @@ public final class AppCoordinator: Coordinator {
     @Dependency var userSession: UserSession
     @Dependency var groupSession: GroupSession
     
+    private var hasSeenOnboarding: Bool {
+        UserDefaults.standard.bool(forKey: "Tutorial")
+    }
+    
     public init(navigationController: UINavigationController) {
         self.navigationController = navigationController
     }
     
     // 로그인플로우 or 홈 플로우
     public func start() {
+        
+        // 첫 설치시 온보딩 화면 실행
+        if !hasSeenOnboarding {
+            startOnboardingFlowCoordinator()
+            return
+        }
+        
+        startSessionFlow()
+    }
+    
+    // 온보딩 플로우
+    func startOnboardingFlowCoordinator() {
+
+        if childCoordinators.contains(where: { $0 is OnboardingCoordinator }) {
+            return
+        }
+
+        let coordinator = OnboardingCoordinator(navigationController: navigationController)
+        coordinator.parentCoordinator = self
+
+        childCoordinators.append(coordinator)
+
+        coordinator.start()
+    }
+    
+    // 세션 플로우
+    func startSessionFlow() {
         observeSession()
         routeBySession()
     }
@@ -118,7 +149,7 @@ public final class AppCoordinator: Coordinator {
     }
 }
 
-private extension AppCoordinator {
+extension AppCoordinator {
     
     // MARK: - Root Flow
     // 앱 최초 실행 시 진입할 플로우를 결정한다

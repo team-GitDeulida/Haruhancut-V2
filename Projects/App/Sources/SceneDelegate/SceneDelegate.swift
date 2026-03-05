@@ -32,18 +32,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // 3. Navigation Controller 생성
         let navigationController = UINavigationController()
         
-        // 5. AppCoordinator 생성
-        let appCoordinator = AppCoordinator(navigationController: navigationController)
-        self.appCoordinator = appCoordinator
-        self.configureForUITests()
-        appCoordinator.start()
-
         // 4. navigationController로 window의 root view controller를 설정
         window.rootViewController = navigationController
         
         // 5. window를 설정하고 makeKeyAndVisible()
         self.window = window
         window.makeKeyAndVisible()
+        
+        // 6. AppCoordinator 생성
+        let appCoordinator = AppCoordinator(navigationController: navigationController)
+        self.appCoordinator = appCoordinator
+        self.configureForUITests()
+        appCoordinator.start()
+
+        
     }
     
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {

@@ -10,6 +10,9 @@ import OnboardingFeatureInterface
 
 final class OnboardingViewModel: OnboardingViewModelType {
     
+    // MARK: - Coordinator Trigger
+    var onEndButtonTapped: (() -> Void)?
+    
     struct Input {}
     struct Output {}
     

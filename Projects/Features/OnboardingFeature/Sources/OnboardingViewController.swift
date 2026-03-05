@@ -101,7 +101,6 @@ final class OnboardingViewController: UIPageViewController {
         ])
     }
 
-   
     @objc private func didTapNext() {
         guard let currentVC = viewControllers?.first,
               let currentIndex = pages.firstIndex(of: currentVC) else { return }
@@ -121,8 +120,7 @@ final class OnboardingViewController: UIPageViewController {
             }
             
         } else {
-            dismiss(animated: true, completion: nil)
-            UserDefaults.standard.set(true, forKey: "Tutorial")
+            viewModel.onEndButtonTapped?()
         }
     }
 }

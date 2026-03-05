@@ -9,7 +9,7 @@ import Core
 import UIKit
 
 public protocol OnboardingRouteTrigger {
-    
+    var onEndButtonTapped: (() -> Void)? { get set }
 }
 
 public typealias OnboardingViewModelType = ViewModelType & OnboardingRouteTrigger
