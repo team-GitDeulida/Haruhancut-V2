@@ -25,13 +25,20 @@ public final class OnboardingCoordinator: Coordinator {
         var onboarding = builder.makeOnboarding()
 
         onboarding.vm.onEndButtonTapped = { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
+
             UserDefaults.standard.set(true, forKey: "Tutorial")
-            self.navigationController.dismiss(animated: false)
-            (self.parentCoordinator as? AppCoordinator)?.startSessionFlow()
+
+            self.navigationController.dismiss(animated: false) { [weak self] in
+                guard let self else { return }
+                guard let appCoordinator = self.parentCoordinator as? AppCoordinator else { return }
+
+                appCoordinator.childDidFinish(self)
+                appCoordinator.startSessionFlow()
+            }
         }
 
         onboarding.vc.modalPresentationStyle = .fullScreen
-        navigationController.present(onboarding.vc, animated: false)
+        navigationController.present(onboarding.vc, animated: true)
     }
 }
