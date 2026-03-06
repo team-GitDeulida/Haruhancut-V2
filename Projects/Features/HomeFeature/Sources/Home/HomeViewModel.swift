@@ -13,6 +13,7 @@ import RxRelay
 import Domain
 import RxCocoa
 import Core
+import Data
 
 // MARK: - HomeViewModel: 세션 기반 입니다
 // MARK: - ProfileViewModel: 트리거 기반 입니다
@@ -24,6 +25,10 @@ public final class HomeViewModel: HomeViewModelType {
 
     private let authUsecase: AuthUsecaseProtocol
     private let groupUsecase: GroupUsecaseProtocol
+    
+    // snapshot
+    private var groupRealtimeDisposable: Disposable?
+    private let snapshotRefreshRelay = PublishRelay<Void>()
 
     // UI 상태 단일 소스
     private let groupRelay = BehaviorRelay<HCGroup?>(value: nil)
@@ -70,7 +75,6 @@ public final class HomeViewModel: HomeViewModelType {
         self.groupUsecase = groupUsecase
         self.authUsecase = authUsecase
 
-
         // 초기 세션 값 즉시 반영 (빠른 로딩)
         if let session = groupSession.entity {
             groupRelay.accept(session)
@@ -81,6 +85,9 @@ public final class HomeViewModel: HomeViewModelType {
             guard let session else { return }
             self?.groupRelay.accept(session.toEntity())
         }
+        
+        // snapshot
+        observeGroupRealtime()
     }
     
     deinit {
@@ -112,7 +119,8 @@ public final class HomeViewModel: HomeViewModelType {
         // 새로고침 트리거
         let reloadTrigger = Observable.merge(
             input.viewDidLoad,
-            input.refreshTapped
+            input.refreshTapped,
+            snapshotRefreshRelay.asObservable() // 스냅샷 리로드
         )
 
         // 서버 fetch → 세션 업데이트 (relay는 세션 통해 자동 갱신)
@@ -145,7 +153,7 @@ public final class HomeViewModel: HomeViewModelType {
         let todayPosts = posts
             .map { posts in
                 posts
-                    .filter { $0.userId == self.userSession.userId }
+                    // .filter { $0.userId == self.userSession.userId }
                     .filter { $0.isToday }
             }
 
@@ -211,3 +219,83 @@ public extension SessionContext {
         observable.compactMap { $0 }
     }
 }
+
+extension HomeViewModel {
+    private func observeGroupRealtime() {
+
+        guard let groupId = userSession.groupId else { return }
+
+        groupRealtimeDisposable?.dispose()
+
+        let path = "groups/\(groupId)"
+
+        groupRealtimeDisposable =
+            groupUsecase
+                .observeValueStream(path: path, type: HCGroupDTO.self)
+                .compactMap { $0.toModel() }
+                .bind(with: self, onNext: { owner, group in
+
+                    print("🔥 group snapshot received")
+
+                    /// session 업데이트
+                    owner.groupSession.update(group.toSession())
+
+                    /// UI refresh
+                    owner.snapshotRefreshRelay.accept(())
+                })
+    }
+}
+
+/*
+extension HomeViewModel {
+    private func observeGroupRealtime() {
+
+        guard let groupId = userSession.groupId else { return }
+
+        groupRealtimeDisposable?.dispose()
+
+        let path = "groups/\(groupId)"
+
+        groupRealtimeDisposable =
+            groupUsecase
+                .observeValueStream(path: path, type: HCGroupDTO.self)
+                .compactMap { $0.toModel() }
+                .bind(with: self, onNext: { owner, group in
+
+                    print("🔥 snapshot received")
+
+                    let oldPosts = owner.groupSession.entity?
+                        .postsByDate
+                        .values
+                        .flatMap { $0 } ?? []
+
+                    let newPosts = group
+                        .postsByDate
+                        .values
+                        .flatMap { $0 }
+
+                    /// 최신 post
+                    let oldLatest = oldPosts.max { $0.createdAt < $1.createdAt }
+                    let newLatest = newPosts.max { $0.createdAt < $1.createdAt }
+
+                    /// 동일 post면 무시
+                    if oldLatest?.postId == newLatest?.postId {
+                        return
+                    }
+
+                    /// 내가 올린 post면 무시
+                    if newLatest?.userId == owner.userSession.userId {
+                        return
+                    }
+
+                    print("🔥 다른 유저 업로드 감지")
+                    
+                    /// 다른 유저 업로드 → reload
+                    owner.groupSession.update(group.toSession())
+
+                    /// refresh trigger
+                    owner.snapshotRefreshRelay.accept(())
+                })
+    }
+}
+*/
