@@ -63,7 +63,13 @@ final class CalendarDetailCell: UICollectionViewCell {
     
     func setKFImage(url: String) {
         if let url = URL(string: url) {
-            imageView.kf.setImage(with: url)
+            imageView.kf.setImage(
+                with: url,
+                options: [
+                    .backgroundDecode,
+                    .scaleFactor(UIScreen.main.scale)
+                ]
+            )
         }
     }
     

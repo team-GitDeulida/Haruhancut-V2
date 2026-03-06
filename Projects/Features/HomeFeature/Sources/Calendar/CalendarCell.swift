@@ -113,6 +113,7 @@ final class CalendarCell: FSCalendarCell {
                         .processor(processor),
                         .backgroundDecode,
                         .scaleFactor(UIScreen.main.scale),
+                        .cacheOriginalImage
                     ]
                 )
             }
