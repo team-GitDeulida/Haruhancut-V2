@@ -46,19 +46,24 @@ public final class ProfilePostCell: UICollectionViewCell {
     }
     
     func configure(post: Post, targetSize: CGSize) {
-        let url = URL(string: post.imageURL)
+        guard let url = URL(string: post.imageURL) else { return }
         
         // let targetSize = contentView.bounds.size
-        // let processor = DownsamplingImageProcessor(size: targetSize)
+        let processor = DownsamplingImageProcessor(size: targetSize)
         imageView.kf.setImage(
             with: url,
             options: [
-                // .processor(processor),             // 다운샘플링으로 픽셀 수를 줄임
+                .processor(processor),             // 다운샘플링으로 픽셀 수를 줄임
                 .backgroundDecode,                 // 디코딩 백그라운드 실행
                 .scaleFactor(UIScreen.main.scale), // 디스플레이 스케일에 맞게 이미지 처리
-                // .cacheOriginalImage                // 원본 이미지를 디스크 캐시에 저장
+                .cacheOriginalImage                // 원본 이미지를 디스크 캐시에 저장
             ]
-        ) { result in
+        )
+        
+      
+
+        /*
+        { result in
             switch result {
             case .failure(let error):
                 print("Kingfisher error:", error)
@@ -66,5 +71,6 @@ public final class ProfilePostCell: UICollectionViewCell {
                 break
             }
         }
+         */
     }
 }
