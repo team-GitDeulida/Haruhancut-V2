@@ -11,8 +11,6 @@ import RxSwift
 import RxCocoa
 import DSKit
 
-//import Core
-
 import ImageFeatureInterface
 
 final class CameraViewController: CameraViewControllerType {
@@ -47,9 +45,6 @@ final class CameraViewController: CameraViewControllerType {
         self.view = customView
     }
     
-    /// Performs a one-time camera configuration when the view becomes visible.
-    /// 
-    /// Calls `super.viewDidAppear(_:)`, ensures camera setup runs only once by setting `isCameraConfigured`, and schedules `setupCamera()` to execute on a background queue.
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         guard !isCameraConfigured else { return }
@@ -62,25 +57,17 @@ final class CameraViewController: CameraViewControllerType {
     }
     
     // 뷰가 메모리에 올라왔을때 && 레이아웃 계산 전
-    /// Performs post-load setup for the controller's UI and bindings.
-    /// 
-    /// Prepares the camera preview layer and establishes bindings between the view and the view model.
     override func viewDidLoad() {
         super.viewDidLoad()
         preparePreviewLayer()
         bindViewModel()
     }
     
-    /// Updates the preview layer's frame to match the camera view's bounds after layout.
-    /// Ensures the video preview fills the camera view's current size.
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         previewLayer?.frame = customView.cameraView.bounds
     }
     
-    /// Binds the camera UI to the view model by streaming the most recently captured image when the camera button is tapped.
-    /// 
-    /// Subscribes to the camera button tap events and forwards the latest `currentImage` as the `cameraButtonTapped` input to the view model.
     private func bindViewModel() {
         // MARK: - Tap 시점의 이미지를 꺼내서 stream으로 보낸다
         let captureImageStream = customView.cameraButton.rx.tap
@@ -95,9 +82,6 @@ final class CameraViewController: CameraViewControllerType {
 
 // MARK: - 비디오를 기록하고 프로세싱을 위한 비디오 프레임 접근을 제공하는 캡처 아웃풋
 extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
-    /// Configures and starts the device camera capture session and connects it to the preview layer.
-    /// 
-    /// Requests camera permission when needed. When authorized, creates an `AVCaptureSession` using the rear camera, sets its preset to `.photo`, attaches a video data output (delegate is set), stores and starts the session, and assigns the session to `previewLayer` on the main thread. If permission is denied or a camera input cannot be created, the method returns without starting a session.
     private func setupCamera() {
         // 1. 권한 체크
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -105,18 +89,25 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             break
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                guard let self = self else { return }
                 if granted {
-                    self?.setupCamera()
+                    DispatchQueue.global(qos: .unspecified).async { [weak self] in
+                        self?.setupCamera()
+                    }
                 } else {
+                    // 사용자가 거부한 상태
                     DispatchQueue.main.async {
-                        // self.showCameraPermissionAlert()
+                        self.showCameraPermissionAlert()
                     }
                 }
+                return
             }
         default:
+            // 사용자가 카메라 권한을 거부하거나 시스템 정책으로 막힌 상태
             DispatchQueue.main.async {
-                // self.showCameraPermissionAlert()
+                self.showCameraPermissionAlert()
             }
+            return
         }
         
         // 2. 세션 설정
@@ -160,18 +151,6 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         // preview.frame = customView.cameraView.bounds      // 초기 프레임 설정
         customView.cameraView.layer.addSublayer(preview)  // cameraView에 layer 추가
         self.previewLayer = preview                       // 나중에 참조할 수 있도록 저장
-    }
-    
-    /// Ensures a captured frame is available and that execution is on the main thread before further handling.
-    /// 
-    /// If `currentImage` is nil, logs `"현재 프레임 없음"` and returns without performing any action. Asserts that the call is made from the main thread; subsequent handling (for example, navigation or passing the image to a coordinator) occurs after this validation.
-    private func captureCurrentFrame() {
-        guard let image = currentImage else {
-            print("현재 프레임 없음")
-            return
-        }
-        assert(Thread.isMainThread, "❌ UI 변경은 반드시 메인 스레드에서 수행해야 합니다")
-        // 코디네이터 화면전환 로직 추가예정
     }
     
     /// Presents an alert prompting the user to enable camera access in Settings.
