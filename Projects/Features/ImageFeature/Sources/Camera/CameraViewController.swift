@@ -97,6 +97,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
                 } else {
                     // 사용자가 거부한 상태
                     DispatchQueue.main.async {
+                        self.isCameraConfigured = false
                         self.showCameraPermissionAlert()
                     }
                 }
@@ -105,6 +106,7 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         default:
             // 사용자가 카메라 권한을 거부하거나 시스템 정책으로 막힌 상태
             DispatchQueue.main.async {
+                self.isCameraConfigured = false
                 self.showCameraPermissionAlert()
             }
             return
