@@ -22,9 +22,6 @@ module:
 widget:
 	@tuist scaffold widget --name ${name}
 
-
-
-
 project:
 	tuist install
 	tuist generate
