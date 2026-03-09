@@ -9,13 +9,23 @@ import Foundation
 import Domain
 
 public struct HCGroupDTO: Codable {
-    let groupId: String?
-    let groupName: String?
-    let createdAt: String?
-    let hostUserId: String?
-    let inviteCode: String?
-    let members: [String: String]?
-    var postsByDate: [String: [String: PostDTO]]? // postId가 key인 딕셔너리
+    public let groupId: String?
+    public let groupName: String?
+    public let createdAt: String?
+    public let hostUserId: String?
+    public let inviteCode: String?
+    public let members: [String: String]?
+    public var postsByDate: [String: [String: PostDTO]]? // postId가 key인 딕셔너리
+    
+    public init(groupId: String?, groupName: String?, createdAt: String?, hostUserId: String?, inviteCode: String?, members: [String : String]?, postsByDate: [String : [String : PostDTO]]? = nil) {
+        self.groupId = groupId
+        self.groupName = groupName
+        self.createdAt = createdAt
+        self.hostUserId = hostUserId
+        self.inviteCode = inviteCode
+        self.members = members
+        self.postsByDate = postsByDate
+    }
 }
 
 extension HCGroupDTO {

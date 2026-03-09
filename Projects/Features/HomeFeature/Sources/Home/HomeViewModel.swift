@@ -13,6 +13,7 @@ import RxRelay
 import Domain
 import RxCocoa
 import Core
+import Data
 
 // MARK: - HomeViewModel: 세션 기반 입니다
 // MARK: - ProfileViewModel: 트리거 기반 입니다
@@ -24,6 +25,10 @@ public final class HomeViewModel: HomeViewModelType {
 
     private let authUsecase: AuthUsecaseProtocol
     private let groupUsecase: GroupUsecaseProtocol
+    
+    // snapshot
+    private var groupRealtimeDisposable: Disposable?
+    private let snapshotRefreshRelay = PublishRelay<Void>()
 
     // UI 상태 단일 소스
     private let groupRelay = BehaviorRelay<HCGroup?>(value: nil)
@@ -70,7 +75,6 @@ public final class HomeViewModel: HomeViewModelType {
         self.groupUsecase = groupUsecase
         self.authUsecase = authUsecase
 
-
         // 초기 세션 값 즉시 반영 (빠른 로딩)
         if let session = groupSession.entity {
             groupRelay.accept(session)
@@ -81,6 +85,9 @@ public final class HomeViewModel: HomeViewModelType {
             guard let session else { return }
             self?.groupRelay.accept(session.toEntity())
         }
+        
+        // snapshot
+        observeGroupRealtime()
     }
     
     deinit {
@@ -112,7 +119,8 @@ public final class HomeViewModel: HomeViewModelType {
         // 새로고침 트리거
         let reloadTrigger = Observable.merge(
             input.viewDidLoad,
-            input.refreshTapped
+            input.refreshTapped,
+            snapshotRefreshRelay.asObservable() // 스냅샷 리로드
         )
 
         // 서버 fetch → 세션 업데이트 (relay는 세션 통해 자동 갱신)
@@ -145,7 +153,6 @@ public final class HomeViewModel: HomeViewModelType {
         let todayPosts = posts
             .map { posts in
                 posts
-                    .filter { $0.userId == self.userSession.userId }
                     .filter { $0.isToday }
             }
 
@@ -209,5 +216,32 @@ public extension SessionContext {
 
     var nonNilObservable: Observable<Model> {
         observable.compactMap { $0 }
+    }
+}
+
+extension HomeViewModel {
+    private func observeGroupRealtime() {
+
+        guard let groupId = userSession.groupId else { return }
+
+        groupRealtimeDisposable?.dispose()
+
+        let path = "groups/\(groupId)"
+
+        groupRealtimeDisposable =
+            groupUsecase
+                .observeValueStream(path: path, type: HCGroupDTO.self)
+                .compactMap { $0.toModel() }
+                .observe(on: MainScheduler.instance)
+                .bind(with: self, onNext: { owner, group in
+
+                    // print("🔥 group snapshot received")
+
+                    /// session 업데이트
+                    owner.groupSession.update(group.toSession())
+
+                    /// UI refresh
+                    owner.snapshotRefreshRelay.accept(())
+                })
     }
 }
