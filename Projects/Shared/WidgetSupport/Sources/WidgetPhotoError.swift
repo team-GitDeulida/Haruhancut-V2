@@ -9,4 +9,5 @@ import Foundation
 
 enum WidgetPhotoError: Error {
     case invalidPath
+    case invalidImage
 }

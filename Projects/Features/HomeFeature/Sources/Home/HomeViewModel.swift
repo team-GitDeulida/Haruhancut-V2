@@ -15,6 +15,9 @@ import RxCocoa
 import Core
 import Data
 
+import WidgetSupport
+import WidgetKit
+
 // MARK: - HomeViewModel: 세션 기반 입니다
 // MARK: - ProfileViewModel: 트리거 기반 입니다
 public final class HomeViewModel: HomeViewModelType {
@@ -112,8 +115,19 @@ public final class HomeViewModel: HomeViewModelType {
             .withUnretained(self)
             .flatMapLatest { owner, post in
                 owner.groupUsecase.deletePostAndReload(post: post)
+                    .map { post }
             }
-            .subscribe()
+            .subscribe(with: self, onNext: { owner, post in
+                guard let groupId = self.userSession.groupId else { return }
+                let dateKey = post.createdAt.toDateKey()
+                WidgetPhotoStore.shared.deleteImage(groupId: groupId,
+                                                    dateKey: dateKey,
+                                                    identifier: post.postId)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    WidgetCenter.shared.reloadTimelines(ofKind: "PhotoWidget")
+                }
+                
+            })
             .disposed(by: disposeBag)
      
         // 새로고침 트리거
@@ -233,15 +247,76 @@ extension HomeViewModel {
                 .observeValueStream(path: path, type: HCGroupDTO.self)
                 .compactMap { $0.toModel() }
                 .observe(on: MainScheduler.instance)
-                .bind(with: self, onNext: { owner, group in
-
-                    // print("🔥 group snapshot received")
-
+                .bind(with: self, onNext: { owner, group in //  HCGroup
+                    print("🔥 group snapshot received")
+                    
                     /// session 업데이트
                     owner.groupSession.update(group.toSession())
 
                     /// UI refresh
                     owner.snapshotRefreshRelay.accept(())
+                    
+                    // widget session 저장 + 이미지 저장
+                    owner.handleWidgetUpdate(group: group, groupId: groupId)
                 })
+    }
+}
+
+extension HomeViewModel {
+    private func handleWidgetUpdate(group: HCGroup, groupId: String) {
+
+        if let user = userSession.session {
+            WidgetSessionStore.saveUser(user)
+        }
+
+        handleWidgetImage(group: group, groupId: groupId)
+    }
+    
+    private func handleWidgetImage(group: HCGroup, groupId: String) {
+        
+        let allPosts = group.postsByDate
+            .flatMap { $0.value }
+            .sorted { $0.createdAt < $1.createdAt }
+        
+        guard let todayPost = allPosts.last(where: { $0.isToday }),
+              let imageURL = URL(string: todayPost.imageURL) else {
+            return
+        }
+        
+        let dateKey = todayPost.createdAt.toDateKey()
+        
+        guard let folder = WidgetPaths.photosFolder(
+            groupId: groupId,
+            dateKey: dateKey
+        ) else { return }
+        
+        let existingFiles =
+        (try? FileManager.default.contentsOfDirectory(
+            at: folder,
+            includingPropertiesForKeys: nil
+        )) ?? []
+        
+        let alreadySaved =
+        existingFiles.contains {
+            $0.lastPathComponent.contains(todayPost.postId)
+        }
+        
+        if alreadySaved { return }
+        
+        URLSession.shared.dataTask(with: imageURL) { data, _, _ in
+            
+            guard let data else { return }
+            
+            try? WidgetPhotoStore.shared.saveImage(
+                data: data,
+                groupId: groupId,
+                identifier: todayPost.postId
+            )
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                WidgetCenter.shared.reloadTimelines(ofKind: "PhotoWidget")
+            }
+            
+        }.resume()
     }
 }
