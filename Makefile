@@ -18,6 +18,13 @@ domain:
 module:
 	@tuist scaffold module --name $(name) $(if $(dir),--dir $(dir),)
 
+# ex) make widget name=HaruhancutWidget
+widget:
+	@tuist scaffold widget --name ${name}
+
+
+
+
 project:
 	tuist install
 	tuist generate

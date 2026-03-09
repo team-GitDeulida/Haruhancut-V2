@@ -1,0 +1,26 @@
+import ProjectDescription
+
+let template = Template(
+    description: "Generate Widget module",
+    attributes: [
+        .required("name")
+    ],
+    items: [
+        .file(
+            path: "Projects/{{ name }}/Project.swift",
+            templatePath: "Project.stencil"
+        ),
+        .file(
+            path: "Projects/{{ name }}/Sources/{{ name }}Widget.swift",
+            templatePath: "Widget.stencil"
+        ),
+        .file(
+            path: "Projects/{{ name }}/Sources/{{ name }}WidgetBundle.swift",
+            templatePath: "WidgetBundle.stencil"
+        ),
+        .file(
+            path: "Projects/{{ name }}/Sources/Provider.swift",
+            templatePath: "Provider.stencil"
+        )
+    ]
+)

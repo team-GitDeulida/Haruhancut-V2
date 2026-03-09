@@ -1,0 +1,16 @@
+import WidgetKit
+import SwiftUI
+
+struct {{ name }}Widget: Widget {
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(
+            kind: "{{ name }}Widget",
+            provider: Provider()
+        ) { entry in
+            Text("{{ name }} Widget")
+        }
+        .configurationDisplayName("{{ name }}")
+        .description("{{ name }} widget")
+    }
+}

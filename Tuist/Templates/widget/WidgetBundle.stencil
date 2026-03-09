@@ -1,0 +1,9 @@
+import WidgetKit
+import SwiftUI
+
+@main
+struct {{ name }}WidgetBundle: WidgetBundle {
+    var body: some Widget {
+        {{ name }}Widget()
+    }
+}
