@@ -14,6 +14,12 @@ import Foundation
      groupId: "family",
      identifier: "photo1"
  )
+ 
+ WidgetPhotoStore.shared.deleteImage(
+     groupId: "family",
+     dateKey: Date().widgetDateKey(),
+     identifier: "photo1"
+ )
  */
 /// 앱 또는 위젯에서 사용할 사진을 App Group 공유 폴더에 저장하는 유틸 싱글톤입니다
 public final class WidgetPhotoStore {
@@ -55,5 +61,29 @@ public final class WidgetPhotoStore {
         // - 임시파일 작성
         // - 임시파일 작성
         try data.write(to: fileURL, options: .atomic)
+    }
+    
+    public func deleteImage(groupId: String,
+                            dateKey: String,
+                            identifier: String
+    ) {
+        // 폴더 찾기
+        guard let folder = WidgetPaths.photosFolder(groupId: groupId,
+                                                    dateKey: dateKey
+        ) else {
+            return
+        }
+        
+        // 폴더 안 파일 목록 가져오기
+        guard let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil
+        ) else {
+            return
+        }
+        
+        // identifier 포함 파일 찾기
+        for file in files where file.lastPathComponent.contains(identifier) {
+            // 파일 삭제
+            try? FileManager.default.removeItem(at: file)
+        }
     }
 }
