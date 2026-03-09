@@ -153,7 +153,6 @@ public final class HomeViewModel: HomeViewModelType {
         let todayPosts = posts
             .map { posts in
                 posts
-                    // .filter { $0.userId == self.userSession.userId }
                     .filter { $0.isToday }
             }
 
@@ -233,9 +232,10 @@ extension HomeViewModel {
             groupUsecase
                 .observeValueStream(path: path, type: HCGroupDTO.self)
                 .compactMap { $0.toModel() }
+                .observe(on: MainScheduler.instance)
                 .bind(with: self, onNext: { owner, group in
 
-                    print("🔥 group snapshot received")
+                    // print("🔥 group snapshot received")
 
                     /// session 업데이트
                     owner.groupSession.update(group.toSession())
@@ -245,57 +245,3 @@ extension HomeViewModel {
                 })
     }
 }
-
-/*
-extension HomeViewModel {
-    private func observeGroupRealtime() {
-
-        guard let groupId = userSession.groupId else { return }
-
-        groupRealtimeDisposable?.dispose()
-
-        let path = "groups/\(groupId)"
-
-        groupRealtimeDisposable =
-            groupUsecase
-                .observeValueStream(path: path, type: HCGroupDTO.self)
-                .compactMap { $0.toModel() }
-                .bind(with: self, onNext: { owner, group in
-
-                    print("🔥 snapshot received")
-
-                    let oldPosts = owner.groupSession.entity?
-                        .postsByDate
-                        .values
-                        .flatMap { $0 } ?? []
-
-                    let newPosts = group
-                        .postsByDate
-                        .values
-                        .flatMap { $0 }
-
-                    /// 최신 post
-                    let oldLatest = oldPosts.max { $0.createdAt < $1.createdAt }
-                    let newLatest = newPosts.max { $0.createdAt < $1.createdAt }
-
-                    /// 동일 post면 무시
-                    if oldLatest?.postId == newLatest?.postId {
-                        return
-                    }
-
-                    /// 내가 올린 post면 무시
-                    if newLatest?.userId == owner.userSession.userId {
-                        return
-                    }
-
-                    print("🔥 다른 유저 업로드 감지")
-                    
-                    /// 다른 유저 업로드 → reload
-                    owner.groupSession.update(group.toSession())
-
-                    /// refresh trigger
-                    owner.snapshotRefreshRelay.accept(())
-                })
-    }
-}
-*/

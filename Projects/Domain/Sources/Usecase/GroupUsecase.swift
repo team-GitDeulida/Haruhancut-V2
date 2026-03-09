@@ -37,7 +37,6 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     private let groupRepository: GroupRepositoryProtocol
     private let userSession: UserSession
     private let groupSession: GroupSession
-    private var realtimeDisposable: Disposable?
     
     public init(groupRepository: GroupRepositoryProtocol,
                 userSession: UserSession,
