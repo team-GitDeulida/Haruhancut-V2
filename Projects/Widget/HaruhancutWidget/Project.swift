@@ -1,8 +1,17 @@
 import ProjectDescription
 
-let baseSettings: SettingsDictionary = [
-    "CODE_SIGN_STYLE": "Automatic",
-    "DEVELOPMENT_TEAM": "LGX4B4WC66"
+let debugSettings: SettingsDictionary = [
+    "CODE_SIGN_STYLE": "Manual",
+    "DEVELOPMENT_TEAM": "LGX4B4WC66",
+    "PROVISIONING_PROFILE_SPECIFIER": "match Development com.indextrown.Haruhancut.WidgetExtension",
+    "CODE_SIGN_IDENTITY": "Apple Development"
+]
+
+let releaseSettings: SettingsDictionary = [
+    "CODE_SIGN_STYLE": "Manual",
+    "DEVELOPMENT_TEAM": "LGX4B4WC66",
+    "PROVISIONING_PROFILE_SPECIFIER": "match AppStore com.indextrown.Haruhancut.WidgetExtension",
+    "CODE_SIGN_IDENTITY": "Apple Distribution"
 ]
 
 let project = Project(
@@ -15,6 +24,7 @@ let project = Project(
             bundleId: "com.indextrown.Haruhancut.WidgetExtension",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
+                "CFBundleDisplayName": "하루한컷 위젯",
                 "NSExtension": [
                     "NSExtensionPointIdentifier": "com.apple.widgetkit-extension"
                 ]
@@ -30,7 +40,11 @@ let project = Project(
             ],
 
             settings: .settings(
-                base: baseSettings
+                base: [:],
+                configurations: [
+                    .debug(name: "Debug", settings: debugSettings),
+                    .release(name: "Release", settings: releaseSettings)
+                ]
             )
         )
     ]

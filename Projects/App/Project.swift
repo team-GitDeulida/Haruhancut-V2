@@ -1,8 +1,24 @@
 import ProjectDescription
 
-let baseSettings: SettingsDictionary = [
-    "CODE_SIGN_STYLE": "Automatic",
-    "DEVELOPMENT_TEAM": "LGX4B4WC66"
+// let simpleSettings: SettingsDictionary = [
+//     "CODE_SIGN_STYLE": "Automatic",
+//     "DEVELOPMENT_TEAM": "LGX4B4WC66"
+// ]
+
+let debugSettings: SettingsDictionary = [
+    "CODE_SIGN_STYLE": "Manual",
+    "DEVELOPMENT_TEAM": "LGX4B4WC66",
+    "PROVISIONING_PROFILE_SPECIFIER": "match Development com.indextrown.Haruhancut",
+    "CODE_SIGN_IDENTITY": "Apple Development"
+]
+
+let releaseSettings: SettingsDictionary = [
+    "CODE_SIGN_STYLE": "Manual",
+    "DEVELOPMENT_TEAM": "LGX4B4WC66",
+    "PROVISIONING_PROFILE_SPECIFIER": "match AppStore com.indextrown.Haruhancut",
+    "CODE_SIGN_IDENTITY": "Apple Distribution",
+    "VERSIONING_SYSTEM": "apple-generic",
+    "CURRENT_PROJECT_VERSION": "1"
 ]
 
 let project = Project(
@@ -23,7 +39,7 @@ let project = Project(
                 "CFBundleShortVersionString": "1.1.0",
 
                 // 빌드 번호 설정
-                "CFBundleVersion": "1",
+                "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 
                 // 사진 촬영 권한
                 "NSCameraUsageDescription": "하루한컷은 일상 사진을 촬영해 가족·친구와 공유하기 위해 카메라 권한이 필요합니다.",
@@ -100,10 +116,19 @@ let project = Project(
                 .project(target: "HaruhancutWidget", path: "../Widget/HaruhancutWidget")
             ],
             settings: .settings(
+                base: [:],
                 configurations: [
-                    .debug(name: "Debug", xcconfig: "../Shared/Configs/Shared.xcconfig"),
-                    .release(name: "Release", xcconfig: "../Shared/Configs/Shared.xcconfig"),
-                ]
+                    .debug(
+                        name: "Debug", 
+                        settings: debugSettings,
+                        xcconfig: "../Shared/Configs/Shared.xcconfig"
+                    ),
+                    .release(
+                        name: "Release", 
+                        settings: releaseSettings,
+                        xcconfig: "../Shared/Configs/Shared.xcconfig"
+                    ),
+                ]   
                 // base: [
                 //     "CODE_SIGN_STYLE": "Automatic",
                 //     "DEVELOPMENT_TEAM": "LGX4B4WC66" // ← 여기에 Team ID

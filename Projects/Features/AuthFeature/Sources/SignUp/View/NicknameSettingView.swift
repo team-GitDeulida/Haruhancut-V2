@@ -93,8 +93,8 @@ final class NicknameSettingPreviewVC: UIViewController {
         self.view = NicknameSettingView()
     }
 }
-#endif
-
 #Preview {
     NicknameSettingPreviewVC()
 }
+#endif
+

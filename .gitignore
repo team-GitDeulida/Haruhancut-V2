@@ -83,3 +83,8 @@ Tuist/.build
 
 # Local configs (secrets)
 Projects/Shared/Configs/Shared.xcconfig
+
+.env
+
+*.ipa
+*.dSYM.zip

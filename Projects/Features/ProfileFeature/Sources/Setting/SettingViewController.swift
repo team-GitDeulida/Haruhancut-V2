@@ -9,7 +9,6 @@ import UIKit
 import RxSwift
 import RxRelay
 import SafariServices
-import Data
 import RxCocoa
 import RxDataSources
 import Core
