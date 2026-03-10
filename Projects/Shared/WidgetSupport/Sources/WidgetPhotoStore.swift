@@ -58,8 +58,8 @@ public final class WidgetPhotoStore {
         let fileURL = folder.appendingPathComponent(fileName)
         
         // 압축 & 리사이즈
-        guard let image = UIImage(data: data),
-              let resized = image.resized(to: CGSize(width: 200, height: 200)),
+        guard let downSampledImage = downsample(data: data, maxDimension: 800),
+              let resized = downSampledImage.resized(to: CGSize(width: 200, height: 200)),
               let compressed = resized.jpegData(compressionQuality: 0.8)
         else {
             throw WidgetPhotoError.invalidImage
@@ -126,4 +126,34 @@ extension UIImage {
             draw(in: CGRect(origin: .zero, size: size))
         }
     }
+}
+
+import ImageIO
+
+func downsample(data: Data, maxDimension: CGFloat) -> UIImage? {
+
+    let options: [CFString: Any] = [
+        kCGImageSourceShouldCache: false
+    ]
+
+    guard let source = CGImageSourceCreateWithData(data as CFData, options as CFDictionary) else {
+        return nil
+    }
+
+    let downsampleOptions: [CFString: Any] = [
+        kCGImageSourceCreateThumbnailFromImageAlways: true,
+        kCGImageSourceShouldCacheImmediately: true,
+        kCGImageSourceCreateThumbnailWithTransform: true,
+        kCGImageSourceThumbnailMaxPixelSize: maxDimension
+    ]
+
+    guard let cgImage = CGImageSourceCreateThumbnailAtIndex(
+        source,
+        0,
+        downsampleOptions as CFDictionary
+    ) else {
+        return nil
+    }
+
+    return UIImage(cgImage: cgImage)
 }

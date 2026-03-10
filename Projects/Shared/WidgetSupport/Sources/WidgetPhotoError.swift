@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum WidgetPhotoError: Error {
+public enum WidgetPhotoError: Error {
     case invalidPath
     case invalidImage
 }

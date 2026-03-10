@@ -118,7 +118,7 @@ public final class HomeViewModel: HomeViewModelType {
                     .map { post }
             }
             .subscribe(with: self, onNext: { owner, post in
-                guard let groupId = self.userSession.groupId else { return }
+                guard let groupId = owner.userSession.groupId else { return }
                 let dateKey = post.createdAt.toDateKey()
                 WidgetPhotoStore.shared.deleteImage(groupId: groupId,
                                                     dateKey: dateKey,

@@ -18,7 +18,7 @@ struct PhotoWidgetModel: TimelineEntry {
 // 2) Provider: 타임라인 데이터를 공급하는 타입
 struct PhotoWidgetProvider: TimelineProvider {
     // typealias Entry = <#type#>
-    let appGroupID = "group.com.indextrown.Haruhancut.WidgetExtension"
+    let appGroupID = WidgetPaths.appGroupId
     
     // 2-1) 위젯 갤러리나 로드 중에 보여줄 플레이스 홀더
     func placeholder(in context: Context) -> PhotoWidgetModel {
@@ -47,7 +47,55 @@ struct PhotoWidgetProvider: TimelineProvider {
 }
 
 private extension PhotoWidgetProvider {
+    /*
+     오늘 사진 있음
+     → todayFolder 존재
+     → 이미지 표시
+     
+     오늘 사진 없음
+     → todayFolder 없음 또는 파일 없음
+     → nil 반환
+     → placeholder 표시
+     */
     func loadTodayImage() -> Data? {
+
+        guard let user = WidgetSessionStore.loadUser(),
+              let groupId = user.groupId else {
+            print("❌ widget user 없음")
+            return nil
+        }
+    
+        let todayKey = Date().widgetDateKey()
+
+        guard let todayFolder = WidgetPaths.photosFolder(
+            groupId: groupId,
+            dateKey: todayKey
+        ) else {
+            print("❌ todayFolder 없음")
+            return nil
+        }
+
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: todayFolder,
+            includingPropertiesForKeys: nil,
+            options: .skipsHiddenFiles
+        ) else {
+            print("❌ 오늘 이미지 없음")
+            return nil
+        }
+
+        guard let latest = files.sorted(by: {
+            $0.lastPathComponent > $1.lastPathComponent
+        }).first else {
+            print("❌ 오늘 이미지 없음")
+            return nil
+        }
+
+        return try? Data(contentsOf: latest)
+    }
+    
+    // legacy but useful
+    func loadLatestImage() -> Data? {
 
         guard let user = WidgetSessionStore.loadUser(),
               let groupId = user.groupId else {
@@ -159,13 +207,14 @@ struct PhotoWidget: Widget {
 
 // MARK: - iOS17 이상일 경우 containerBackground를 17 미만일 경우에는 Background가 return
 extension View {
+    @ViewBuilder
     func widgetBackground(_ color: Color) -> some View {
         if #available(iOSApplicationExtension 17.0, *) {
-            return containerBackground(for: .widget) {
+            containerBackground(for: .widget) {
                 color
             }
         } else {
-            return background(color)
+            background(color)
         }
     }
 }
@@ -179,33 +228,4 @@ private func computeNextMidnight(after date: Date) -> Date {
     comps.minute = 0
     comps.second = 5
     return Calendar.current.date(from: comps)!
-}
-
-//import ImageIO
-func downsampleImage(data: Data, maxDimension: CGFloat) -> UIImage? {
-
-    let options: [CFString: Any] = [
-        kCGImageSourceShouldCache: false
-    ]
-
-    guard let source = CGImageSourceCreateWithData(data as CFData, options as CFDictionary) else {
-        return nil
-    }
-
-    let downsampleOptions: [CFString: Any] = [
-        kCGImageSourceCreateThumbnailFromImageAlways: true,
-        kCGImageSourceShouldCacheImmediately: true,
-        kCGImageSourceCreateThumbnailWithTransform: true,
-        kCGImageSourceThumbnailMaxPixelSize: maxDimension
-    ]
-
-    guard let cgImage = CGImageSourceCreateThumbnailAtIndex(
-        source,
-        0,
-        downsampleOptions as CFDictionary
-    ) else {
-        return nil
-    }
-
-    return UIImage(cgImage: cgImage)
 }

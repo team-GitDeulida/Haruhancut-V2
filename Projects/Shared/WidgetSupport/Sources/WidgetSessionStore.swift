@@ -29,7 +29,7 @@ public enum WidgetSessionStore {
 
         guard let data = try? JSONEncoder().encode(user) else { return }
 
-        try? data.write(to: url)
+        try? data.write(to: url, options: .atomic)
 
         print("📦 WidgetSession saved:", user.groupId ?? "nil")
     }
