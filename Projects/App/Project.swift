@@ -96,6 +96,7 @@ let project = Project(
                 .project(target: "Coordinator", path: "../Coordinator"),
                 .project(target: "Data", path: "../Data"),
                 .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs"),
+                .project(target: "WidgetSupport", path: "../Shared/WidgetSupport"),
                 .project(target: "HaruhancutWidget", path: "../Widget/HaruhancutWidget")
             ],
             settings: .settings(

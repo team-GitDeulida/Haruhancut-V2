@@ -6,10 +6,13 @@ let template = Template(
         .required("name")
     ],
     items: [
+        // Project
         .file(
             path: "Projects/Widget/{{ name }}/Project.swift",
             templatePath: "Project.stencil"
         ),
+
+        // Sources
         .file(
             path: "Projects/Widget/{{ name }}/Sources/{{ name }}Widget.swift",
             templatePath: "Widget.stencil"
@@ -22,7 +25,25 @@ let template = Template(
             path: "Projects/Widget/{{ name }}/Sources/Provider.swift",
             templatePath: "Provider.stencil"
         ),
-        // Resources 폴더 생성
+
+        // Resources
+        .file(
+            path: "Projects/Widget/{{ name }}/Resources/Info.plist",
+            templatePath: "InfoPlist.stencil"
+        ),
+
+        // Assets
+        .file(
+            path: "Projects/Widget/{{ name }}/Resources/Assets.xcassets/Contents.json",
+            templatePath: "AssetsContents.stencil"
+        ),
+
+        // Widget Preview
+        .file(
+            path: "Projects/Widget/{{ name }}/Resources/Assets.xcassets/widgetPreview.imageset/Contents.json",
+            templatePath: "WidgetPreviewContents.stencil"
+        ),
+
         .file(
             path: "Projects/Widget/{{ name }}/Resources/.gitkeep",
             templatePath: "Empty.stencil"

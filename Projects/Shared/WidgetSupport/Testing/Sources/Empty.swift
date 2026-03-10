@@ -1,6 +1,6 @@
 //
 //  Empty.swift
-//  HaruhancutWidget
+//  WidgetSupport
 //
 //  Created by 김동현 on 
 //

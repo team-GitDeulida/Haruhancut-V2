@@ -15,15 +15,13 @@ domain:
 
 # ex) make module name=DesignSystem
 # ex) make module name=Network dir=Shared
+# ex) make module name=WidgetSupport dir=Shared
 module:
 	@tuist scaffold module --name $(name) $(if $(dir),--dir $(dir),)
 
 # ex) make widget name=HaruhancutWidget
 widget:
 	@tuist scaffold widget --name ${name}
-
-
-
 
 project:
 	tuist install

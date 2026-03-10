@@ -25,6 +25,10 @@ let project = Project(
             // entitlements 추가
             entitlements: .file(path: "HaruhancutWidget.entitlements"),
 
+            dependencies: [
+                .project(target: "WidgetSupport", path: "../../Shared/WidgetSupport")
+            ],
+
             settings: .settings(
                 base: baseSettings
             )

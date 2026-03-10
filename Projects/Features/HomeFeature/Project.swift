@@ -15,7 +15,9 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "HomeFeatureInterface"),
-                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
+                .project(target: "Data", path: "../../Data"),
+                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs"),
+                .project(target: "WidgetSupport", path: "../../Shared/WidgetSupport")
             ]
         ),
         
