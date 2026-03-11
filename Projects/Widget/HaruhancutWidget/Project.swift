@@ -40,7 +40,10 @@ let project = Project(
             ],
 
             settings: .settings(
-                base: [:],
+                base: [
+                    "VERSIONING_SYSTEM": "apple-generic",
+                    "CURRENT_PROJECT_VERSION": "1"
+                ],
                 configurations: [
                     .debug(name: "Debug", settings: debugSettings),
                     .release(name: "Release", settings: releaseSettings)

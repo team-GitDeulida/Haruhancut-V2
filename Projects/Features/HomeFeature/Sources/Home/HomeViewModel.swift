@@ -256,10 +256,10 @@ extension HomeViewModel {
                     print("🔥 group snapshot received")
                     
                     /// session 업데이트
-                    // owner.groupSession.update(group.toSession())
+                    owner.groupSession.update(group.toSession())
 
                     /// UI refresh
-                    // owner.snapshotRefreshRelay.accept(())
+                    owner.snapshotRefreshRelay.accept(())
                     
                     // widget session 저장 + 이미지 저장
                     owner.handleWidgetUpdate(group: group, groupId: groupId)

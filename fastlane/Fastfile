@@ -12,6 +12,7 @@ platform :ios do
 
     # 📈 빌드 넘버 증가
     increment_build_number(xcodeproj: "Projects/App/App.xcodeproj")
+    increment_build_number(xcodeproj: "Projects/Widget/HaruhancutWidget/HaruhancutWidget.xcodeproj")
 
     # 🏗️ 앱 빌드 및 서명
     build_app(

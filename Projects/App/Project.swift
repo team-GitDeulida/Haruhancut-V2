@@ -11,35 +11,35 @@ let debugSettings: SettingsDictionary = [
     "PROVISIONING_PROFILE_SPECIFIER": "match Development com.indextrown.Haruhancut",
     "CODE_SIGN_IDENTITY": "Apple Development",
 
-    // release test
+    // [release test]
     // Release optimization
-    "SWIFT_OPTIMIZATION_LEVEL": "-O",
-    "SWIFT_COMPILATION_MODE": "wholemodule",
-    "GCC_OPTIMIZATION_LEVEL": "s",
+    // "SWIFT_OPTIMIZATION_LEVEL": "-O",
+    // "SWIFT_COMPILATION_MODE": "wholemodule",
+    // "GCC_OPTIMIZATION_LEVEL": "s",
 
     // linker behavior
-    "DEAD_CODE_STRIPPING": "YES",
-    "LINK_WITH_STANDARD_LIBRARIES": "YES",
+    // "DEAD_CODE_STRIPPING": "YES",
+    // "LINK_WITH_STANDARD_LIBRARIES": "YES",
 
     // strip
-    "STRIP_SWIFT_SYMBOLS": "YES",
-    "COPY_PHASE_STRIP": "YES",
+    // "STRIP_SWIFT_SYMBOLS": "YES",
+    // "COPY_PHASE_STRIP": "YES",
 
     // debug 제거
-    "ENABLE_TESTABILITY": "NO",
-    "SWIFT_SERIALIZE_DEBUGGING_OPTIONS": "NO",
+    // "ENABLE_TESTABILITY": "NO",
+    // "SWIFT_SERIALIZE_DEBUGGING_OPTIONS": "NO",
 
     // runtime behavior
-    "SWIFT_ENFORCE_EXCLUSIVE_ACCESS": "checked",
+    // "SWIFT_ENFORCE_EXCLUSIVE_ACCESS": "checked",
+
+    // symbol 제거
+    // "DEBUG_INFORMATION_FORMAT": "dwarf",
+
+    // inlining 강화
+    // "SWIFT_INLINE_EFFECTIVE_VISIBILITY": "YES",
 
     // 이것 중요(RxCoCoaRuntime 필요하다고 뜸)
     // "OTHER_SWIFT_FLAGS": "-cross-module-optimization",
-
-    // symbol 제거
-    "DEBUG_INFORMATION_FORMAT": "dwarf",
-
-    // inlining 강화
-    "SWIFT_INLINE_EFFECTIVE_VISIBILITY": "YES",
    
     // 이상한 에러 유발
     // "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
@@ -50,9 +50,7 @@ let releaseSettings: SettingsDictionary = [
     "CODE_SIGN_STYLE": "Manual",
     "DEVELOPMENT_TEAM": "LGX4B4WC66",
     "PROVISIONING_PROFILE_SPECIFIER": "match AppStore com.indextrown.Haruhancut",
-    "CODE_SIGN_IDENTITY": "Apple Distribution",
-    "VERSIONING_SYSTEM": "apple-generic",
-    "CURRENT_PROJECT_VERSION": "1"
+    "CODE_SIGN_IDENTITY": "Apple Distribution"
 ]
 
 let project = Project(
@@ -147,10 +145,13 @@ let project = Project(
                 .project(target: "Data", path: "../Data"),
                 .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs"),
                 .project(target: "WidgetSupport", path: "../Shared/WidgetSupport"),
-               //  .project(target: "HaruhancutWidget", path: "../Widget/HaruhancutWidget")
+                .project(target: "HaruhancutWidget", path: "../Widget/HaruhancutWidget")
             ],
             settings: .settings(
-                base: [:],
+                base: [
+                    "VERSIONING_SYSTEM": "apple-generic",
+                    "CURRENT_PROJECT_VERSION": "1"
+                ],
                 configurations: [
                     .debug(
                         name: "Debug", 
