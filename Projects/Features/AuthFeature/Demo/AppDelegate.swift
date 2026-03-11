@@ -6,9 +6,9 @@
 //
 
 import UIKit
-import Core
-import AuthFeatureInterface
-import Domain
+//import Core
+//import AuthFeatureInterface
+//import Domain
 //import Data
 
 
@@ -19,14 +19,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        let container = DIContainer.shared
-        
-        container.register(SignInRepositoryProtocol.self,
-                           dependency: StubSignInRepositoryImpl())
-        
-        container.register(SignInUsecaseProtocol.self,
-                                    dependency: StubSignInUsecaseImpl())
-        
+//        let container = DIContainer.shared
+//        
+//        container.register(SignInRepositoryProtocol.self,
+//                           dependency: StubSignInRepositoryImpl())
+//        
+//        container.register(SignInUsecaseProtocol.self,
+//                                    dependency: StubSignInUsecaseImpl())
+//        
         return true
     }
 

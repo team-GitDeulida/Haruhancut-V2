@@ -66,13 +66,16 @@ import PackageDescription
         //     "ScaleKit": .framework,
         // ]
 
-        // productTypes: [ 
-        //     // Rx → runtime 안정성
-        //     "RxSwift": .framework,
-        //     "RxRelay": .framework,
-        // ]
-        productTypes: [:]
-    )
+        // productTypes: [:]
+
+        productTypes: [
+            "RxCocoa": .framework,
+            "RxCocoaRuntime": .framework,
+            "RxRelay": .framework,
+            "RxBlocking": .framework,
+            "RxTest": .framework
+        ] 
+    )   
 #endif
 
 let package = Package(

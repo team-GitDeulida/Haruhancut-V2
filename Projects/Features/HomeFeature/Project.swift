@@ -15,6 +15,7 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "HomeFeatureInterface"),
+                .project(target: "DSKit", path: "../../Shared/DSKit"),
                 .project(target: "Data", path: "../../Data"),
                 .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs"),
                 .project(target: "WidgetSupport", path: "../../Shared/WidgetSupport")
@@ -31,7 +32,6 @@ let project = Project(
             sources: ["Interface/Sources/**"],
             resources: [],
             dependencies: [
-                .project(target: "DSKit", path: "../../Shared/DSKit"),
                 .project(target: "Domain", path: "../../Domain")
             ]
         ),
