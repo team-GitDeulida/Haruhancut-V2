@@ -1,0 +1,34 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Push a new beta build to TestFlight using Fastlane Match"
+  lane :beta do
+
+    # 🔐 Match를 사용하여 코드 서명 정보 가져오기
+    match(
+      type: "appstore", # App Store용 프로비저닝 프로파일
+      readonly: true     # 읽기 전용으로 사용 (이미 설정된 인증서를 활용)
+    )
+
+    # 📈 빌드 넘버 증가
+    increment_build_number(xcodeproj: "Projects/App/App.xcodeproj")
+    increment_build_number(xcodeproj: "Projects/Widget/HaruhancutWidget/HaruhancutWidget.xcodeproj")
+
+    # 🏗️ 앱 빌드 및 서명
+    build_app(
+      workspace: "Haruhancut.xcworkspace",
+      scheme: "App"
+    )
+
+    # App Store Connect API 키 생성 (환경변수로부터 값 불러오기)
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+      in_house: false
+    )
+
+    # 🚀 TestFlight 업로드
+    upload_to_testflight(api_key: api_key)
+  end  
+end

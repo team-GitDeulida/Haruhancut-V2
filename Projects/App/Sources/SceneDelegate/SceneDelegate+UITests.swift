@@ -9,6 +9,7 @@ import UIKit
 import Core
 import Domain
 
+#if DEBUG
 extension SceneDelegate {
     func configureForUITests() {
         let environment = ProcessInfo.processInfo.environment
@@ -34,5 +35,4 @@ extension SceneDelegate {
             .disposed(by: disposeBag)
     }
 }
-
-
+#endif

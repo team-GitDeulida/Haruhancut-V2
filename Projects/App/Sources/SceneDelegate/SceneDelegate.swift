@@ -42,7 +42,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // 6. AppCoordinator 생성
         let appCoordinator = AppCoordinator(navigationController: navigationController)
         self.appCoordinator = appCoordinator
+        
+        #if DEBUG
         self.configureForUITests()
+        #endif
         appCoordinator.start()
 
         

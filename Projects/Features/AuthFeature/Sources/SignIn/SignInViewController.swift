@@ -7,13 +7,16 @@
 
 import UIKit
 import AuthFeatureInterface
+//import ThirdPartyLibs
 import RxSwift
+//import RxRelay
+import RxCocoa
 
 final class SignInViewController: UIViewController {
     
     // MARK: - Properties
     let disposeBag = DisposeBag()
-    public var signInViewModel: SignInViewModel
+    var signInViewModel: SignInViewModel
     private let customView = SignInView()
 
     // MARK: - Init
@@ -40,13 +43,14 @@ final class SignInViewController: UIViewController {
         bindViewModel()
     }
     
-    private func bindViewModel() {
+    func bindViewModel() {
         let input = SignInViewModel.Input(kakaoLoginButtonTapped: customView.kakaoLoginButton.rx.tap.asObservable(),
                                           appleLoginButtonTapped: customView.appleLoginButton.rx.tap.asObservable())
         
         let output = signInViewModel.transform(input: input)
+
         output.loginError
-            .drive(onNext: { result in
+            .drive(with: self, onNext: { owner, result in
                  print("vc: 로그인 테스트 \(result)")
             })
             .disposed(by: disposeBag)

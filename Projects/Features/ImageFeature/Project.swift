@@ -65,7 +65,7 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "ImageFeature"),
-                .project(target: "Coordinator", path: "../../Coordinator"),
+                // .project(target: "Coordinator", path: "../../Coordinator"),
             ],
             settings: .settings(
                 configurations: [

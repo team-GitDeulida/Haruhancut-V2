@@ -1,8 +1,56 @@
 import ProjectDescription
 
-let baseSettings: SettingsDictionary = [
-    "CODE_SIGN_STYLE": "Automatic",
-    "DEVELOPMENT_TEAM": "LGX4B4WC66"
+// let simpleSettings: SettingsDictionary = [
+//     "CODE_SIGN_STYLE": "Automatic",
+//     "DEVELOPMENT_TEAM": "LGX4B4WC66"
+// ]
+
+let debugSettings: SettingsDictionary = [
+    "CODE_SIGN_STYLE": "Manual",
+    "DEVELOPMENT_TEAM": "LGX4B4WC66",
+    "PROVISIONING_PROFILE_SPECIFIER": "match Development com.indextrown.Haruhancut",
+    "CODE_SIGN_IDENTITY": "Apple Development",
+
+    // [release test]
+    // Release optimization
+    // "SWIFT_OPTIMIZATION_LEVEL": "-O",
+    // "SWIFT_COMPILATION_MODE": "wholemodule",
+    // "GCC_OPTIMIZATION_LEVEL": "s",
+
+    // linker behavior
+    // "DEAD_CODE_STRIPPING": "YES",
+    // "LINK_WITH_STANDARD_LIBRARIES": "YES",
+
+    // strip
+    // "STRIP_SWIFT_SYMBOLS": "YES",
+    // "COPY_PHASE_STRIP": "YES",
+
+    // debug 제거
+    // "ENABLE_TESTABILITY": "NO",
+    // "SWIFT_SERIALIZE_DEBUGGING_OPTIONS": "NO",
+
+    // runtime behavior
+    // "SWIFT_ENFORCE_EXCLUSIVE_ACCESS": "checked",
+
+    // symbol 제거
+    // "DEBUG_INFORMATION_FORMAT": "dwarf",
+
+    // inlining 강화
+    // "SWIFT_INLINE_EFFECTIVE_VISIBILITY": "YES",
+
+    // 이것 중요(RxCoCoaRuntime 필요하다고 뜸)
+    // "OTHER_SWIFT_FLAGS": "-cross-module-optimization",
+   
+    // 이상한 에러 유발
+    // "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+    // "SWIFT_ENABLE_LIBRARY_EVOLUTION": "YES"
+]
+
+let releaseSettings: SettingsDictionary = [
+    "CODE_SIGN_STYLE": "Manual",
+    "DEVELOPMENT_TEAM": "LGX4B4WC66",
+    "PROVISIONING_PROFILE_SPECIFIER": "match AppStore com.indextrown.Haruhancut",
+    "CODE_SIGN_IDENTITY": "Apple Distribution"
 ]
 
 let project = Project(
@@ -23,7 +71,7 @@ let project = Project(
                 "CFBundleShortVersionString": "1.1.0",
 
                 // 빌드 번호 설정
-                "CFBundleVersion": "1",
+                "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 
                 // 사진 촬영 권한
                 "NSCameraUsageDescription": "하루한컷은 일상 사진을 촬영해 가족·친구와 공유하기 위해 카메라 권한이 필요합니다.",
@@ -100,10 +148,22 @@ let project = Project(
                 .project(target: "HaruhancutWidget", path: "../Widget/HaruhancutWidget")
             ],
             settings: .settings(
+                base: [
+                    "VERSIONING_SYSTEM": "apple-generic",
+                    "CURRENT_PROJECT_VERSION": "1"
+                ],
                 configurations: [
-                    .debug(name: "Debug", xcconfig: "../Shared/Configs/Shared.xcconfig"),
-                    .release(name: "Release", xcconfig: "../Shared/Configs/Shared.xcconfig"),
-                ]
+                    .debug(
+                        name: "Debug", 
+                        settings: debugSettings,
+                        xcconfig: "../Shared/Configs/Shared.xcconfig"
+                    ),
+                    .release(
+                        name: "Release", 
+                        settings: releaseSettings,
+                        xcconfig: "../Shared/Configs/Shared.xcconfig"
+                    ),
+                ]   
                 // base: [
                 //     "CODE_SIGN_STYLE": "Automatic",
                 //     "DEVELOPMENT_TEAM": "LGX4B4WC66" // ← 여기에 Team ID

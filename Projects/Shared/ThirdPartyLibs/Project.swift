@@ -15,9 +15,9 @@ let project = Project(
             resources: [],
             dependencies: [
                 // Rx
-                .external(name: "RxSwift"),
+                // .external(name: "RxSwift"),
                 .external(name: "RxCocoa"),
-                .external(name: "RxRelay"),
+                // .external(name: "RxRelay"),
                 .external(name: "RxDataSources"),
                 // .external(name: "RxTest"),
                 // .external(name: "RxBlocking"),
@@ -41,7 +41,8 @@ let project = Project(
             ],
             settings: .settings(
                 base: [
-                    "OTHER_LDFLAGS": "-ObjC"
+                    "OTHER_LDFLAGS": "$(inherited) -ObjC" // 기존 flag 유지하면서 추가 가능
+                   //  "OTHER_LDFLAGS": "-ObjC" // 기존 flag 덮어쓰기 가능
                 ]
             )
         ),

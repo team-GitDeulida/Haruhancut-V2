@@ -106,11 +106,13 @@ final class SignUpPreviewVC: UIViewController {
         self.view = SignUpView()
     }
 }
-#endif
 
 #Preview {
     SignUpPreviewVC()
 }
+#endif
+
+
 
 //#Preview {
 //    SignUpViewController(viewModel: SignUpViewModel())

@@ -8,13 +8,14 @@ let project = Project(
         .target(
             name: "MemberFeature",
             destinations: .iOS,
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.Haruhancut.memberfeature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
                 .target(name: "MemberFeatureInterface"),
+                .project(target: "DSKit", path: "../../Shared/DSKit"),
                 .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs")
             ]
         ),
@@ -29,7 +30,6 @@ let project = Project(
             sources: ["Interface/Sources/**"],
             resources: [],
             dependencies: [
-                .project(target: "DSKit", path: "../../Shared/DSKit"),
                 .project(target: "Domain", path: "../../Domain")
             ]
         ),

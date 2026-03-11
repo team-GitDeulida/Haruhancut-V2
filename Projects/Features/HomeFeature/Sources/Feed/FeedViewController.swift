@@ -104,7 +104,7 @@ final class FeedViewController: UIViewController {
                     owner.customView.bubbleView.text = "오늘 사진 추가 완료"
                     owner.customView.bubbleView.alpha = 0.6
                 } else {
-                    self.customView.bubbleView.text = "사진 추가하기"
+                    owner.customView.bubbleView.text = "사진 추가하기"
                 }
             })
             .disposed(by: disposeBag)

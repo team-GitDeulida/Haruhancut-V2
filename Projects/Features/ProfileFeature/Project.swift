@@ -30,7 +30,6 @@ let project = Project(
             sources: ["Interface/Sources/**"],
             resources: [],
             dependencies: [
-                .project(target: "DSKit", path: "../../Shared/DSKit"),
                 .project(target: "Domain", path: "../../Domain")
             ]
         ),

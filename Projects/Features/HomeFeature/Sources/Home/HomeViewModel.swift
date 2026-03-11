@@ -94,6 +94,7 @@ public final class HomeViewModel: HomeViewModelType {
     }
     
     deinit {
+        groupRealtimeDisposable?.dispose()
         if let id = groupSessionObserverID {
             groupSession.removeObserver(id)
         }
@@ -153,13 +154,17 @@ public final class HomeViewModel: HomeViewModelType {
         )
         
         // MARK: - State Streams
+        // SharedSequence<DriverSharingStrategy, HCGroup>
         let group = groupRelay
             .compactMap { $0 }
             .asDriver(onErrorDriveWith: .empty())
-
+        
         let posts = group
             .map { group in
-                let allPosts = group.postsByDate.flatMap { $0.value }
+                print("group:", group)
+                print("postsByDate:", group.postsByDate)
+                // let allPosts = group.postsByDate.flatMap { $0.value }
+                let allPosts = Array(group.postsByDate.values.joined())
                 return allPosts.sorted { $0.createdAt < $1.createdAt }
             }
             .asDriver(onErrorDriveWith: .empty())

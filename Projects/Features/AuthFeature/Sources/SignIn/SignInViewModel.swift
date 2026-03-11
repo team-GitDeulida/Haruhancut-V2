@@ -11,7 +11,7 @@ import Core
 import RxSwift
 import RxCocoa
 
-final class SignInViewModel: SignInViewModelType {
+public final class SignInViewModel: SignInViewModelType {
     
     let disposeBag = DisposeBag()
     
@@ -19,8 +19,8 @@ final class SignInViewModel: SignInViewModelType {
     private let authUsecase: AuthUsecaseProtocol
 
     // MARK: - Coordinate Trigger
-    var onSignInSuccess: (() -> Void)?
-    var onFirstSignInSuccess: ((User.LoginPlatform) -> Void)?
+    public var onSignInSuccess: (() -> Void)?
+    public var onFirstSignInSuccess: ((User.LoginPlatform) -> Void)?
     
     // MARK: - Inputs
     public struct Input {
@@ -41,7 +41,7 @@ final class SignInViewModel: SignInViewModelType {
 }
 
 extension SignInViewModel {
-    func transform(input: Input) -> Output {
+    public func transform(input: Input) -> Output {
         
         // 로그인 플랫폼 선택 이벤트로 변환
         let kakaoPlatform = input.kakaoLoginButtonTapped.map { User.LoginPlatform.kakao }
@@ -55,14 +55,14 @@ extension SignInViewModel {
         selectedPlatform
             .withUnretained(self)
             .flatMap { vm, platform -> Observable<Void> in
-                self.authUsecase.signIn(platform: platform)
+                vm.authUsecase.signIn(platform: platform)
                     .asObservable()
                     .do(onNext: { result in
                         switch result {
                         case .existingUser:
-                            self.onSignInSuccess?()
+                            vm.onSignInSuccess?()
                         case .newUser(let platform):
-                            self.onFirstSignInSuccess?(platform)
+                            vm.onFirstSignInSuccess?(platform)
                         }
                     })
                     .mapToVoid() // Observable<SignInResult> -> Observable<Void>

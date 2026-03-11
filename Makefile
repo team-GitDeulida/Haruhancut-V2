@@ -55,10 +55,9 @@ reset:
 # 💣 정말 꼬였을 때만 쓰는 deep reset
 deep-reset:
 	tuist clean
-	tuist cache clean
 	rm -rf .tuist
 	rm -rf Tuist/.build
-	rm -rf ~/.tuist
+	rm -rf ~/.tuist-cache
 	rm -rf ~/.local/state/tuist
 	rm -rf ~/Library/Developer/Xcode/DerivedData
 	tuist install

@@ -83,3 +83,13 @@ Tuist/.build
 
 # Local configs (secrets)
 Projects/Shared/Configs/Shared.xcconfig
+
+.env
+
+*.ipa
+*.dSYM.zip
+
+# fastlane artifacts
+fastlane/report.xml
+fastlane/README.md
+fastlane/test_output

@@ -7,6 +7,8 @@
 
 import UIKit
 import Kingfisher
+import DSKit
+import Domain
 
 final class CommentCell: UITableViewCell {
     

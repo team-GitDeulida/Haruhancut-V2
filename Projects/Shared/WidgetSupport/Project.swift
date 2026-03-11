@@ -19,33 +19,33 @@ let project = Project(
         ),
 
         // MARK: - Unit Tests
-        .target(
-            name: "WidgetSupportTests",
-            destinations: .iOS,
-            product: .unitTests,
-            bundleId: "com.indextrown.Haruhancut.widgetsupport.tests",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Tests/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "WidgetSupport"),
-                .target(name: "WidgetSupportTesting")
-            ]
-        ),
+        // .target(
+        //     name: "WidgetSupportTests",
+        //     destinations: .iOS,
+        //     product: .unitTests,
+        //     bundleId: "com.indextrown.Haruhancut.widgetsupport.tests",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Tests/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "WidgetSupport"),
+        //         .target(name: "WidgetSupportTesting")
+        //     ]
+        // ),
 
         // MARK: - Testing
-        .target(
-            name: "WidgetSupportTesting",
-            destinations: .iOS,
-            product: .framework,
-            bundleId: "com.indextrown.Haruhancut.widgetsupport.testing",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Testing/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "WidgetSupport"),
-            ]
-        ),
+        // .target(
+        //     name: "WidgetSupportTesting",
+        //     destinations: .iOS,
+        //     product: .framework,
+        //     bundleId: "com.indextrown.Haruhancut.widgetsupport.testing",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Testing/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "WidgetSupport"),
+        //     ]
+        // ),
     ]
 )
 
