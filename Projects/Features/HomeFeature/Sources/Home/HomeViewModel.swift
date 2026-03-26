@@ -74,7 +74,6 @@ public final class HomeViewModel: HomeViewModelType {
 
     public init(groupUsecase: GroupUsecaseProtocol,
                 authUsecase: AuthUsecaseProtocol) {
-
         self.groupUsecase = groupUsecase
         self.authUsecase = authUsecase
 

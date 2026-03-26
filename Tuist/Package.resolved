@@ -1,5 +1,5 @@
 {
-  "originHash" : "5a60f99f2d7567799990b44ad147ae3dd5ae716e0346147c0dd98b8b7f4ae1ee",
+  "originHash" : "a5d10e2d98d43d30cfe60e2f6431af31f30de6305d20f04c157a1c569640cbde",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "61b85103a1aeed8218f17c794687781505fbbef5",
         "version" : "11.2.0"
+      }
+    },
+    {
+      "identity" : "differencekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ra1028/DifferenceKit",
+      "state" : {
+        "revision" : "073b9671ce2b9b5b96398611427a1f929927e428",
+        "version" : "1.3.0"
       }
     },
     {
@@ -200,12 +209,39 @@
       }
     },
     {
+      "identity" : "swift-algorithms",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-algorithms",
+      "state" : {
+        "revision" : "87e50f483c54e6efd60e885f7f5aa946cee68023",
+        "version" : "1.2.1"
+      }
+    },
+    {
+      "identity" : "swift-numerics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-numerics.git",
+      "state" : {
+        "revision" : "0c0290ff6b24942dadb83a929ffaaa1481df04a2",
+        "version" : "1.1.1"
+      }
+    },
+    {
       "identity" : "swift-protobuf",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-protobuf.git",
       "state" : {
         "revision" : "c169a5744230951031770e27e475ff6eefe51f9d",
         "version" : "1.33.3"
+      }
+    },
+    {
+      "identity" : "turbolistkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/indextrown/TurboListKit.git",
+      "state" : {
+        "revision" : "0b5fc827392f966c0c9e0b62c4ac8dc94e84ea70",
+        "version" : "1.0.6"
       }
     }
   ],

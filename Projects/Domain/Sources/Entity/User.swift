@@ -46,6 +46,10 @@ public struct User: Codable, Equatable {
         self.isPushEnabled = isPushEnabled
         self.groupId = groupId
     }
+    
+    var displayNickname: String {
+        return "\(nickname)"
+    }
 }
 
 extension User {

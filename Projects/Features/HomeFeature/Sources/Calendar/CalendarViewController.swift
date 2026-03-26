@@ -10,13 +10,34 @@ import RxSwift
 import FSCalendar
 import Domain
 
+// 캘린더 영역만 막고 나머지 페이지는 이동하기 위한 로직 1
+// MARK: - 캘린더 에서 PageGesture를 제어하는 커스텀 Delegate
+protocol GestureDelegate: AnyObject {
+    func calendarDidStartPan()
+    func calendarDidEndPan()
+}
+
 final class CalendarViewController: UIViewController {
+    
+    weak var gestureDelegate: GestureDelegate?
     
     private let disposeBag = DisposeBag()
     private let homeViewModel: HomeViewModel
     private let customView = CalendarView()
     private var output: HomeViewModel.Output?
     private var postsByDate: [String: [Post]] = [:]
+    
+    // 캘린더 영역만 막고 나머지 페이지는 이동하기 위한 로직 2
+    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            gestureDelegate?.calendarDidStartPan() // 페이지 스와이프 막기
+        case .ended, .cancelled:
+            gestureDelegate?.calendarDidEndPan()   // 페이지 스와이프 허용
+        default:
+            break
+        }
+    }
     
     // MARK: - Initializer
     init(homeViewModel: HomeViewModel) {
@@ -36,6 +57,10 @@ final class CalendarViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // 캘린더 영역만 막고 나머지 페이지는 이동하기 위한 로직 3
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
+        customView.calendarView.addGestureRecognizer(pan)
     }
     
     // MARK: - Bindings

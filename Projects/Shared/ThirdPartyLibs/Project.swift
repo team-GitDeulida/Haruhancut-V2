@@ -37,6 +37,9 @@ let project = Project(
                 .external(name: "ScaleKit"),
                 .external(name: "Kingfisher"),
                 .external(name: "FSCalendar"),
+
+                // TurboListKit
+                .external(name: "TurboListKit"),
                 
             ],
             settings: .settings(

@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SwiftUI
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -24,6 +25,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         // 3. root view controller 설정
         let rootViewController = MainViewController()
+        // MainView().toViewController()
 
         window.rootViewController = rootViewController
         self.window = window
@@ -35,4 +37,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneWillResignActive(_ scene: UIScene) {}
     func sceneWillEnterForeground(_ scene: UIScene) {}
     func sceneDidEnterBackground(_ scene: UIScene) {}
+}
+
+
+// MARK: - SwiftUI to UIKit
+extension View {
+    func toViewController(withNavigation: Bool = true) -> UIViewController {
+        let rootVC = UIHostingController(rootView: self)
+
+        return withNavigation
+            ? UINavigationController(rootViewController: rootVC)
+            : rootVC
+    }
 }

@@ -127,6 +127,11 @@ let package = Package(
         .package(
             url: "https://github.com/WenchaoD/FSCalendar.git", 
             from: "2.8.4"
+        ),
+
+        .package(
+            url: "https://github.com/indextrown/TurboListKit.git", 
+            from: "1.0.6"
         )
     ]
 
