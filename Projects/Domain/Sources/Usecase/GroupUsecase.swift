@@ -115,7 +115,8 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return Observable.concat(cached, remote)
             .enumerated()
             .do(onNext: { index, group in
-                Logger.d("\n[\(index)]번째 방출: \(group.description)")
+                // Logger.d("\n[\(index)]번째 방출: \(group.description)")
+                Logger.d("[\(index)]번째 방출")
             })
             .map { $0.element }
     }

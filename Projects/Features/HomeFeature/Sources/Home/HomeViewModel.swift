@@ -160,8 +160,8 @@ public final class HomeViewModel: HomeViewModelType {
         
         let posts = group
             .map { group in
-                print("group:", group)
-                print("postsByDate:", group.postsByDate)
+                // print("group:", group)
+                // print("postsByDate:", group.postsByDate)
                 // let allPosts = group.postsByDate.flatMap { $0.value }
                 let allPosts = Array(group.postsByDate.values.joined())
                 return allPosts.sorted { $0.createdAt < $1.createdAt }
@@ -252,7 +252,6 @@ extension HomeViewModel {
                 .compactMap { $0.toModel() }
                 .observe(on: MainScheduler.instance)
                 .bind(with: self, onNext: { owner, group in //  HCGroup
-                    print("🔥 group snapshot received")
                     
                     /// session 업데이트
                     owner.groupSession.update(group.toSession())
