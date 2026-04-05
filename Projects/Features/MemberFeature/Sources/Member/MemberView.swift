@@ -34,7 +34,7 @@ final class MemberView: UIView {
     }()
     
     private let textLabel: UILabel = {
-        let label = HCLabel(type: .main(text: "가족 참여 인원"))
+        let label = HCLabel(type: .main(text: "member.family.count".localized()))
         label.font = .hcFont(.bold, size: 22.scaled)
         return label
     }()

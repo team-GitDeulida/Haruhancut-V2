@@ -120,14 +120,14 @@ final class SettingViewController: UIViewController {
                     
                 // 회원탈퇴 알림창
                 case .withdraw:
-                    let alert = AlertFactory.makeAlert(title: "회원탈퇴",
-                                           message: "정말로 탈퇴하시겠습니까?",
+                    let alert = AlertFactory.makeAlert(title: "profile.setting.withdraw.alert.title".localized(),
+                                           message: "profile.setting.withdraw.alert.message".localized(),
                                            actions: [
-                                            UIAlertAction(title: "탈퇴", style: .destructive) { _ in
+                                            UIAlertAction(title: "profile.setting.withdraw.alert.confirm".localized(), style: .destructive) { _ in
                                                 // 삭제 이벤트를 viewModel로 보내겠다
                                                 withdrawalTapped.accept(())
                                             },
-                                            UIAlertAction(title: "취소", style: .cancel)
+                                            UIAlertAction(title: "common.cancel".localized(), style: .cancel)
                                            ])
                     owner.present(alert, animated: true)
                 default:
@@ -143,14 +143,14 @@ extension SettingViewController {
     // MARK: - 사용자에게 설정으로 유도하는 알림창
     func showNotificationPermissionAlert() {
         let alert = UIAlertController(
-            title: "알림이 비활성화되어 있어요",
-            message: "알림을 받으려면 설정 > 하루한컷에서 접근 권한을 허용해주세요.",
+            title: "profile.setting.notification.alert.title".localized(),
+            message: "profile.setting.notification.alert.message".localized(),
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default, handler: { _ in
+        alert.addAction(UIAlertAction(title: "profile.setting.notification.alert.open_settings".localized(), style: .default, handler: { _ in
             self.openAppSettings()
         }))
-        alert.addAction(UIAlertAction(title: "취소", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: "common.cancel".localized(), style: .cancel, handler: nil))
         present(alert, animated: true, completion: nil)
     }
     
@@ -161,5 +161,4 @@ extension SettingViewController {
         UIApplication.shared.open(url, options: [:], completionHandler: nil)
     }
 }
-
 

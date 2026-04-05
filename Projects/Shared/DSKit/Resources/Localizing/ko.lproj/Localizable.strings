@@ -1,0 +1,72 @@
+/* 
+  Localizable.strings
+  DSKit
+
+  Created by 김동현 on 4/5/26.
+  
+*/
+
+"greeting.hello" = "안녕하세요";
+"home.description" = "당신의 하루가 가족의 따뜻한 기억이 됩니다.\n사진 한 장을 남겨주세요.";
+"home.segment.feed" = "피드";
+"home.segment.calendar" = "캘린더";
+"home.navigation.back" = "홈으로";
+"home.feed.bubble.add_photo" = "사진 추가하기";
+"home.feed.bubble.done_today" = "오늘 사진 추가 완료";
+"home.feed.delete.alert.title" = "삭제 확인";
+"home.feed.delete.alert.message" = "이 사진을 삭제하시겠습니까?";
+"home.feed.camera.action.camera" = "카메라로 찍기";
+"home.feed.camera.action.album" = "앨범에서 선택";
+"member.family.count" = "가족 참여 인원";
+"common.back" = "뒤로가기";
+"common.cancel" = "취소";
+"common.close" = "닫기";
+"common.delete" = "삭제";
+"common.next" = "다음";
+"common.done" = "완료";
+"common.preview.nickname" = "홍길동";
+"common.preview.relative_time" = "1분 전";
+"comment.title" = "댓글";
+"comment.input.placeholder" = "메시지를 입력하세요";
+"comment.send" = "전송";
+"comment.placeholder.preview" = "테스트 댓글";
+"auth.signin.app_name" = "하루한컷";
+"auth.signin.kakao" = "카카오로 계속하기";
+"auth.signin.apple" = "Apple로 계속하기";
+"auth.group.select.title" = "가족에게 받은\n그룹 초대 코드가 있으신가요?";
+"auth.group.select.enter.top" = "초대 코드를 받았다면";
+"auth.group.select.enter.bottom" = "가족 방 입장하기";
+"auth.group.select.host.top" = "초대 코드가 없다면";
+"auth.group.select.host.bottom" = "가족 방 만들기";
+"auth.group.enter.title" = "그룹 초대 코드를 입력해 주세요";
+"auth.group.enter.placeholder" = "그룹 초대 코드를 입력해 주세요";
+"auth.group.host.title" = "그룹 이름을 입력해 주세요";
+"auth.group.host.placeholder" = "그룹 이름을 입력해 주세요";
+"member.invite.share.message" = "우리 가족 그룹에 초대할게요!\n초대코드: %@\n\n앱이 궁금하다면 👉 \n%@\n\n앱 설치하기 🍎\n%@";
+"onboarding.page1.title" = "하루 한컷";
+"onboarding.page1.subtitle" = "가족과의 하루를 \n한 장의 사진으로 나눠보세요.";
+"onboarding.page2.title" = "일상 공유";
+"onboarding.page2.subtitle" = "매일의 이야기를 함께 나눠요.\n";
+"onboarding.page3.title" = "기록을 한눈에";
+"onboarding.page3.subtitle" = "달력으로 사진을 돌아볼 수 있어요.\n";
+"onboarding.page4.title" = "나의 이야기, 나만의 공간에";
+"onboarding.page4.subtitle" = "내가 남긴 기록을 한 곳에 담아보세요.\n";
+"profile.nickname_edit.title" = "변경하실 닉네임을 입력해주세요.";
+"profile.nickname_edit.subtitle" = "닉네임은 언제든지 변경할 수 있어요!";
+"profile.nickname_edit.placeholder" = "닉네임";
+"profile.nickname_edit.complete" = "완료";
+"profile.setting.section.app" = "앱 설정";
+"profile.setting.section.info" = "정보";
+"profile.setting.section.account" = "계정 관리";
+"profile.setting.notification" = "알림 설정";
+"profile.setting.version" = "버전 정보";
+"profile.setting.privacy" = "개인정보처리방침";
+"profile.setting.announce" = "공지사항";
+"profile.setting.withdraw" = "회원 탈퇴";
+"profile.setting.logout" = "로그아웃";
+"profile.setting.withdraw.alert.title" = "회원탈퇴";
+"profile.setting.withdraw.alert.message" = "정말로 탈퇴하시겠습니까?";
+"profile.setting.withdraw.alert.confirm" = "탈퇴";
+"profile.setting.notification.alert.title" = "알림이 비활성화되어 있어요";
+"profile.setting.notification.alert.message" = "알림을 받으려면 설정 > 하루한컷에서 접근 권한을 허용해주세요.";
+"profile.setting.notification.alert.open_settings" = "설정으로 이동";

@@ -10,6 +10,7 @@ import RxSwift
 import Domain
 import RxCocoa
 import Core
+import DSKit
 
 final class CommentViewController: UIViewController {
 
@@ -135,7 +136,7 @@ extension CommentViewController: UITableViewDelegate {
     -> UISwipeActionsConfiguration? {
 
         let delete = UIContextualAction(style: .destructive,
-                                         title: "삭제") { [weak self] _, _, completion in
+                                         title: "common.delete".localized()) { [weak self] _, _, completion in
             guard let self = self else {
                 completion(false)
                 return
@@ -153,4 +154,3 @@ extension CommentViewController: UITableViewDelegate {
         return UISwipeActionsConfiguration(actions: [delete])
     }
 }
-

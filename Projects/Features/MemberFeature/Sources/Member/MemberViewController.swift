@@ -10,6 +10,7 @@ import RxSwift
 import RxCocoa
 import Core
 import Domain
+import DSKit
 
 enum MemberItem {
     case invite
@@ -127,16 +128,12 @@ extension MemberViewController {
     private func shareInvitation(inviteCode: String) {
         // 1) 초대 메시지
         let inviteURL = Constants.Notion.notionURL
-        let message = """
-우리 가족 그룹에 초대할게요!
-초대코드: \(inviteCode)
-
-앱이 궁금하다면 👉 
-\(inviteURL)
-
-앱 설치하기 🍎
-\(Constants.Appstore.appstoreURL)
-"""
+        let message = String(
+            format: "member.invite.share.message".localized(),
+            inviteCode,
+            inviteURL,
+            Constants.Appstore.appstoreURL
+        )
         // 2) UIActivityViewController 생성
         let items: [Any] = [message]
         let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)

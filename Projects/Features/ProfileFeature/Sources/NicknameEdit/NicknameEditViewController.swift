@@ -8,6 +8,7 @@
 import UIKit
 import RxSwift
 import RxCocoa
+import DSKit
 
 final class NicknameEditViewController: UIViewController {
     private let viewModel: NicknameEditViewModel
@@ -38,7 +39,7 @@ final class NicknameEditViewController: UIViewController {
     // MARK: - setNavigation
     private func setNavigation() {
         let backItem = UIBarButtonItem()
-        backItem.title = "뒤로가기"
+        backItem.title = "common.back".localized()
         navigationItem.backBarButtonItem = backItem
         navigationController?.navigationBar.tintColor = .mainWhite
     }
@@ -104,4 +105,3 @@ final class NicknameEditViewController: UIViewController {
     }
      */
 }
-

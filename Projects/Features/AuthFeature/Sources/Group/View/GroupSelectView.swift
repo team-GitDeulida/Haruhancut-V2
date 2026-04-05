@@ -13,7 +13,7 @@ final class GroupSelectView: UIView {
     // MARK: - UI Component
     let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "하루한컷"
+        label.text = "auth.signin.app_name".localized()
         label.font = UIFont.hcFont(.bold, size: 20)
         label.textColor = .mainWhite
         return label
@@ -21,7 +21,7 @@ final class GroupSelectView: UIView {
     
     private lazy var mainLabel: UILabel = {
         let label = UILabel()
-        label.text = "가족에게 받은\n그룹 초대 코드가 있으신가요?"
+        label.text = "auth.group.select.title".localized()
         label.numberOfLines = 0
         label.textColor = .mainWhite
         label.font = UIFont.hcFont(.bold, size: 20)
@@ -31,8 +31,8 @@ final class GroupSelectView: UIView {
     // 입장 label
     lazy var enterButton: HCGroupButton = {
         let button = HCGroupButton(
-            topText: "초대 코드를 받았다면",
-            bottomText: "가족 방 입장하기",
+            topText: "auth.group.select.enter.top".localized(),
+            bottomText: "auth.group.select.enter.bottom".localized(),
             rightImage: "arrow.right")
         return button
     }()
@@ -40,8 +40,8 @@ final class GroupSelectView: UIView {
     // 초대 label
     lazy var hostButton: UIButton = {
         let button = HCGroupButton(
-            topText: "초대 코드가 없다면",
-            bottomText: "가족 방 만들기",
+            topText: "auth.group.select.host.top".localized(),
+            bottomText: "auth.group.select.host.bottom".localized(),
             rightImage: "arrow.right")
         return button
     }()

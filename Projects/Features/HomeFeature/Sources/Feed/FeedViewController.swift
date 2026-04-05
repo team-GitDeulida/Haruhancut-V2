@@ -101,10 +101,10 @@ final class FeedViewController: UIViewController {
                 // 포스트가 비어있지 않으면서 && 내가 작성한 포스트가 하나라도 있다면
                 if !posts.isEmpty && posts.contains(where: { $0.userId == owner.homeViewModel.userId }) {
                     // bubble
-                    owner.customView.bubbleView.text = "오늘 사진 추가 완료"
+                    owner.customView.bubbleView.text = "home.feed.bubble.done_today".localized()
                     owner.customView.bubbleView.alpha = 0.6
                 } else {
-                    owner.customView.bubbleView.text = "사진 추가하기"
+                    owner.customView.bubbleView.text = "home.feed.bubble.add_photo".localized()
                 }
             })
             .disposed(by: disposeBag)
@@ -139,14 +139,14 @@ final class FeedViewController: UIViewController {
         // 포스트 롱프레스 알림(삭제)
         output.showLongPressedAlert
             .emit(with: self, onNext: { owner, post in
-                let alert = AlertFactory.makeAlert(title: "삭제 확인",
-                                       message: "이 사진을 삭제하시겠습니까?",
+                let alert = AlertFactory.makeAlert(title: "home.feed.delete.alert.title".localized(),
+                                       message: "home.feed.delete.alert.message".localized(),
                                        actions: [
-                                        UIAlertAction(title: "삭제", style: .destructive) { _ in
+                                        UIAlertAction(title: "common.delete".localized(), style: .destructive) { _ in
                                             print("삭제")
                                             owner.deleteRelay.accept((post))
                                         },
-                                        UIAlertAction(title: "취소", style: .cancel)
+                                        UIAlertAction(title: "common.cancel".localized(), style: .cancel)
                                        ])
                 owner.present(alert, animated: true)
             })
@@ -160,13 +160,13 @@ final class FeedViewController: UIViewController {
                                message: nil,
                                preferredStyle: .actionSheet,
                                actions: [
-                                UIAlertAction(title: "카메라로 찍기", style: .default) { _ in
+                                UIAlertAction(title: "home.feed.camera.action.camera".localized(), style: .default) { _ in
                                     owner.homeViewModel.onCameraTapped?(.camera)
                                 },
-                                UIAlertAction(title: "앨범에서 선택", style: .default) { _ in
+                                UIAlertAction(title: "home.feed.camera.action.album".localized(), style: .default) { _ in
                                     owner.homeViewModel.onCameraTapped?(.album)
                                 },
-                                UIAlertAction(title: "취소", style: .cancel)
+                                UIAlertAction(title: "common.cancel".localized(), style: .cancel)
                                ])
                 owner.present(alert, animated: true)
             })

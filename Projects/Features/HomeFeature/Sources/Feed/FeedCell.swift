@@ -22,12 +22,12 @@ final class FeedCell: UICollectionViewCell {
     }()
     
     private let nicknameLabel: HCLabel = {
-        let label = HCLabel(type: .feedNickname(text: "홍길동"))
+        let label = HCLabel(type: .feedNickname(text: "common.preview.nickname".localized()))
         return label
     }()
     
     private let timeLabel: HCLabel = {
-        let label = HCLabel(type: .feedTime(text: "1분 전"))
+        let label = HCLabel(type: .feedTime(text: "common.preview.relative_time".localized()))
         return label
     }()
     

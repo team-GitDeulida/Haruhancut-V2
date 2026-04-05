@@ -16,6 +16,7 @@ final class CalendarView: UIView {
     // MARK: - UI Component
     lazy var calendarView: FSCalendar = {
         let calendar = FSCalendar()
+        let currentLocale = Locale.current
         
         // 셀등록
         calendar.register(CalendarCell.self, forCellReuseIdentifier: CalendarCell.reuseIdentifier)
@@ -26,11 +27,11 @@ final class CalendarView: UIView {
         // week 또는 month 가능
         calendar.scope = .month
         calendar.scrollEnabled = true
-        calendar.locale = Locale(identifier: "ko_KR")
+        calendar.locale = currentLocale
         
         // 헤더뷰 설정
         calendar.headerHeight = 55
-        calendar.appearance.headerDateFormat = "MM월"
+        calendar.appearance.headerDateFormat = DateFormatter.dateFormat(fromTemplate: "MMMM", options: 0, locale: currentLocale) ?? "MMMM"
         calendar.appearance.headerTitleColor = .mainWhite
         
         // 요일 UI 설정
