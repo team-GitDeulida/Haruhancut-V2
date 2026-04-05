@@ -43,11 +43,14 @@ final class FeedView: UIView {
     
     lazy var emptyLabel: UILabel = {
         let label = UILabel()
-        label.text = "당신의 하루가 가족의 따뜻한 기억이 됩니다.\n사진 한 장을 남겨주세요."
+        label.text = "home.description".localized()
+        label.numberOfLines = 0
+        label.lineBreakMode = .byWordWrapping // 단어 단위 줄바꿈
+        // label.text = "당신의 하루가 가족의 따뜻한 기억이 됩니다.\n사진 한 장을 남겨주세요."
         label.font = UIFont.hcFont(.medium, size: 20.scaled)
         label.textColor = .mainWhite
         label.textAlignment = .center
-        label.numberOfLines = 0
+        
         label.isHidden = true
         return label
     }()
@@ -94,7 +97,9 @@ final class FeedView: UIView {
 
             // emptyLabel (가운데 정렬)
             emptyLabel.centerXAnchor.constraint(equalTo: self.centerXAnchor),
-            emptyLabel.centerYAnchor.constraint(equalTo: self.centerYAnchor, constant: -50.scaled)
+            emptyLabel.centerYAnchor.constraint(equalTo: self.centerYAnchor, constant: -50.scaled),
+            emptyLabel.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 24),
+            emptyLabel.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -24),
         ])
     }
 }

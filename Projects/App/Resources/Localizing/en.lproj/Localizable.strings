@@ -1,0 +1,10 @@
+/* 
+  Localizable.strings
+  DSKit
+
+  Created by 김동현 on 4/5/26.
+  
+*/
+
+"greeting.hello" = "Hello";
+"home.description" = "Make today a warm family memory.\nAdd a photo.";
