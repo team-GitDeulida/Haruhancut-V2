@@ -28,7 +28,7 @@ struct Header: HeaderComponent {
 
     func render(context: Context, content: CellUIView) {
         content.setTitle(title)
-        content.setBackground(.gray)
+        content.setBackground(.clear)
     }
 }
 
@@ -58,7 +58,7 @@ final class HeaderView: UIView, Touchable {
         ])
         
         titleLabel.font = .systemFont(ofSize: 16, weight: .medium)
-        titleLabel.textColor = .label
+        titleLabel.textColor = .mainWhite
     }
 }
 

@@ -31,7 +31,7 @@ public enum WidgetSessionStore {
 
         try? data.write(to: url, options: .atomic)
 
-        print("📦 WidgetSession saved:", user.groupId ?? "nil")
+        print("[📦] [WidgetSession saved]", user.groupId ?? "nil")
     }
     
     public static func loadUser() -> User? {

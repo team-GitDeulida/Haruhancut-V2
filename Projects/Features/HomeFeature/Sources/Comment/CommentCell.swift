@@ -58,18 +58,18 @@ final class CommentCell: UITableViewCell {
     }()
     
     private lazy var nicknameLabel: HCLabel = {
-        let label = HCLabel(type: .commentAuther(text: "닉네임1"))
+        let label = HCLabel(type: .commentAuther(text: "common.preview.nickname".localized()))
         return label
     }()
     
     private lazy var timeLabel: HCLabel = {
-        let label = HCLabel(type: .commentContent(text: "1분 전"))
+        let label = HCLabel(type: .commentContent(text: "common.preview.relative_time".localized()))
         label.textColor = .gray
         return label
     }()
     
     private lazy var contentLabel: HCLabel = {
-        let label = HCLabel(type: .commentContent(text: "테스트 댓글"))
+        let label = HCLabel(type: .commentContent(text: "comment.placeholder.preview".localized()))
         return label
     }()
     

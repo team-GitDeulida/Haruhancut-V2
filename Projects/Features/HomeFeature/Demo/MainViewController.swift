@@ -114,6 +114,7 @@ final class MainViewController: UIViewController {
         typealias Section = TurboSection
         adapter.bind(items) { items in
             Section("id1") {
+                Header(title: "header")
                 for idx in items {
                     CellComponent(number: idx)
                 }

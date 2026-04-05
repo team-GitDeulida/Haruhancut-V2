@@ -14,16 +14,16 @@ final class SettingView: UIView {
     
     // 섹션별 데이터
     lazy var sections = [
-        SettingSection(header: "앱 설정", items: [
-            .toggle(title: "알림 설정")
+        SettingSection(header: "profile.setting.section.app".localized(), items: [
+            .toggle(title: "profile.setting.notification".localized())
         ]),
-        SettingSection(header: "정보", items: [
-            .version(title: "버전 정보", detail: "\(appVersion)"),
-            .privacyPolicy(title: "개인정보처리방침"),
-            .announce(title: "공지사항")
+        SettingSection(header: "profile.setting.section.info".localized(), items: [
+            .version(title: "profile.setting.version".localized(), detail: "\(appVersion)"),
+            .privacyPolicy(title: "profile.setting.privacy".localized()),
+            .announce(title: "profile.setting.announce".localized())
         ]),
-        SettingSection(header: "계정 관리", items: [
-            .withdraw(title: "회원 탈퇴")
+        SettingSection(header: "profile.setting.section.account".localized(), items: [
+            .withdraw(title: "profile.setting.withdraw".localized())
         ])
     ]
     
@@ -38,7 +38,7 @@ final class SettingView: UIView {
     }()
     
     let logoutButton: UIButton = {
-        let button = HCNextButton(title: "로그아웃")
+        let button = HCNextButton(title: "profile.setting.logout".localized())
         return button
     }()
 

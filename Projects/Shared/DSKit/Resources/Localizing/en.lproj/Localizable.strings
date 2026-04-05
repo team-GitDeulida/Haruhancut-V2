@@ -1,0 +1,73 @@
+/* 
+  Localizable.strings
+  DSKit
+
+  Created by 김동현 on 4/5/26.
+  
+*/
+
+"greeting.hello" = "Hello";
+"home.description" = "Make today a warm family memory.\nAdd a photo.";
+"home.segment.feed" = "Feed";
+"home.segment.calendar" = "Calendar";
+"home.navigation.back" = "Home";
+"home.feed.bubble.add_photo" = "Add Photo";
+"home.feed.bubble.done_today" = "Today's Photo Added";
+"home.feed.delete.alert.title" = "Delete Confirmation";
+"home.feed.delete.alert.message" = "Do you want to delete this photo?";
+"home.feed.camera.action.camera" = "Take Photo";
+"home.feed.camera.action.album" = "Choose from Album";
+"member.family.count" = "Family Members";
+"member.family.count.value" = "%d members";
+"common.back" = "Back";
+"common.cancel" = "Cancel";
+"common.close" = "Close";
+"common.delete" = "Delete";
+"common.next" = "Next";
+"common.done" = "Done";
+"common.preview.nickname" = "Hong Gil-dong";
+"common.preview.relative_time" = "1 min ago";
+"comment.title" = "Comments";
+"comment.input.placeholder" = "Enter a message";
+"comment.send" = "Send";
+"comment.placeholder.preview" = "Test comment";
+"auth.signin.app_name" = "OneCut";
+"auth.signin.kakao" = "Continue with Kakao";
+"auth.signin.apple" = "Continue with Apple";
+"auth.group.select.title" = "Do you have\na family invite code?";
+"auth.group.select.enter.top" = "If you have an invite code";
+"auth.group.select.enter.bottom" = "Join Family Group";
+"auth.group.select.host.top" = "If you don't have a code";
+"auth.group.select.host.bottom" = "Create Family Group";
+"auth.group.enter.title" = "Enter your group invite code";
+"auth.group.enter.placeholder" = "Enter your group invite code";
+"auth.group.host.title" = "Enter a group name";
+"auth.group.host.placeholder" = "Enter a group name";
+"member.invite.share.message" = "I'd like to invite you to our family group!\nInvite code: %@\n\nWant to learn more about the app? 👉 \n%@\n\nDownload the app 🍎\n%@";
+"onboarding.page1.title" = "OneCut";
+"onboarding.page1.subtitle" = "Share each day\nwith one photo.";
+"onboarding.page2.title" = "Share Daily Life";
+"onboarding.page2.subtitle" = "Share daily moments.\n";
+"onboarding.page3.title" = "See Memories Fast";
+"onboarding.page3.subtitle" = "View photos in a calendar.\n";
+"onboarding.page4.title" = "My Story, My Own Space";
+"onboarding.page4.subtitle" = "Keep your moments in one place.\n";
+"profile.nickname_edit.title" = "Enter the nickname you want to change to.";
+"profile.nickname_edit.subtitle" = "You can change your nickname anytime!";
+"profile.nickname_edit.placeholder" = "Nickname";
+"profile.nickname_edit.complete" = "Done";
+"profile.setting.section.app" = "App Settings";
+"profile.setting.section.info" = "Info";
+"profile.setting.section.account" = "Account";
+"profile.setting.notification" = "Notifications";
+"profile.setting.version" = "Version";
+"profile.setting.privacy" = "Privacy Policy";
+"profile.setting.announce" = "Announcements";
+"profile.setting.withdraw" = "Delete Account";
+"profile.setting.logout" = "Log Out";
+"profile.setting.withdraw.alert.title" = "Delete Account";
+"profile.setting.withdraw.alert.message" = "Are you sure you want to delete your account?";
+"profile.setting.withdraw.alert.confirm" = "Delete";
+"profile.setting.notification.alert.title" = "Notifications are turned off";
+"profile.setting.notification.alert.message" = "To receive notifications, enable permission in Settings > Haruhancut.";
+"profile.setting.notification.alert.open_settings" = "Open Settings";

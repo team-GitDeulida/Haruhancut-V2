@@ -14,10 +14,10 @@ final class SignInView: UIView {
     let animationView = HCLottieView(animationName: "LottieCamera")
     
     lazy var kakaoLoginButton = SocialLoginButton(type: .kakao,
-                                                  title: "카카오로 계속하기")
+                                                  title: "auth.signin.kakao".localized())
     
     lazy var appleLoginButton = SocialLoginButton(type: .apple,
-                                                  title: "Apple로 계속하기")
+                                                  title: "auth.signin.apple".localized())
     
     private lazy var stackView: UIStackView = {
         let st = UIStackView(arrangedSubviews: [
@@ -31,7 +31,7 @@ final class SignInView: UIView {
         return st
     }()
 
-    private lazy var titleLabel = HCLabel(type: .custom(text: "하루한컷",
+    private lazy var titleLabel = HCLabel(type: .custom(text: "auth.signin.app_name".localized(),
                                               font: .logoFont,
                                               color: .mainWhite))
 

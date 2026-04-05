@@ -2,6 +2,10 @@ import ProjectDescription
 
 let project = Project(
     name: "DSKit",
+    options: .options(
+        defaultKnownRegions: ["en", "ko"],
+        developmentRegion: "ko"
+    ),
     targets: [
     
         // MARK: - UI Framework

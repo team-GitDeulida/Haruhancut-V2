@@ -31,7 +31,7 @@ final class CalendarDetailView: UIView {
     
     lazy var closeButton: UIButton = {
         let btn = UIButton()
-        btn.setTitle("닫기", for: .normal)
+        btn.setTitle("common.close".localized(), for: .normal)
         btn.setTitleColor(.white, for: .normal)
         btn.titleLabel?.font = .boldSystemFont(ofSize: 18)
         return btn

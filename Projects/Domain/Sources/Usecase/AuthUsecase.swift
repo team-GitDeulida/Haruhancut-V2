@@ -291,8 +291,9 @@ extension AuthUsecaseImpl {
                 }
                 
                 // 다르면 patch
-                return self.repository.patchUser(uid: sessionUser.uid,
-                                            fields: ["fcmToken": localToken])
+                return self.repository.patchUser(
+                    uid: sessionUser.uid,
+                    fields: ["fcmToken": localToken])
                 .do(onSuccess: {
                     self.userSession.update(\.fcmToken, localToken)
                     Logger.d("FCM 토큰 동기화 완료")
@@ -323,7 +324,8 @@ extension AuthUsecaseImpl {
         return Observable.concat(cached, remote)
             .enumerated()
             .do(onNext: { index, user in
-                Logger.d("\n[\(index)]번째 방출: \(user.description)")
+                // Logger.d("\n[\(index)]번째 방출: \(user.description)")
+                Logger.d("[\(index)]번째 방출")
             })
             .map { $0.element }
     }

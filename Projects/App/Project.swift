@@ -55,6 +55,10 @@ let releaseSettings: SettingsDictionary = [
 
 let project = Project(
     name: "App",
+    options: .options(
+        defaultKnownRegions: ["en", "ko"],
+        developmentRegion: "ko"
+    ),
     targets: [
         .target(
             name: "App",
@@ -65,7 +69,7 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
                 // 앱 이름 설정
-                "CFBundleDisplayName": "하루한컷",
+                // "CFBundleDisplayName": "하루한컷",
 
                 // 앱 버전 설정
                 "CFBundleShortVersionString": "1.1.0",

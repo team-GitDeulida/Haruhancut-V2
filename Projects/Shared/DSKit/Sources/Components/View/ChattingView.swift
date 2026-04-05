@@ -7,6 +7,7 @@
 
 import UIKit
 import Core
+import Foundation
 
 // MARK: - CustomView Template
 public class BaseView: UIView {
@@ -40,7 +41,7 @@ public final class ChattingTextView: UITextView {
     /// placeholder label
     private let placeholderLabel: UILabel = {
         let label = UILabel()
-        label.text = "메시지를 입력하세요"
+        label.text = "comment.input.placeholder".localized()
         label.textColor = .placeholderText
         label.font = .systemFont(ofSize: 16)
         label.numberOfLines = 1
@@ -126,7 +127,7 @@ public final class ChattingView: BaseView {
     // 버튼
     public let sendButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("전송", for: .normal)
+        button.setTitle("comment.send".localized(), for: .normal)
         button.setTitleColor(.mainBlack, for: .normal)
         button.backgroundColor = .hcColor
         button.layer.cornerRadius = 15

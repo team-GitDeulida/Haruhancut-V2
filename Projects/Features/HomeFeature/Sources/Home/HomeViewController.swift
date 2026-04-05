@@ -19,7 +19,7 @@ final class HomeViewController: UIViewController {
     
     // MARK: - UI Component
     private let segmentedBar: CustomSegmentedBarView = {
-        let segment = CustomSegmentedBarView(items: ["피드", "캘린더"])
+        let segment = CustomSegmentedBarView(items: ["home.segment.feed".localized(), "home.segment.calendar".localized()])
         return segment
     }()
     
@@ -92,7 +92,7 @@ final class HomeViewController: UIViewController {
         
         /// 자식 화면에서 뒤로가기
         let backItem = UIBarButtonItem()
-        backItem.title = "홈으로"
+        backItem.title = "home.navigation.back".localized()
         navigationItem.backBarButtonItem = backItem
     }
     

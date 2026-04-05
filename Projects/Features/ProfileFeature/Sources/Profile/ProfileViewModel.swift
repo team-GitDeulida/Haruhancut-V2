@@ -68,7 +68,9 @@ final class ProfileViewModel: ProfileViewModelType {
                 owner.authUsecase
                     .loadAndFetchUser()
                     .catch { _ in .empty() }
+                
             }
+
             .share(replay: 1) // output에서 여러 곳에서 쓰면 중복 호출 방지
         
         // 그룹

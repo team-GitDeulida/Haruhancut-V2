@@ -34,13 +34,13 @@ final class MemberView: UIView {
     }()
     
     private let textLabel: UILabel = {
-        let label = HCLabel(type: .main(text: "가족 참여 인원"))
+        let label = HCLabel(type: .main(text: "member.family.count".localized()))
         label.font = .hcFont(.bold, size: 22.scaled)
         return label
     }()
     
     lazy var peopleLabel: UILabel = {
-        let label = HCLabel(type: .main(text: "0명"))
+        let label = HCLabel(type: .main(text: String(format: "member.family.count.value".localized(), 0)))
         label.font = .hcFont(.bold, size: 22.scaled)
         label.textColor = .hcColor
         return label
