@@ -72,7 +72,7 @@ final class MemberViewController: UIViewController {
         
         // 인원 수
         output.sortedMembers
-            .map { "\($0.count)명" }
+            .map { String(format: "member.family.count.value".localized(), $0.count) }
             .drive(customView.peopleLabel.rx.text)
             .disposed(by: disposeBag)
         

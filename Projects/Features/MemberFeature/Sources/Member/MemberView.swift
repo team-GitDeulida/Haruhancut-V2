@@ -40,7 +40,7 @@ final class MemberView: UIView {
     }()
     
     lazy var peopleLabel: UILabel = {
-        let label = HCLabel(type: .main(text: "0명"))
+        let label = HCLabel(type: .main(text: String(format: "member.family.count.value".localized(), 0)))
         label.font = .hcFont(.bold, size: 22.scaled)
         label.textColor = .hcColor
         return label

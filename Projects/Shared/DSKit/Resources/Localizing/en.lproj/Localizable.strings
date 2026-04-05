@@ -18,6 +18,7 @@
 "home.feed.camera.action.camera" = "Take Photo";
 "home.feed.camera.action.album" = "Choose from Album";
 "member.family.count" = "Family Members";
+"member.family.count.value" = "%d members";
 "common.back" = "Back";
 "common.cancel" = "Cancel";
 "common.close" = "Close";

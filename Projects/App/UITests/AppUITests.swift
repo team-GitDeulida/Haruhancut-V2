@@ -13,6 +13,8 @@ final class AppUITests: XCTestCase {
         
         // uitest 모드 설정
         app.launchArguments.append("-UITest")
+        app.launchArguments += ["-AppleLanguages", "(ko)"]
+        app.launchArguments += ["-AppleLocale", "ko_KR"]
         
         // 테스트 유저 정보
         app.launchEnvironment["TEST_USER_UID"] = UITestID.User.userId
