@@ -9,6 +9,7 @@ import UIKit
 import AuthFeatureInterface
 import RxSwift
 import Core
+import DSKit
 
 final class SignUpViewController: UIViewController {
     
@@ -132,7 +133,8 @@ extension SignUpViewController {
 
         datePicker.datePickerMode = .date
         datePicker.preferredDatePickerStyle = .wheels
-        datePicker.locale = Locale(identifier: "ko-KR")
+        datePicker.locale = .autoupdatingCurrent
+        datePicker.timeZone = .autoupdatingCurrent
 
         // Date 변경 이벤트
         datePicker.addTarget(self, action: #selector(dateChange), for: .valueChanged)
@@ -147,12 +149,20 @@ extension SignUpViewController {
         ) ?? Date()
 
         datePicker.date = defaultDate
-        textField.text = defaultDate.toKoreanDateKey()
+        textField.text = localizedBirthdayText(from: defaultDate)
     }
 
     @objc private func dateChange() {
         let date = customView.birthDaySettingView.datePicker.date
-        customView.birthDaySettingView.textField.text = date.toKoreanDateKey()
+        customView.birthDaySettingView.textField.text = localizedBirthdayText(from: date)
+    }
+
+    private func localizedBirthdayText(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.timeZone = .autoupdatingCurrent
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
     }
 
     private func createToolbar() -> UIToolbar {
@@ -166,7 +176,7 @@ extension SignUpViewController {
         )
 
         let done = UIBarButtonItem(
-            title: "완료",
+            title: LocalizationKey.authSignupBirthdayDone.localized,
             style: .done,
             target: self,
             action: #selector(donePressed)

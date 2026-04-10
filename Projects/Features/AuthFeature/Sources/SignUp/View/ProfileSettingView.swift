@@ -21,7 +21,7 @@ final class ProfileSettingView: UIView {
     
     // MARK: - UI Component
     private lazy var mainLabel: UILabel = HCLabel(type: .main(text: ""))
-    private lazy var subLabel: UILabel = HCLabel(type: .sub(text: "지금은 넘어가도 돼요!"))
+    private lazy var subLabel: UILabel = HCLabel(type: .sub(text: LocalizationKey.authSignupProfileSubtitle.localized))
     private lazy var hStackView: UIStackView = {
         let st = UIStackView(arrangedSubviews: [
             mainLabel,
@@ -29,7 +29,7 @@ final class ProfileSettingView: UIView {
         ])
         st.spacing = 10
         st.axis = .vertical
-        st.distribution = .fillEqually // 모든 뷰가 동일한 크기
+        st.distribution = .fill
         // 뷰의 크기를 축 반대 방향으로 꽉 채운다
         // 세로 스택일 경우, 각 뷰의 가로 너비가 스택의 가로폭에 맞춰진다
         st.alignment = .fill
@@ -45,7 +45,7 @@ final class ProfileSettingView: UIView {
         return imageView
     }()
     
-    lazy var nextButton: UIButton = HCNextButton(title: "완료")
+    lazy var nextButton: UIButton = HCNextButton(title: LocalizationKey.authSignupProfileDone.localized)
     
     let activityIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .large)
@@ -80,6 +80,7 @@ final class ProfileSettingView: UIView {
             // MARK:  hStack
             hStackView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 30),
             hStackView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            hStackView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -20),
             
             // MARK: - ProfileImage
             profileImageView.centerYAnchor.constraint(equalTo: self.centerYAnchor),
@@ -101,7 +102,7 @@ final class ProfileSettingView: UIView {
 
 extension ProfileSettingView {
     func updateNickname(nickname: String) {
-        mainLabel.text = "\(nickname) 님의 프로필을 설정해 주세요"
+        mainLabel.text = String(format: LocalizationKey.authSignupProfileTitleFormat.localized, nickname)
     }
     
     func updateProfileImage(_ image: UIImage) {

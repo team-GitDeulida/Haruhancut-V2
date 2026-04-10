@@ -6,6 +6,7 @@
 
 import UIKit
 import RxSwift
+import DSKit
 
 // MARK: - (C)GroupViewController
 final class GroupViewController: UIViewController {
@@ -148,13 +149,13 @@ final class GroupViewController: UIViewController {
         switch step {
         case .select:
             navigationItem.leftBarButtonItem = nil
-            navigationItem.title = "그룹 선택"
+            navigationItem.title = LocalizationKey.authGroupNavigationSelect.localized
         case .host:
             navigationItem.leftBarButtonItem = backButton
-            navigationItem.title = "그룹 만들기"
+            navigationItem.title = LocalizationKey.authGroupNavigationHost.localized
         case .enter:
             navigationItem.leftBarButtonItem = backButton
-            navigationItem.title = "그룹 참가"
+            navigationItem.title = LocalizationKey.authGroupNavigationEnter.localized
         }
     }
     
