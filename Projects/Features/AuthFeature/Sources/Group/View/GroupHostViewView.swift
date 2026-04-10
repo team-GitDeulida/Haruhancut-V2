@@ -15,17 +15,17 @@ final class GroupHostView: UIView {
     
     // MARK: - UI Component
     private lazy var mainLabel: HCLabel = {
-        let label = HCLabel(type: .main(text: "auth.group.host.title".localized()))
+        let label = HCLabel(type: .main(text: LocalizationKey.authGroupHostTitle.localized))
         return label
     }()
     
     lazy var textField: HCTextField = {
-        let textField = HCTextField(placeholder: "auth.group.host.placeholder".localized())
+        let textField = HCTextField(placeholder: LocalizationKey.authGroupHostPlaceholder.localized)
         return textField
     }()
     
     lazy var endButton: HCNextButton = {
-        let button = HCNextButton(title: "common.done".localized())
+        let button = HCNextButton(title: LocalizationKey.commonDone.localized)
         return button
     }()
 

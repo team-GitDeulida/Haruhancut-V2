@@ -11,9 +11,9 @@ import DSKit
 final class NicknameEditView: UIView {
     
     // MARK: - UI Component
-    private let mainLabel: UILabel = HCLabel(type: .main(text: "profile.nickname_edit.title".localized()))
-    private let subLabel: UILabel = HCLabel(type: .sub(text: "profile.nickname_edit.subtitle".localized()))
-    lazy var textField: UITextField = HCTextField(placeholder: "profile.nickname_edit.placeholder".localized())
+    private let mainLabel: UILabel = HCLabel(type: .main(text: LocalizationKey.profileNicknameEditTitle.localized))
+    private let subLabel: UILabel = HCLabel(type: .sub(text: LocalizationKey.profileNicknameEditSubtitle.localized))
+    lazy var textField: UITextField = HCTextField(placeholder: LocalizationKey.profileNicknameEditPlaceholder.localized)
     private lazy var hStackView: UIStackView = {
         let st = UIStackView(arrangedSubviews: [
             mainLabel,
@@ -28,7 +28,7 @@ final class NicknameEditView: UIView {
         return st
     }()
     lazy var endButton: UIButton = {
-        let button = HCNextButton(title: "profile.nickname_edit.complete".localized())
+        let button = HCNextButton(title: LocalizationKey.profileNicknameEditComplete.localized)
         return button
     }()
 

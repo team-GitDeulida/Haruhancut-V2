@@ -101,10 +101,10 @@ final class FeedViewController: UIViewController {
                 // 포스트가 비어있지 않으면서 && 내가 작성한 포스트가 하나라도 있다면
                 if !posts.isEmpty && posts.contains(where: { $0.userId == owner.homeViewModel.userId }) {
                     // bubble
-                    owner.customView.bubbleView.text = "home.feed.bubble.done_today".localized()
+                    owner.customView.bubbleView.text = LocalizationKey.homeFeedBubbleDoneToday.localized
                     owner.customView.bubbleView.alpha = 0.6
                 } else {
-                    owner.customView.bubbleView.text = "home.feed.bubble.add_photo".localized()
+                    owner.customView.bubbleView.text = LocalizationKey.homeFeedBubbleAddPhoto.localized
                 }
             })
             .disposed(by: disposeBag)
@@ -139,13 +139,13 @@ final class FeedViewController: UIViewController {
         // 포스트 롱프레스 알림(삭제)
         output.showLongPressedAlert
             .emit(with: self, onNext: { owner, post in
-                let alert = AlertFactory.makeAlert(title: "home.feed.delete.alert.title".localized(),
-                                       message: "home.feed.delete.alert.message".localized(),
+                let alert = AlertFactory.makeAlert(title: LocalizationKey.homeFeedDeleteAlertTitle.localized,
+                                       message: LocalizationKey.homeFeedDeleteAlertMessage.localized,
                                        actions: [
-                                        UIAlertAction(title: "common.delete".localized(), style: .destructive) { _ in
+                                        UIAlertAction(title: LocalizationKey.commonDelete.localized, style: .destructive) { _ in
                                             owner.deleteRelay.accept((post))
                                         },
-                                        UIAlertAction(title: "common.cancel".localized(), style: .cancel)
+                                        UIAlertAction(title: LocalizationKey.commonCancel.localized, style: .cancel)
                                        ])
                 owner.present(alert, animated: true)
             })
@@ -159,13 +159,13 @@ final class FeedViewController: UIViewController {
                                message: nil,
                                preferredStyle: .actionSheet,
                                actions: [
-                                UIAlertAction(title: "home.feed.camera.action.camera".localized(), style: .default) { _ in
+                                UIAlertAction(title: LocalizationKey.homeFeedCameraActionCamera.localized, style: .default) { _ in
                                     owner.homeViewModel.onCameraTapped?(.camera)
                                 },
-                                UIAlertAction(title: "home.feed.camera.action.album".localized(), style: .default) { _ in
+                                UIAlertAction(title: LocalizationKey.homeFeedCameraActionAlbum.localized, style: .default) { _ in
                                     owner.homeViewModel.onCameraTapped?(.album)
                                 },
-                                UIAlertAction(title: "common.cancel".localized(), style: .cancel)
+                                UIAlertAction(title: LocalizationKey.commonCancel.localized, style: .cancel)
                                ])
                 owner.present(alert, animated: true)
             })

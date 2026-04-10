@@ -29,7 +29,7 @@ final class FeedView: UIView {
         return collectionView
     }()
     
-    let bubbleView = BubbleView(text: "home.feed.bubble.add_photo".localized())
+    let bubbleView = BubbleView(text: LocalizationKey.homeFeedBubbleAddPhoto.localized)
     
     lazy var cameraBtn: UIButton = {
         let button = UIButton()
@@ -43,7 +43,7 @@ final class FeedView: UIView {
     
     lazy var emptyLabel: UILabel = {
         let label = UILabel()
-        label.text = "home.description".localized()
+        label.text = LocalizationKey.homeDescription.localized
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping // 단어 단위 줄바꿈
         // label.text = "당신의 하루가 가족의 따뜻한 기억이 됩니다.\n사진 한 장을 남겨주세요."

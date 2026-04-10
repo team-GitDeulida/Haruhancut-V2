@@ -27,6 +27,7 @@
 "common.done" = "완료";
 "common.preview.nickname" = "홍길동";
 "common.preview.relative_time" = "1분 전";
+"date.relative.just_now" = "방금 전";
 "comment.title" = "댓글";
 "comment.input.placeholder" = "메시지를 입력하세요";
 "comment.send" = "전송";

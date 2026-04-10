@@ -136,7 +136,7 @@ extension CommentViewController: UITableViewDelegate {
     -> UISwipeActionsConfiguration? {
 
         let delete = UIContextualAction(style: .destructive,
-                                         title: "common.delete".localized()) { [weak self] _, _, completion in
+                                         title: LocalizationKey.commonDelete.localized) { [weak self] _, _, completion in
             guard let self = self else {
                 completion(false)
                 return

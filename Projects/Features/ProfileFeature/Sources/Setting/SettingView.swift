@@ -14,16 +14,16 @@ final class SettingView: UIView {
     
     // 섹션별 데이터
     lazy var sections = [
-        SettingSection(header: "profile.setting.section.app".localized(), items: [
-            .toggle(title: "profile.setting.notification".localized())
+        SettingSection(header: LocalizationKey.profileSettingSectionApp.localized, items: [
+            .toggle(title: LocalizationKey.profileSettingNotification.localized)
         ]),
-        SettingSection(header: "profile.setting.section.info".localized(), items: [
-            .version(title: "profile.setting.version".localized(), detail: "\(appVersion)"),
-            .privacyPolicy(title: "profile.setting.privacy".localized()),
-            .announce(title: "profile.setting.announce".localized())
+        SettingSection(header: LocalizationKey.profileSettingSectionInfo.localized, items: [
+            .version(title: LocalizationKey.profileSettingVersion.localized, detail: "\(appVersion)"),
+            .privacyPolicy(title: LocalizationKey.profileSettingPrivacy.localized),
+            .announce(title: LocalizationKey.profileSettingAnnounce.localized)
         ]),
-        SettingSection(header: "profile.setting.section.account".localized(), items: [
-            .withdraw(title: "profile.setting.withdraw".localized())
+        SettingSection(header: LocalizationKey.profileSettingSectionAccount.localized, items: [
+            .withdraw(title: LocalizationKey.profileSettingWithdraw.localized)
         ])
     ]
     
@@ -38,7 +38,7 @@ final class SettingView: UIView {
     }()
     
     let logoutButton: UIButton = {
-        let button = HCNextButton(title: "profile.setting.logout".localized())
+        let button = HCNextButton(title: LocalizationKey.profileSettingLogout.localized)
         return button
     }()
 

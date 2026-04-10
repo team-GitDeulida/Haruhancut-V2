@@ -18,7 +18,7 @@ public final class CommentView: UIView {
     
     // MARK: - UI Component
     private let headerLabel: UILabel = {
-        let label = HCLabel(type: .commentTitle(text: "comment.title".localized()))
+        let label = HCLabel(type: .commentTitle(text: LocalizationKey.commentTitle.localized))
         return label
     }()
     

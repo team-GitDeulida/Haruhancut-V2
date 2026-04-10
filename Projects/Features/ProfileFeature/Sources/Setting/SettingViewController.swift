@@ -120,14 +120,14 @@ final class SettingViewController: UIViewController {
                     
                 // 회원탈퇴 알림창
                 case .withdraw:
-                    let alert = AlertFactory.makeAlert(title: "profile.setting.withdraw.alert.title".localized(),
-                                           message: "profile.setting.withdraw.alert.message".localized(),
+                    let alert = AlertFactory.makeAlert(title: LocalizationKey.profileSettingWithdrawAlertTitle.localized,
+                                           message: LocalizationKey.profileSettingWithdrawAlertMessage.localized,
                                            actions: [
-                                            UIAlertAction(title: "profile.setting.withdraw.alert.confirm".localized(), style: .destructive) { _ in
+                                            UIAlertAction(title: LocalizationKey.profileSettingWithdrawAlertConfirm.localized, style: .destructive) { _ in
                                                 // 삭제 이벤트를 viewModel로 보내겠다
                                                 withdrawalTapped.accept(())
                                             },
-                                            UIAlertAction(title: "common.cancel".localized(), style: .cancel)
+                                            UIAlertAction(title: LocalizationKey.commonCancel.localized, style: .cancel)
                                            ])
                     owner.present(alert, animated: true)
                 default:
@@ -143,14 +143,14 @@ extension SettingViewController {
     // MARK: - 사용자에게 설정으로 유도하는 알림창
     func showNotificationPermissionAlert() {
         let alert = UIAlertController(
-            title: "profile.setting.notification.alert.title".localized(),
-            message: "profile.setting.notification.alert.message".localized(),
+            title: LocalizationKey.profileSettingNotificationAlertTitle.localized,
+            message: LocalizationKey.profileSettingNotificationAlertMessage.localized,
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "profile.setting.notification.alert.open_settings".localized(), style: .default, handler: { _ in
+        alert.addAction(UIAlertAction(title: LocalizationKey.profileSettingNotificationAlertOpenSettings.localized, style: .default, handler: { _ in
             self.openAppSettings()
         }))
-        alert.addAction(UIAlertAction(title: "common.cancel".localized(), style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: LocalizationKey.commonCancel.localized, style: .cancel, handler: nil))
         present(alert, animated: true, completion: nil)
     }
     

@@ -41,7 +41,7 @@ public final class ChattingTextView: UITextView {
     /// placeholder label
     private let placeholderLabel: UILabel = {
         let label = UILabel()
-        label.text = "comment.input.placeholder".localized()
+        label.text = LocalizationKey.commentInputPlaceholder.localized
         label.textColor = .placeholderText
         label.font = .systemFont(ofSize: 16)
         label.numberOfLines = 1
@@ -127,7 +127,7 @@ public final class ChattingView: BaseView {
     // 버튼
     public let sendButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("comment.send".localized(), for: .normal)
+        button.setTitle(LocalizationKey.commentSend.localized, for: .normal)
         button.setTitleColor(.mainBlack, for: .normal)
         button.backgroundColor = .hcColor
         button.layer.cornerRadius = 15

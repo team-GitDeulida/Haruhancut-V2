@@ -72,7 +72,7 @@ final class MemberViewController: UIViewController {
         
         // 인원 수
         output.sortedMembers
-            .map { String(format: "member.family.count.value".localized(), $0.count) }
+            .map { String(format: LocalizationKey.memberFamilyCountValue.localized, $0.count) }
             .drive(customView.peopleLabel.rx.text)
             .disposed(by: disposeBag)
         
@@ -129,7 +129,7 @@ extension MemberViewController {
         // 1) 초대 메시지
         let inviteURL = Constants.Notion.notionURL
         let message = String(
-            format: "member.invite.share.message".localized(),
+            format: LocalizationKey.memberInviteShareMessage.localized,
             inviteCode,
             inviteURL,
             Constants.Appstore.appstoreURL

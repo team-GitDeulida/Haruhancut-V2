@@ -27,6 +27,7 @@
 "common.done" = "Done";
 "common.preview.nickname" = "Hong Gil-dong";
 "common.preview.relative_time" = "1 min ago";
+"date.relative.just_now" = "Just now";
 "comment.title" = "Comments";
 "comment.input.placeholder" = "Enter a message";
 "comment.send" = "Send";

@@ -15,17 +15,17 @@ final class GroupEnterView: UIView {
     
     // MARK: - UI Component
     private lazy var mainLabel: HCLabel = {
-        let label = HCLabel(type: .main(text: "auth.group.enter.title".localized()))
+        let label = HCLabel(type: .main(text: LocalizationKey.authGroupEnterTitle.localized))
         return label
     }()
     
     lazy var textField: HCTextField = {
-        let textField = HCTextField(placeholder: "auth.group.enter.placeholder".localized())
+        let textField = HCTextField(placeholder: LocalizationKey.authGroupEnterPlaceholder.localized)
         return textField
     }()
     
     lazy var endButton: HCNextButton = {
-        let button = HCNextButton(title: "common.done".localized())
+        let button = HCNextButton(title: LocalizationKey.commonDone.localized)
         return button
     }()
 

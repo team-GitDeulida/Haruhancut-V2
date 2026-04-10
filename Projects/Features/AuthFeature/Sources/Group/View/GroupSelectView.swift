@@ -13,7 +13,7 @@ final class GroupSelectView: UIView {
     // MARK: - UI Component
     let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "auth.signin.app_name".localized()
+        label.text = LocalizationKey.authSigninAppName.localized
         label.font = UIFont.hcFont(.bold, size: 20)
         label.textColor = .mainWhite
         return label
@@ -21,7 +21,7 @@ final class GroupSelectView: UIView {
     
     private lazy var mainLabel: UILabel = {
         let label = UILabel()
-        label.text = "auth.group.select.title".localized()
+        label.text = LocalizationKey.authGroupSelectTitle.localized
         label.numberOfLines = 0
         label.textColor = .mainWhite
         label.font = UIFont.hcFont(.bold, size: 20)
@@ -31,8 +31,8 @@ final class GroupSelectView: UIView {
     // 입장 label
     lazy var enterButton: HCGroupButton = {
         let button = HCGroupButton(
-            topText: "auth.group.select.enter.top".localized(),
-            bottomText: "auth.group.select.enter.bottom".localized(),
+            topText: LocalizationKey.authGroupSelectEnterTop.localized,
+            bottomText: LocalizationKey.authGroupSelectEnterBottom.localized,
             rightImage: "arrow.right")
         return button
     }()
@@ -40,8 +40,8 @@ final class GroupSelectView: UIView {
     // 초대 label
     lazy var hostButton: UIButton = {
         let button = HCGroupButton(
-            topText: "auth.group.select.host.top".localized(),
-            bottomText: "auth.group.select.host.bottom".localized(),
+            topText: LocalizationKey.authGroupSelectHostTop.localized,
+            bottomText: LocalizationKey.authGroupSelectHostBottom.localized,
             rightImage: "arrow.right")
         return button
     }()

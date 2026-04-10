@@ -23,7 +23,7 @@ final class OnboardingViewController: UIPageViewController {
     
     private lazy var nextButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("common.next".localized(), for: .normal)
+        button.setTitle(LocalizationKey.commonNext.localized, for: .normal)
         button.tintColor = .white
         button.backgroundColor = .black
         button.layer.cornerRadius = 20
@@ -64,18 +64,18 @@ final class OnboardingViewController: UIPageViewController {
     private func makeUI() {
         view.backgroundColor = .white
         let page1 = PageContentsViewController(image: DSImage.onboarding1,
-                                               title: "onboarding.page1.title".localized(),
-                                               subTitle: "onboarding.page1.subtitle".localized())
+                                               title: LocalizationKey.onboardingPage1Title.localized,
+                                               subTitle: LocalizationKey.onboardingPage1Subtitle.localized)
         let page2 = PageContentsViewController(image: DSImage.onboarding3,
-                                               title: "onboarding.page2.title".localized(),
-                                               subTitle: "onboarding.page2.subtitle".localized())
+                                               title: LocalizationKey.onboardingPage2Title.localized,
+                                               subTitle: LocalizationKey.onboardingPage2Subtitle.localized)
         let page3 = PageContentsViewController(image: DSImage.onboarding4,
-                                               title: "onboarding.page3.title".localized(),
-                                               subTitle: "onboarding.page3.subtitle".localized())
+                                               title: LocalizationKey.onboardingPage3Title.localized,
+                                               subTitle: LocalizationKey.onboardingPage3Subtitle.localized)
         
         let page4 = PageContentsViewController(image: DSImage.onboarding5,
-                                               title: "onboarding.page4.title".localized(),
-                                               subTitle: "onboarding.page4.subtitle".localized())
+                                               title: LocalizationKey.onboardingPage4Title.localized,
+                                               subTitle: LocalizationKey.onboardingPage4Subtitle.localized)
         pages.append(contentsOf: [page1, page2, page3, page4])
         
         // dataSource 화면에 보여질 뷰컨트롤러들을 관리
@@ -114,9 +114,9 @@ final class OnboardingViewController: UIPageViewController {
             
             // 버튼 텍스트 업데이트
             if nextIndex == pages.count - 1 {
-                nextButton.setTitle("common.done".localized(), for: .normal)
+                nextButton.setTitle(LocalizationKey.commonDone.localized, for: .normal)
             } else {
-                nextButton.setTitle("common.next".localized(), for: .normal)
+                nextButton.setTitle(LocalizationKey.commonNext.localized, for: .normal)
             }
             
         } else {
@@ -160,9 +160,9 @@ extension OnboardingViewController: UIPageViewControllerDelegate {
         
         
             if index == pages.count - 1 {
-                nextButton.setTitle("common.done".localized(), for: .normal)
+                nextButton.setTitle(LocalizationKey.commonDone.localized, for: .normal)
             } else {
-                nextButton.setTitle("common.next".localized(), for: .normal)
+                nextButton.setTitle(LocalizationKey.commonNext.localized, for: .normal)
             }
         }
 }
