@@ -38,6 +38,10 @@ public extension Date {
     /// 상대적인 시간
     /// - Returns: "5분 전", "2시간 전", "3일 전"
     func toRelativeString() -> String {
+        if abs(timeIntervalSinceNow) < 60 {
+            return "방금 전"
+        }
+
         let relativeFormatter = RelativeDateTimeFormatter()
         relativeFormatter.locale = Locale(identifier: "ko_KR")
         relativeFormatter.unitsStyle = .short // → "5분 전", "2시간 전", "3일 전"

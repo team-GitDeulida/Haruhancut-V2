@@ -256,7 +256,7 @@ extension FirebaseAuthManager {
                     print("❌ deleteValue 실패: \(error.localizedDescription)")
                     single(.failure(error))
                 } else {
-                    print("✅ deleteValue 성공: \(path)")
+                    // print("✅ deleteValue 성공: \(path)")
                     single(.success(()))
                 }
             }

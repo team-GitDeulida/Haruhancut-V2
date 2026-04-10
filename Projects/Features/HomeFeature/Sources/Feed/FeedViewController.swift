@@ -143,7 +143,6 @@ final class FeedViewController: UIViewController {
                                        message: "home.feed.delete.alert.message".localized(),
                                        actions: [
                                         UIAlertAction(title: "common.delete".localized(), style: .destructive) { _ in
-                                            print("삭제")
                                             owner.deleteRelay.accept((post))
                                         },
                                         UIAlertAction(title: "common.cancel".localized(), style: .cancel)

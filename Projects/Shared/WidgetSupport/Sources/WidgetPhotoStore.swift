@@ -71,7 +71,7 @@ public final class WidgetPhotoStore {
         // - 임시파일 작성
         try compressed.write(to: fileURL, options: .atomic)
         
-        print("✅ [WidgetPhotoStore] saved -> \(fileURL.path)")
+        print("[🟢] [WidgetPhotoStore] saved -> \(fileURL.lastPathComponent)")
     }
     
     public func deleteImage(groupId: String,
@@ -95,7 +95,7 @@ public final class WidgetPhotoStore {
         for file in files where file.lastPathComponent.hasSuffix("\(identifier).jpg") {
             // 파일 삭제
             try? FileManager.default.removeItem(at: file)
-            print("✅ [WidgetPhotoStore] deleted -> \(file.lastPathComponent)")
+            print("[🟢] [WidgetPhotoStore] deleted -> \(file.lastPathComponent)")
         }
         
         // 2026-03-09/ 제거

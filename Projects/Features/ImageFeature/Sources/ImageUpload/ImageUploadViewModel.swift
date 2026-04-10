@@ -49,6 +49,7 @@ final class ImageUploadViewModel: UploadViewModelType {
 
                 return self.groupUsecase
                     .uploadImageAndUploadPost(image: self.image)
+                    /*
                     .do(
                         onNext: { print("✅ onNext") },
                         onError: { print("❌ onError:", $0) },
@@ -56,6 +57,7 @@ final class ImageUploadViewModel: UploadViewModelType {
                         onSubscribe: { print("📡 subscribe") },
                         onDispose: { print("🧹 dispose") }
                     )
+                    */
                     .do(
                         onNext: { _ in uploading.accept(false) },
                         onError: { _ in uploading.accept(false) },

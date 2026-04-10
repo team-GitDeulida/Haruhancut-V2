@@ -43,7 +43,7 @@ extension FirebaseStorageManager {
                         print("❌ downloadURL 실패: \(error.localizedDescription)")
                         single(.failure(FirebaseError.unknown(error)))
                     } else if let url = url {
-                        print("✅ 이미지 업로드 및 URL 확보 성공: \(url.absoluteString)")
+                        // print("✅ 이미지 업로드 및 URL 확보 성공: \(url.absoluteString)")
                         single(.success(url))
                     } else {
                         print("❌ URL 없음 (downloadURL nil)")
