@@ -93,3 +93,6 @@ Projects/Shared/Configs/Shared.xcconfig
 fastlane/report.xml
 fastlane/README.md
 fastlane/test_output
+fastlane/.env
+fastlane/metadata
+fastlane/screenshots
