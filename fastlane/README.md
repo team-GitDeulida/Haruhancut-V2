@@ -53,3 +53,17 @@ fastlane deliver --ipa "App.ipa"
 // 심사 제출까지 한번에
 fastlane deliver --ipa "App.ipa" --submit_for_review
 ```
+
+```swoft
+// 바이너리 업로드 없이 텍스트만 App Store Connect에 올리고 싶을 때
+fastlane deliver --skip_binary_upload true --skip_screenshots true
+
+// 릴리즈 노트 포함해서 바이너리까지 같이 업로드
+fastlane deliver --ipa "CodeLounge.ipa" --app_version "1.0.6"
+
+// 심사 제출까지 같이: 웹에서 직접 제출 버튼 누르기까지 생략하고 싶으면
+fastlane deliver \
+  --ipa "CodeLounge.ipa" \
+  --app_version "1.0.6" \
+  --submit_for_review true
+```

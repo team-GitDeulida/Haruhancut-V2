@@ -24,8 +24,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
 
         // 3. root view controller 설정
-        let rootViewController = MainViewController()
+        //let rootViewController = MainViewController()
         // MainView().toViewController()
+        let rootViewController = SampleVC()
 
         window.rootViewController = rootViewController
         self.window = window

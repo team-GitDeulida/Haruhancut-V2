@@ -40,6 +40,7 @@ let project = Project(
 
                 // TurboListKit
                 .external(name: "TurboListKit"),
+                .external(name: "CarbonListKit"),
                 
             ],
             settings: .settings(
