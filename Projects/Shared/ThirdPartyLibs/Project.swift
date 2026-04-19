@@ -15,12 +15,14 @@ let project = Project(
             resources: [],
             dependencies: [
                 // Rx
-                // .external(name: "RxSwift"),
                 .external(name: "RxCocoa"),
-                // .external(name: "RxRelay"),
                 .external(name: "RxDataSources"),
+                .external(name: "ReactorKit"),
+                // .external(name: "RxSwift"),
+                // .external(name: "RxRelay"),
                 // .external(name: "RxTest"),
                 // .external(name: "RxBlocking"),
+
 
                 // Kakao
                 .external(name: "RxKakaoSDK"),
