@@ -82,7 +82,7 @@ final class FeedView: UIView {
     private func setupConstraints() {
         NSLayoutConstraint.activate([
             // 컬렉션뷰
-            collectionView.topAnchor.constraint(equalTo: self.safeAreaLayoutGuide.topAnchor, constant: 20),
+            collectionView.topAnchor.constraint(equalTo: self.safeAreaLayoutGuide.topAnchor, constant: 0),
             collectionView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: self.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: cameraBtn.topAnchor, constant: -20),

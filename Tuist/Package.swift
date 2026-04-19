@@ -68,6 +68,7 @@ import PackageDescription
 
         // productTypes: [:]
 
+        // default is .staticFramework 출처: https://sunrinnote.tistory.com/188
         productTypes: [
             "RxCocoa": .framework,
             "RxCocoaRuntime": .framework,

@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import HomeFeatureV2
+import HomeFeatureV2Interface
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -23,7 +25,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
 
         // 3. root view controller 설정
-        let rootViewController = MainViewController()
+        let builder = HomeFeatureBuilder()
+        let home = builder.makeHome()
+        let rootViewController = UINavigationController(rootViewController: home.vc)
 
         window.rootViewController = rootViewController
         self.window = window

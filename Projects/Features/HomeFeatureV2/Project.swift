@@ -14,7 +14,11 @@ let project = Project(
             sources: ["Sources/**"],
             resources: [],
             dependencies: [
-                .target(name: "HomeFeatureV2Interface")
+                .target(name: "HomeFeatureV2Interface"),
+                .project(target: "DSKit", path: "../../Shared/DSKit"),
+                .project(target: "Data", path: "../../Data"),
+                .project(target: "ThirdPartyLibs", path: "../../Shared/ThirdPartyLibs"),
+                .project(target: "WidgetSupport", path: "../../Shared/WidgetSupport")
             ]
         ),
 
@@ -27,7 +31,9 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],
             resources: [],
-            dependencies: []
+            dependencies: [
+                .project(target: "Domain", path: "../../Domain")
+            ]
         ),
 
         // MARK: - ModuleDemo App
@@ -57,6 +63,7 @@ let project = Project(
             sources: ["Demo/**"],
             resources: [],
             dependencies: [
+                .target(name: "HomeFeatureV2Interface"),
                 .target(name: "HomeFeatureV2"),
                 .target(name: "HomeFeatureV2Testing")
             ],

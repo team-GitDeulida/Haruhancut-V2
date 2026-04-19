@@ -22,5 +22,5 @@ public protocol HomeRouteTrigger {
     var onCalendarImageTapped: (([Post], Date) -> Void)? { get set }
 }
 
-public typealias HomeReducerType = HomeRouteTrigger
-public typealias HomePresentable = (vc: UIViewController, reducer: any HomeReducerType)
+public typealias HomeReactorType = HomeRouteTrigger
+public typealias HomePresentable = (vc: UIViewController, reactor: any HomeReactorType)
