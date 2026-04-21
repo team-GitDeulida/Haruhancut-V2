@@ -6,12 +6,12 @@
 //
 
 import UIKit
-import HomeFeatureV2
-import HomeFeatureV2Interface
+import Coordinator
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
+    private var homeCoordinator: HomeV2Coordinator?
 
     func scene(
         _ scene: UIScene,
@@ -25,9 +25,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
 
         // 3. root view controller 설정
-        let builder = HomeFeatureBuilder()
-        let home = builder.makeHome()
-        let rootViewController = UINavigationController(rootViewController: home.vc)
+        let rootViewController = UINavigationController()
+        let coordinator = HomeV2Coordinator(navigationController: rootViewController)
+        self.homeCoordinator = coordinator
+        coordinator.start()
 
         window.rootViewController = rootViewController
         self.window = window

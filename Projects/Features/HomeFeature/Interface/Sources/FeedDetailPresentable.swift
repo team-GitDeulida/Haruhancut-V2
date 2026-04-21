@@ -17,4 +17,4 @@ public protocol FeedDetailTrigger {
 
 public typealias FeedDetailViewModelType = ViewModelType & FeedDetailTrigger
 
-public typealias FeedDetailPresentable = (vc: UIViewController, vm: any FeedDetailViewModelType)
+public typealias FeedDetailPresentable = (vc: UIViewController & RefreshableViewController, vm: any FeedDetailViewModelType)

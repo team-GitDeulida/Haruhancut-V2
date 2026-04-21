@@ -16,4 +16,4 @@ public protocol CalendarDetailTrigger {
 }
 
 public typealias CalendarDetailViewModelType = ViewModelType & CalendarDetailTrigger
-public typealias CalendarDetailPresentable = (vc: UIViewController, vm: any CalendarDetailViewModelType)
+public typealias CalendarDetailPresentable = (vc: UIViewController & RefreshableViewController, vm: any CalendarDetailViewModelType)

@@ -97,12 +97,12 @@ public final class AppCoordinator: Coordinator {
         childCoordinators.removeAll { $0 is AuthCoordinator }
         
         // 2. HomeCoordinator 중복 방지
-        if childCoordinators.contains(where: { $0 is HomeCoordinator }) {
+        if childCoordinators.contains(where: { $0 is HomeV2Coordinator }) {
             return
         }
         
         // 3 HomeCoordinator 시작
-        let homeCoordinator = HomeCoordinator(navigationController: navigationController)
+        let homeCoordinator = HomeV2Coordinator(navigationController: navigationController)
         homeCoordinator.parentCoordinator = self
         childCoordinators.append(homeCoordinator)
         homeCoordinator.start()

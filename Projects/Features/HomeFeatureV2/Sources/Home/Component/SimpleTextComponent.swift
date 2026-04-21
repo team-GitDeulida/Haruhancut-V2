@@ -29,6 +29,10 @@ struct SimpleTextComponent: ListComponent {
             subtitle: content.subtitle
         )
     }
+    
+    var height: ListComponentHeight {
+        return .square
+    }
 }
 
 extension SimpleTextComponent: Equatable {

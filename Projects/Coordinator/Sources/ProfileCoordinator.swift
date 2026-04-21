@@ -29,13 +29,10 @@ public final class ProfileCoordinator: NSObject, Coordinator {
     
     public func start() {
         let builder = ProfileFeatureBuilder()
-        var profile = builder.makeProfile()
-        
-        // pop 처리
-        profile.vc.onPop = { [weak self] in
+        var profile = builder.makeProfile(onPop: { [weak self] in
             guard let self else { return }
             self.parentCoordinator?.childDidFinish(self)
-        }
+        })
         
         // 프로필 미리보기
         profile.vm.onProfileImageTapped = { [weak self] imageURL in
@@ -58,13 +55,16 @@ public final class ProfileCoordinator: NSObject, Coordinator {
             guard let self = self else { return }
             let builder = FeedDetailBuilder()
             var feedDetail = builder.makeFeed(post: post)
+            profile.vc.navigationItem.backButtonDisplayMode = .minimal
             self.navigationController.pushViewController(feedDetail.vc, animated: true)
             
             // 댓글
             feedDetail.vm.onCommentTapped = { [weak self] post in
                 guard let self = self else { return }
                 
-                let commentVC = builder.makeComment(post: post)
+                let commentVC = builder.makeComment(post: post, onDismiss: {
+                    feedDetail.vc.refresh()
+                })
                 commentVC.modalPresentationStyle = .pageSheet
                 self.navigationController.present(commentVC, animated: true)
             }
@@ -89,6 +89,7 @@ public final class ProfileCoordinator: NSObject, Coordinator {
             let setting = builder.makeSetting()
             
             // 모든 설정 세팅 끝난 후 push
+            profile.vc.navigationItem.backButtonDisplayMode = .default
             self.navigationController.pushViewController(setting.vc, animated: true)
         }
         
@@ -104,6 +105,7 @@ public final class ProfileCoordinator: NSObject, Coordinator {
             }
             
             // 모든 설정 세팅 끝난 후 push
+            profile.vc.navigationItem.backButtonDisplayMode = .default
             self.navigationController.pushViewController(nicknameEdit.vc, animated: true)
         }
         
@@ -166,4 +168,3 @@ extension ProfileCoordinator: UIImagePickerControllerDelegate & UINavigationCont
         picker.dismiss(animated: true)
     }
 }
-

@@ -12,14 +12,16 @@ import Core
 import RxSwift
 import RxCocoa
 import Domain
+import DSKit
 
-final class ProfileViewController: UIViewController, PopableViewController {
+final class ProfileViewController: UIViewController, RefreshableViewController {
     var onPop: (() -> Void)?
-    
+
     let disposeBag = DisposeBag()
     private let customView: ProfileView
     let viewModel: ProfileViewModel
     var onDisappear: (() -> Void)?
+    private let reloadRelay = PublishRelay<Void>()
     
     private lazy var settingButton = UIBarButtonItem(
         image: UIImage(systemName: "gearshape.fill"),
@@ -44,7 +46,11 @@ final class ProfileViewController: UIViewController, PopableViewController {
         setupDelegate()
         bindViewModel()
     }
-    
+
+    func refresh() {
+        reloadRelay.accept(())
+    }
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
 
@@ -62,7 +68,6 @@ final class ProfileViewController: UIViewController, PopableViewController {
     // MARK: - setupNavigation
     private func setupNavigation() {
         navigationItem.rightBarButtonItem = settingButton
-        navigationItem.backButtonTitle = "프로필"
     }
     
     required init?(coder: NSCoder) {
@@ -70,7 +75,6 @@ final class ProfileViewController: UIViewController, PopableViewController {
     }
     
     private func bindViewModel() {
-        
         let onProfileImageTapped = customView.profileImageView.rx
             .tap
             .asObservable()
@@ -97,12 +101,12 @@ final class ProfileViewController: UIViewController, PopableViewController {
             .tap
             .asObservable()
         
-        let reload = NotificationCenter.default.rx
-            .notification(.homeCommentDidChange)
-            .do(onNext: { _ in
-                Logger.d("Notification: 이벤트 받음")
-            })
-            .mapToVoid()
+        // let reload = NotificationCenter.default.rx
+        //     .observe(AppNotification.Home.commentDidChange)
+        //     .do(onNext: { _ in
+        //         Logger.d("Notification: 이벤트 받음")
+        //     })
+        //     .mapToVoid()
         
         let viewWillAppear = rx
             .methodInvoked(#selector(UIViewController.viewWillAppear(_:)))
@@ -113,7 +117,7 @@ final class ProfileViewController: UIViewController, PopableViewController {
                                            onNicknameEditButtonTapped: onNicknameEditButtonTapped,
                                            onSettingButtonTapped: onSettingButtonTapped,
                                            onImageTapped: onImageTapped,
-                                           reload: reload,
+                                           reload: reloadRelay.asObservable(),
                                            vcReloadTrigger: viewWillAppear)
         let output = viewModel.transform(input: input)
         
@@ -246,6 +250,3 @@ private func setupUI() {
     ])
 }
  */
-
-
-

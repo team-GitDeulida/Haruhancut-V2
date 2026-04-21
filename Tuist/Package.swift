@@ -137,7 +137,7 @@ let package = Package(
 
         .package(
             url: "https://github.com/indextrown/CarbonListKit", 
-            from: "1.0.3"
+            from: "1.0.9"
         ),
 
         .package(

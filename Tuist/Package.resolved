@@ -1,5 +1,5 @@
 {
-  "originHash" : "bc964d24c9f9e2b51bf7bdaec51e6e24358bc08f8270007f7b49d079c167f4d6",
+  "originHash" : "500e8a6865fac81b11b515130e7fcdd9dca4278df7d05a999785e3159af0b29c",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/indextrown/CarbonListKit",
       "state" : {
-        "revision" : "be352e68153abc0fc72b69e2c4d34d7dbe7d5b03",
-        "version" : "1.0.3"
+        "revision" : "49d430f7eec9def26b617e455a3eb0535b9441e4",
+        "version" : "1.0.9"
       }
     },
     {

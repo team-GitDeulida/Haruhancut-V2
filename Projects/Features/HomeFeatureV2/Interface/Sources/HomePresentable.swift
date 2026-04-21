@@ -14,7 +14,7 @@ public enum CameraSource {
     case album
 }
 
-public protocol HomeRouteTrigger {
+public protocol HomeRouteTrigger: AnyObject {
     var onImageTapped: ((Post) -> Void)? { get set }
     var onMemberTapped: (() -> Void)? { get set }
     var onProfileTapped: (() -> Void)? { get set }
@@ -22,5 +22,5 @@ public protocol HomeRouteTrigger {
     var onCalendarImageTapped: (([Post], Date) -> Void)? { get set }
 }
 
-public typealias HomeReactorType = HomeRouteTrigger
-public typealias HomePresentable = (vc: UIViewController, reactor: any HomeReactorType)
+//public typealias HomeReactorType = HomeRouteTrigger
+public typealias HomePresentable = (UIViewController)

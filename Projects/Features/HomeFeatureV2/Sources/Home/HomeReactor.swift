@@ -11,7 +11,7 @@ import Domain
 import Data
 import Foundation
 
-final class HomeReactor: Reactor, HomeReactorType {
+final class HomeReactor: Reactor {
     var onImageTapped: ((Domain.Post) -> Void)?
     var onMemberTapped: (() -> Void)?
     var onProfileTapped: (() -> Void)?

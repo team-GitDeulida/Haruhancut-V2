@@ -11,7 +11,7 @@ import Core
 import Domain
 
 public protocol ProfileFeatureBuildable {
-    func makeProfile() -> ProfilePresentable
+    func makeProfile(onPop: (() -> Void)?) -> ProfilePresentable
     func makeSetting() -> SettingPresentable
     func makeNicknameEdit() -> NicknameEditPresentable
 }
@@ -21,7 +21,7 @@ public final class ProfileFeatureBuilder {
 }
 
 extension ProfileFeatureBuilder: ProfileFeatureBuildable {
-    public func makeProfile() -> ProfilePresentable {
+    public func makeProfile(onPop: (() -> Void)? = nil) -> ProfilePresentable {
         @Dependency var userSession: UserSession
         @Dependency var authUsecase: AuthUsecaseProtocol
         @Dependency var gropUsecase: GroupUsecaseProtocol
@@ -29,6 +29,7 @@ extension ProfileFeatureBuilder: ProfileFeatureBuildable {
                                   authUsecase: authUsecase,
                                   groupUsecase: gropUsecase)
         let vc = ProfileViewController(viewModel: vm)
+        vc.onPop = onPop
         return (vc, vm)
     }
     

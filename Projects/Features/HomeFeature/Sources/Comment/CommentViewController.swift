@@ -18,6 +18,8 @@ final class CommentViewController: UIViewController {
     private let customView: CommentView
     private let commentViewModel: CommentViewModel
     private let deleteRelay = PublishRelay<String>()
+    var onDismiss: (() -> Void)?
+    private var didNotifyDismiss = false
     
     init(commentViewModel: CommentViewModel) {
         self.customView = CommentView(post: commentViewModel.currentPost)
@@ -33,6 +35,16 @@ final class CommentViewController: UIViewController {
         super.viewDidLoad()
         configureSheet()
         bindViewModel()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+
+        guard !didNotifyDismiss,
+              isBeingDismissed || isMovingFromParent else { return }
+
+        didNotifyDismiss = true
+        onDismiss?()
     }
     
     required init?(coder: NSCoder) {
@@ -76,8 +88,8 @@ final class CommentViewController: UIViewController {
                     owner.customView.chattingView.clearInput()
                     
                     // Notification
-                    Logger.d("Notification: 댓글 추가 이벤트 방출")
-                    owner.sendNoti(action: .add)
+                    // Logger.d("Notification: 댓글 추가 이벤트 방출")
+                    // owner.sendNoti(AppNotification.Home.commentDidChange, action: .add)
                 } else {
                     // AlertManager.showError(on: owner, message: "댓글 작성 실패")
                 }
@@ -89,8 +101,8 @@ final class CommentViewController: UIViewController {
             .drive(with: self) { owner, success in
                 if success {
                     // Notification
-                    Logger.d("Notification: 댓글 삭제 이벤트 방출")
-                    owner.sendNoti(action: .delete)
+                    // Logger.d("Notification: 댓글 삭제 이벤트 방출")
+                    // owner.sendNoti(AppNotification.Home.commentDidChange, action: .delete)
                 } else {
                     // AlertManager.showError(on: owner, message: "댓글 삭제 실패")
                 }

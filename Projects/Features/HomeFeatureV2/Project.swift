@@ -61,8 +61,9 @@ let project = Project(
                 ],
             ]),
             sources: ["Demo/**"],
-            resources: [],
+            resources: ["Demo/Resources/**"],
             dependencies: [
+                .project(target: "Coordinator", path: "../../Coordinator"),
                 .target(name: "HomeFeatureV2Interface"),
                 .target(name: "HomeFeatureV2"),
                 .target(name: "HomeFeatureV2Testing")

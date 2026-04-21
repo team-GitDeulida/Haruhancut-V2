@@ -10,7 +10,6 @@ import RxCocoa
 import ImageFeatureInterface
 
 final class ImageUploadViewController: UploadViewControllerType {
-    var onPop: (() -> Void)?
     
     private let customView: ImageUploadView
     private let disposeBag = DisposeBag()
