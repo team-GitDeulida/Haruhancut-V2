@@ -24,7 +24,7 @@ let project = Project(
         .target(
             name: "ImageFeatureInterface",
             destinations: .iOS,
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.Haruhancut.imagefeature.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],
@@ -111,5 +111,4 @@ let project = Project(
         // ),
     ]
 )
-
 

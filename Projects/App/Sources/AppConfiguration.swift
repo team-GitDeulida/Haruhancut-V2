@@ -43,6 +43,12 @@ enum AppConfiguration {
             .font: UIFont.systemFont(ofSize: 34, weight: .bold)
         ]
 
+        let navigationBarAppearance = UINavigationBar.appearance()
+        navigationBarAppearance.tintColor = .mainWhite
+        navigationBarAppearance.standardAppearance = appearance
+        navigationBarAppearance.scrollEdgeAppearance = appearance
+        navigationBarAppearance.compactAppearance = appearance
+
         if #unavailable(iOS 26.0) {
             appearance.buttonAppearance.normal.titleTextAttributes = [
                 .foregroundColor: UIColor.mainWhite
@@ -53,12 +59,6 @@ enum AppConfiguration {
             appearance.backButtonAppearance.normal.titleTextAttributes = [
                 .foregroundColor: UIColor.mainWhite
             ]
-
-            let navigationBarAppearance = UINavigationBar.appearance()
-            navigationBarAppearance.tintColor = .mainWhite
-            navigationBarAppearance.standardAppearance = appearance
-            navigationBarAppearance.scrollEdgeAppearance = appearance
-            navigationBarAppearance.compactAppearance = appearance
         }
     }
 }

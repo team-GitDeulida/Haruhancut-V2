@@ -26,7 +26,7 @@ let project = Project(
         .target(
             name: "HomeFeatureV2Interface",
             destinations: .iOS,
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.Haruhancut.homefeaturev2.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],

@@ -9,7 +9,6 @@ import UIKit
 import HomeFeatureV2
 import HomeFeatureV2Interface
 import ImageFeature
-import HomeFeature
 import Domain
 import Core
 
@@ -55,7 +54,7 @@ public final class HomeV2Coordinator: NSObject, Coordinator, HomeRouteTrigger {
 
 private extension HomeV2Coordinator {
     func showFeedDetail(_ post: Post) {
-        let builder = FeedDetailBuilder()
+        let builder = HomeFeatureV2.FeedDetailBuilder()
         var feedDetail = builder.makeFeed(post: post)
 
         feedDetail.vm.onCommentTapped = { [weak self] post in
@@ -73,7 +72,7 @@ private extension HomeV2Coordinator {
 
     func presentFeedComment(
         post: Post,
-        builder: FeedDetailBuilder,
+        builder: HomeFeatureV2.FeedDetailBuilder,
         presentingViewController: UIViewController & RefreshableViewController
     ) {
         let commentVC = builder.makeComment(post: post, onDismiss: {
@@ -98,7 +97,7 @@ private extension HomeV2Coordinator {
     }
 
     func showCalendarDetail(posts: [Post], selectedDate: Date) {
-        let builder = CalendarDetailBuilder()
+        let builder = HomeFeatureV2.CalendarDetailBuilder()
         var calendarDetail = builder.makeCalendarDetail(posts: posts,
                                                         selectedDate: selectedDate)
 
@@ -118,7 +117,7 @@ private extension HomeV2Coordinator {
 
     func presentCalendarComment(
         post: Post,
-        builder: CalendarDetailBuilder,
+        builder: HomeFeatureV2.CalendarDetailBuilder,
         presentingViewController: UIViewController & RefreshableViewController
     ) {
         let comment = builder.makeComment(post: post, onDismiss: {
@@ -171,7 +170,7 @@ private extension HomeV2Coordinator {
     }
 
     @objc func didTapProfile() {
-        let profileCoordinator = ProfileCoordinator(navigationController: navigationController)
+        let profileCoordinator = ProfileCoordinatorV2(navigationController: navigationController)
         profileCoordinator.parentCoordinator = self
         childCoordinators.append(profileCoordinator)
         profileCoordinator.start()

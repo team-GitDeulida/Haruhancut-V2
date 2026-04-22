@@ -1,18 +1,18 @@
 //
-//  ProfileCoordinator.swift
+//  ProfileCoordinatorV2.swift
 //  Coordinator
 //
-//  Created by 김동현 on 2/9/26.
+//  Created by 김동현 on 4/22/26.
 //
 
 import Domain
 import ProfileFeature
 import UIKit
+import HomeFeatureV2
 import ImageFeature
 import Core
-import HomeFeatureV2
 
-public final class ProfileCoordinator: NSObject, Coordinator {
+public final class ProfileCoordinatorV2: NSObject, Coordinator {
     
     public var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
@@ -34,7 +34,6 @@ public final class ProfileCoordinator: NSObject, Coordinator {
         profileViewController = profile.vc
         navigationController.delegate = self
         
-        // 프로필 미리보기
         profile.vm.onProfileImageTapped = { [weak self] imageURL in
             guard let self = self else { return }
             let previewCoordinator = ImagePreviewCoordinator(presentingViewController: self.navigationController,
@@ -44,22 +43,19 @@ public final class ProfileCoordinator: NSObject, Coordinator {
             previewCoordinator.start()
         }
         
-        // 프로필 수정
         profile.vm.onProfileImageEditButtonTapped = { [weak self] completion in
             guard let self = self else { return }
             profilePresentImagePicker(completion: completion)
         }
         
-        // 게시글 터치
         profile.vm.onImageTapped = { [weak self] post in
             guard let self = self else { return }
-            let builder = FeedDetailBuilder()
+            let builder = HomeFeatureV2.FeedDetailBuilder()
             var feedDetail = builder.makeFeed(post: post)
             let feedDetailViewController = feedDetail.vc
             profileViewController?.navigationItem.backButtonDisplayMode = .minimal
             self.navigationController.pushViewController(feedDetail.vc, animated: true)
             
-            // 댓글
             feedDetail.vm.onCommentTapped = { [weak self] post in
                 guard let self = self else { return }
                 
@@ -70,7 +66,6 @@ public final class ProfileCoordinator: NSObject, Coordinator {
                 self.navigationController.present(commentVC, animated: true)
             }
             
-            // 이미지 프리뷰
             feedDetail.vm.onImagePreviewTapped = { [weak self] imageURL in
                 guard let self = self else { return }
                 
@@ -84,38 +79,32 @@ public final class ProfileCoordinator: NSObject, Coordinator {
             }
         }
         
-        // 설정 버튼
         profile.vm.onSettingButtonTapped = { [weak self] in
             guard let self = self else { return }
             let setting = builder.makeSetting()
             
-            // 모든 설정 세팅 끝난 후 push
             profileViewController?.navigationItem.backButtonDisplayMode = .default
             self.navigationController.pushViewController(setting.vc, animated: true)
         }
         
-        // 닉네임 편집 버튼
         profile.vm.onNicknameEditButtonTapped = { [weak self] in
             guard let self = self else { return }
             var nicknameEdit = builder.makeNicknameEdit()
             
-            // 닉네임 편집 화면에서 성공 시 뒤로가기
             nicknameEdit.vm.onPopButtonTapped = { [weak self] in
                 guard let self else { return }
                 self.navigationController.popViewController(animated: true)
             }
             
-            // 모든 설정 세팅 끝난 후 push
             profileViewController?.navigationItem.backButtonDisplayMode = .default
             self.navigationController.pushViewController(nicknameEdit.vc, animated: true)
         }
         
-        // 모든 세팅 끝난 후 push
         self.navigationController.pushViewController(profile.vc, animated: true)
     }
 }
 
-extension ProfileCoordinator: UINavigationControllerDelegate {
+extension ProfileCoordinatorV2: UINavigationControllerDelegate {
     public func navigationController(
         _ navigationController: UINavigationController,
         didShow viewController: UIViewController,
@@ -132,10 +121,9 @@ extension ProfileCoordinator: UINavigationControllerDelegate {
     }
 }
 
-extension ProfileCoordinator: UIImagePickerControllerDelegate {
+extension ProfileCoordinatorV2: UIImagePickerControllerDelegate {
     
     func profilePresentImagePicker(completion: @escaping (UIImage) -> Void) {
-        // MARK: - Picker열떄 completion 저장
         imagePickerCompletion = completion
         
         guard UIImagePickerController.isSourceTypeAvailable(.photoLibrary) else {
@@ -147,9 +135,6 @@ extension ProfileCoordinator: UIImagePickerControllerDelegate {
         picker.allowsEditing = false
         picker.delegate = self
         
-        // iPad 대응
-        // - ipad에서 UIImagePicker가 기본적으로 popOver로 뜨기 때문에 popOver 설정이 되어있지 않으면 delegate가 호출되지 않거나
-        // - 빈응이 없는 것 처럼 보일 수 있다
         if let popover = picker.popoverPresentationController {
             popover.sourceView = navigationController.view
             popover.sourceRect = CGRect(
@@ -171,7 +156,6 @@ extension ProfileCoordinator: UIImagePickerControllerDelegate {
             return
         }
 
-        // MARK: - Delegate에서 Completion 호출
         picker.dismiss(animated: true) { [weak self] in
             guard let self = self else { return }
             self.imagePickerCompletion?(image)
