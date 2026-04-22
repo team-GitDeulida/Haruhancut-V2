@@ -52,9 +52,9 @@ public final class ProfileCoordinatorV2: NSObject, Coordinator {
             guard let self = self else { return }
             let builder = HomeFeatureV2.FeedDetailBuilder()
             var feedDetail = builder.makeFeed(post: post)
-            let feedDetailViewController = feedDetail.vc
+            let feedDetailViewController: UIViewController & RefreshableViewController = feedDetail.vc
             profileViewController?.navigationItem.backButtonDisplayMode = .minimal
-            self.navigationController.pushViewController(feedDetail.vc, animated: true)
+            self.navigationController.pushViewController(feedDetailViewController, animated: true)
             
             feedDetail.vm.onCommentTapped = { [weak self] post in
                 guard let self = self else { return }
@@ -62,7 +62,7 @@ public final class ProfileCoordinatorV2: NSObject, Coordinator {
                 let commentVC = builder.makeComment(post: post, onDismiss: { [weak feedDetailViewController] in
                     feedDetailViewController?.refresh()
                 })
-                commentVC.modalPresentationStyle = .pageSheet
+                commentVC.modalPresentationStyle = UIModalPresentationStyle.pageSheet
                 self.navigationController.present(commentVC, animated: true)
             }
             

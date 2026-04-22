@@ -32,6 +32,7 @@ enum AppConfiguration {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .background
+        appearance.shadowColor = .clear
 
         appearance.titleTextAttributes = [
             .foregroundColor: UIColor.mainWhite,

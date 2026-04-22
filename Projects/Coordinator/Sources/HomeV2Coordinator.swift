@@ -56,18 +56,23 @@ private extension HomeV2Coordinator {
     func showFeedDetail(_ post: Post) {
         let builder = HomeFeatureV2.FeedDetailBuilder()
         var feedDetail = builder.makeFeed(post: post)
+        let feedDetailViewController: UIViewController & RefreshableViewController = feedDetail.vc
 
         feedDetail.vm.onCommentTapped = { [weak self] post in
             guard let self = self else { return }
-            self.presentFeedComment(post: post, builder: builder, presentingViewController: feedDetail.vc)
+            self.presentFeedComment(
+                post: post,
+                builder: builder,
+                presentingViewController: feedDetailViewController
+            )
         }
 
         feedDetail.vm.onImagePreviewTapped = { [weak self] imageURL in
             guard let self = self else { return }
-            self.presentFeedImagePreview(imageURL, presentingViewController: feedDetail.vc)
+            self.presentFeedImagePreview(imageURL, presentingViewController: feedDetailViewController)
         }
 
-        navigationController.pushViewController(feedDetail.vc, animated: true)
+        navigationController.pushViewController(feedDetailViewController, animated: true)
     }
 
     func presentFeedComment(
@@ -100,19 +105,24 @@ private extension HomeV2Coordinator {
         let builder = HomeFeatureV2.CalendarDetailBuilder()
         var calendarDetail = builder.makeCalendarDetail(posts: posts,
                                                         selectedDate: selectedDate)
+        let calendarDetailViewController: UIViewController & RefreshableViewController = calendarDetail.vc
 
         calendarDetail.vm.onCommentTapped = { [weak self] post in
             guard let self = self else { return }
-            self.presentCalendarComment(post: post, builder: builder, presentingViewController: calendarDetail.vc)
+            self.presentCalendarComment(
+                post: post,
+                builder: builder,
+                presentingViewController: calendarDetailViewController
+            )
         }
 
         calendarDetail.vm.onImagePreviewTapped = { [weak self] imageURL in
             guard let self = self else { return }
-            self.presentCalendarImagePreview(imageURL, presentingViewController: calendarDetail.vc)
+            self.presentCalendarImagePreview(imageURL, presentingViewController: calendarDetailViewController)
         }
 
-        calendarDetail.vc.modalPresentationStyle = .fullScreen
-        navigationController.present(calendarDetail.vc, animated: true)
+        calendarDetailViewController.modalPresentationStyle = UIModalPresentationStyle.fullScreen
+        navigationController.present(calendarDetailViewController, animated: true)
     }
 
     func presentCalendarComment(
@@ -177,6 +187,11 @@ private extension HomeV2Coordinator {
     }
 
     func homePresentImagePicker() {
+        if ProcessInfo.processInfo.arguments.contains("-UITest") {
+            presentImageUpload(Self.makeUITestImage())
+            return
+        }
+
         guard UIImagePickerController.isSourceTypeAvailable(.photoLibrary) else {
             return
         }
@@ -230,5 +245,13 @@ private extension HomeV2Coordinator {
         }
 
         navigationController.pushViewController(upload.vc, animated: true)
+    }
+
+    static func makeUITestImage() -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 120))
+        return renderer.image { context in
+            UIColor.mainWhite.setFill()
+            context.fill(CGRect(origin: .zero, size: CGSize(width: 120, height: 120)))
+        }
     }
 }

@@ -20,6 +20,7 @@ final class FeedView: UIView {
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .background
         collectionView.showsVerticalScrollIndicator = false
+        collectionView.accessibilityIdentifier = UITestID.Feed.collectionView
         return collectionView
     }()
 
@@ -31,6 +32,7 @@ final class FeedView: UIView {
         button.tintColor = .mainWhite
         button.setPreferredSymbolConfiguration(UIImage.SymbolConfiguration(pointSize: 70.scaled), forImageIn: .normal)
         button.imageView?.contentMode = .scaleAspectFit
+        button.uiTestID(UITestID.Feed.cameraButton)
         return button
     }()
 
