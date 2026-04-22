@@ -116,8 +116,8 @@ final class FeedViewController: UIViewController, View {
                         rotationDuration: 0.8
                     )
                 ))
-            ) {
-                self.reactor?.action.onNext(.refresh)
+            ) { [weak self] in
+                self?.reactor?.action.onNext(.refresh)
                 try? await Task.sleep(for: .seconds(1))
             },
             updateStrategy: .animated

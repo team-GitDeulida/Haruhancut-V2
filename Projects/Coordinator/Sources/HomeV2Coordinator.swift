@@ -59,11 +59,13 @@ private extension HomeV2Coordinator {
         var feedDetail = builder.makeFeed(post: post)
 
         feedDetail.vm.onCommentTapped = { [weak self] post in
-            self?.presentFeedComment(post: post, builder: builder, presentingViewController: feedDetail.vc)
+            guard let self = self else { return }
+            self.presentFeedComment(post: post, builder: builder, presentingViewController: feedDetail.vc)
         }
 
         feedDetail.vm.onImagePreviewTapped = { [weak self] imageURL in
-            self?.presentFeedImagePreview(imageURL, presentingViewController: feedDetail.vc)
+            guard let self = self else { return }
+            self.presentFeedImagePreview(imageURL, presentingViewController: feedDetail.vc)
         }
 
         navigationController.pushViewController(feedDetail.vc, animated: true)
@@ -101,11 +103,13 @@ private extension HomeV2Coordinator {
                                                         selectedDate: selectedDate)
 
         calendarDetail.vm.onCommentTapped = { [weak self] post in
-            self?.presentCalendarComment(post: post, builder: builder, presentingViewController: calendarDetail.vc)
+            guard let self = self else { return }
+            self.presentCalendarComment(post: post, builder: builder, presentingViewController: calendarDetail.vc)
         }
 
         calendarDetail.vm.onImagePreviewTapped = { [weak self] imageURL in
-            self?.presentCalendarImagePreview(imageURL, presentingViewController: calendarDetail.vc)
+            guard let self = self else { return }
+            self.presentCalendarImagePreview(imageURL, presentingViewController: calendarDetail.vc)
         }
 
         calendarDetail.vc.modalPresentationStyle = .fullScreen

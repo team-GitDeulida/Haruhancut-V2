@@ -66,7 +66,7 @@ let project = Project(
                 .project(target: "Coordinator", path: "../../Coordinator"),
                 .target(name: "HomeFeatureV2Interface"),
                 .target(name: "HomeFeatureV2"),
-                .target(name: "HomeFeatureV2Testing")
+                // .target(name: "HomeFeatureV2Testing")
             ],
             settings: .settings(
                 configurations: [
@@ -93,22 +93,22 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "HomeFeatureV2"),
-                .target(name: "HomeFeatureV2Testing")
+                // .target(name: "HomeFeatureV2Testing")
             ]
         ),
 
         // MARK: - Module Testing
-        .target(
-            name: "HomeFeatureV2Testing",
-            destinations: .iOS,
-            product: .framework,
-            bundleId: "com.indextrown.Haruhancut.homefeaturev2.testing",
-            deploymentTargets: .iOS("17.0"),
-            sources: ["Testing/Sources/**"],
-            resources: [],
-            dependencies: [
-                .target(name: "HomeFeatureV2Interface")
-            ]
-        ),
+        // .target(
+        //     name: "HomeFeatureV2Testing",
+        //     destinations: .iOS,
+        //     product: .framework,
+        //     bundleId: "com.indextrown.Haruhancut.homefeaturev2.testing",
+        //     deploymentTargets: .iOS("17.0"),
+        //     sources: ["Testing/Sources/**"],
+        //     resources: [],
+        //     dependencies: [
+        //         .target(name: "HomeFeatureV2Interface")
+        //     ]
+        // ),
     ]
 )

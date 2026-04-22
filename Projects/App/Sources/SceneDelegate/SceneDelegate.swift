@@ -22,6 +22,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         // 이미지 캐싱
         AppConfiguration.configureImageCache()
+        AppConfiguration.configureNavigationBarAppearance()
         
         // 1. scene 캡처
         guard let windowScene = (scene as? UIWindowScene) else { return }
@@ -89,4 +90,3 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // to restore the scene back to its current state.
     }
 }
-

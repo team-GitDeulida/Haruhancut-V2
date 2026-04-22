@@ -15,20 +15,21 @@ import Domain
 import DSKit
 
 final class ProfileViewController: UIViewController, RefreshableViewController {
-    var onPop: (() -> Void)?
-
     let disposeBag = DisposeBag()
     private let customView: ProfileView
     let viewModel: ProfileViewModel
-    var onDisappear: (() -> Void)?
     private let reloadRelay = PublishRelay<Void>()
     
-    private lazy var settingButton = UIBarButtonItem(
-        image: UIImage(systemName: "gearshape.fill"),
-        style: .plain,
-        target: nil,
-        action: nil
-    )
+    private lazy var settingButton: UIBarButtonItem = {
+        let item = UIBarButtonItem(
+            image: UIImage(systemName: "gearshape.fill"),
+            style: .plain,
+            target: nil,
+            action: nil
+        )
+        item.tintColor = .mainWhite
+        return item
+    }()
     
     init(viewModel: ProfileViewModel) {
         self.customView = ProfileView()
@@ -49,14 +50,6 @@ final class ProfileViewController: UIViewController, RefreshableViewController {
 
     func refresh() {
         reloadRelay.accept(())
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-
-        if isMovingFromParent {
-            onPop?()
-        }
     }
     
     // MARK: - Delegate

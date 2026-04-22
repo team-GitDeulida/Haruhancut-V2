@@ -74,7 +74,7 @@ public final class AppCoordinator: Coordinator {
                 // 1. 모든 자식 코디네이터 제거
                 self.childCoordinators.removeAll()
                 
-                // 2.. 네비게이션 스택 초기화
+                // 2. 네비게이션 스택 초기화
                 self.navigationController.setViewControllers([], animated: false)
                 
                 // 새 AuthCoordinator 생성
@@ -96,12 +96,12 @@ public final class AppCoordinator: Coordinator {
         // 1. AuthCoordinator 제거
         childCoordinators.removeAll { $0 is AuthCoordinator }
         
-        // 2. HomeCoordinator 중복 방지
+        // 2. HomeV2Coordinator 중복 방지
         if childCoordinators.contains(where: { $0 is HomeV2Coordinator }) {
             return
         }
         
-        // 3 HomeCoordinator 시작
+        // 3. HomeV2Coordinator 시작
         let homeCoordinator = HomeV2Coordinator(navigationController: navigationController)
         homeCoordinator.parentCoordinator = self
         childCoordinators.append(homeCoordinator)

@@ -6,6 +6,7 @@
 
 - `Projects/Shared/DSKit/Resources/Localizing/en.lproj/Localizable.strings`
 - `Projects/Shared/DSKit/Resources/Localizing/ko.lproj/Localizable.strings`
+- `Projects/Shared/DSKit/Resources/Localizing/ja.lproj/Localizable.strings`
 - `Projects/Shared/DSKit/Sources/Extensions+/LocalizationKey.swift`
 
 현재 프로젝트는 문자열 키에 직접 `.localized()`를 붙여 사용할 수도 있고, 생성된 `LocalizationKey` enum을 통해 타입 안전하게 접근할 수도 있습니다.
@@ -15,13 +16,13 @@
 `localizable.csv`는 아래 형식을 따릅니다.
 
 ```csv
-key,en,ko
+key,en,ko,ja
 common.next,Next,다음
 auth.signin.apple,Continue with Apple,Apple로 계속하기
 ```
 
 - `key`: 로컬라이제이션 키
-- `en`, `ko`: 각 언어 번역값
+- `en`, `ko`, `ja`: 각 언어 번역값
 
 주의:
 
@@ -58,6 +59,6 @@ python3 localization.py
 # 동작 방식
 
 1. `Python/localizable.csv`를 읽습니다.
-2. `Projects/Shared/DSKit/Resources/Localizing` 아래의 `en.lproj`, `ko.lproj`에 `Localizable.strings`를 생성합니다.
+2. `Projects/Shared/DSKit/Resources/Localizing` 아래의 `en.lproj`, `ko.lproj`, `ja.lproj`에 `Localizable.strings`를 생성합니다.
 3. `Projects/Shared/DSKit/Sources/Extensions+/LocalizationKey.swift`를 생성합니다.
 4. 기존 `.strings` 파일 상단의 주석 블록은 유지하고, 본문 번역 항목만 CSV 기준으로 갱신합니다.

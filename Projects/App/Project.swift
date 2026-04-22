@@ -56,7 +56,7 @@ let releaseSettings: SettingsDictionary = [
 let project = Project(
     name: "App",
     options: .options(
-        defaultKnownRegions: ["en", "ko"],
+        defaultKnownRegions: ["en", "ko", "ja"],
         developmentRegion: "ko"
     ),
     targets: [
