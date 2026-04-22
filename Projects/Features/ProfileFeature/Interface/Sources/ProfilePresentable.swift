@@ -21,6 +21,6 @@ public protocol ProfileRouteTrigger {
 }
 
 public typealias ProfileViewModelType = ViewModelType & ProfileRouteTrigger
-public typealias ProfileViewControllerType = UIViewController & PopableViewController
+public typealias ProfileViewControllerType = UIViewController
 
 public typealias ProfilePresentable = (vc: ProfileViewControllerType, vm: any ProfileViewModelType)

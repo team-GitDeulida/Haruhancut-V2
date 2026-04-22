@@ -82,6 +82,7 @@ final class HomeViewController: UIViewController {
             style: .plain,
             target: nil,
             action: nil)
+        self.navigationItem.leftBarButtonItem?.tintColor = .mainWhite
         
         /// 우측 네비게이션 버튼
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(
@@ -89,10 +90,12 @@ final class HomeViewController: UIViewController {
             style: .plain,
             target: nil,
             action: nil)
+        self.navigationItem.rightBarButtonItem?.tintColor = .mainWhite
         
         /// 자식 화면에서 뒤로가기
         let backItem = UIBarButtonItem()
         backItem.title = LocalizationKey.homeNavigationBack.localized
+        backItem.tintColor = .mainWhite
         navigationItem.backBarButtonItem = backItem
     }
     

@@ -6,6 +6,7 @@
 //
 
 import Kingfisher
+import UIKit
 
 enum AppConfiguration {
 
@@ -25,6 +26,41 @@ enum AppConfiguration {
         // 디스크 캐시 만료 시간 (예: 7일)
         ImageCache.default.diskStorage.config.expiration =
         .days(7)
+    }
+
+    static func configureNavigationBarAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .background
+        appearance.shadowColor = .clear
+
+        appearance.titleTextAttributes = [
+            .foregroundColor: UIColor.mainWhite,
+            .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
+        ]
+
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor.mainWhite,
+            .font: UIFont.systemFont(ofSize: 34, weight: .bold)
+        ]
+
+        let navigationBarAppearance = UINavigationBar.appearance()
+        navigationBarAppearance.tintColor = .mainWhite
+        navigationBarAppearance.standardAppearance = appearance
+        navigationBarAppearance.scrollEdgeAppearance = appearance
+        navigationBarAppearance.compactAppearance = appearance
+
+        if #unavailable(iOS 26.0) {
+            appearance.buttonAppearance.normal.titleTextAttributes = [
+                .foregroundColor: UIColor.mainWhite
+            ]
+            appearance.doneButtonAppearance.normal.titleTextAttributes = [
+                .foregroundColor: UIColor.mainWhite
+            ]
+            appearance.backButtonAppearance.normal.titleTextAttributes = [
+                .foregroundColor: UIColor.mainWhite
+            ]
+        }
     }
 }
 

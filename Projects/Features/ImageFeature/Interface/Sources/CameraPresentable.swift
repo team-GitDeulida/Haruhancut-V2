@@ -13,6 +13,5 @@ public protocol CameraTrigger {
 }
 
 public typealias CameraViewModelType = ViewModelType & CameraTrigger
-public typealias CameraViewControllerType = UIViewController & PopableViewController
+public typealias CameraViewControllerType = UIViewController
 public typealias CameraPresentable = (vc: CameraViewControllerType, vm: any CameraViewModelType)
-

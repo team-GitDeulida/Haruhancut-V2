@@ -76,7 +76,9 @@ public final class HomeCoordinator: NSObject, Coordinator  {
             feedDetail.vm.onCommentTapped = { [weak self] post in
                 guard let self = self else { return }
                 
-                let commentVC = builder.makeComment(post: post)
+                let commentVC = builder.makeComment(post: post, onDismiss: {
+                    feedDetail.vc.refresh()
+                })
                 commentVC.modalPresentationStyle = .pageSheet
                 self.navigationController.present(commentVC, animated: true)
             }
@@ -107,9 +109,11 @@ public final class HomeCoordinator: NSObject, Coordinator  {
             calendarDetail.vm.onCommentTapped = { [weak self] post in
                 guard let self = self else { return }
                 
-                let comment = builder.makeComment(post: post)
-                comment.vc.modalPresentationStyle = .pageSheet
-                calendarDetail.vc.present(comment.vc, animated: true)
+                let comment = builder.makeComment(post: post, onDismiss: {
+                    calendarDetail.vc.refresh()
+                })
+                comment.modalPresentationStyle = .pageSheet
+                calendarDetail.vc.present(comment, animated: true)
             }
             
             // CalendarDetail 프리뷰

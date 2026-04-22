@@ -13,7 +13,7 @@ import HomeFeatureInterface
 
 public protocol CalendarDetailBuildable {
     func makeCalendarDetail(posts: [Post], selectedDate: Date) -> CalendarDetailPresentable
-    func makeComment(post: Post) -> (vc: UIViewController, vm: AnyObject)
+    func makeComment(post: Post, onDismiss: (() -> Void)?) -> UIViewController
 }
 
 public final class CalendarDetailBuilder {
@@ -32,11 +32,12 @@ extension CalendarDetailBuilder: CalendarDetailBuildable {
         return (vc, vm)
     }
     
-    public func makeComment(post: Domain.Post) -> (vc: UIViewController, vm: AnyObject) {
+    public func makeComment(post: Domain.Post, onDismiss: (() -> Void)? = nil) -> UIViewController {
         @Dependency var groupUsecase: GroupUsecaseProtocol
         let vm = CommentViewModel(groupUsecase: groupUsecase, post: post)
         let vc = CommentViewController(commentViewModel: vm)
-        return (vc, vm)
+        vc.onDismiss = onDismiss
+        return vc
     }
     
 }

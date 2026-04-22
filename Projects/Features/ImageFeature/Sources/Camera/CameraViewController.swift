@@ -14,7 +14,6 @@ import DSKit
 import ImageFeatureInterface
 
 final class CameraViewController: CameraViewControllerType {
-    var onPop: (() -> Void)?
     private let cameraViewModel: CameraViewModel
     
     // MARK: - Camera

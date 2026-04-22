@@ -11,13 +11,15 @@ import RxSwift
 import Domain
 import RxCocoa
 import Core
+import DSKit
 
-final class CalendarDetailViewController: UIViewController {
+final class CalendarDetailViewController: UIViewController, RefreshableViewController {
     
     private let disposeBag = DisposeBag()
     private let viewModel: CalendarDetailViewModel
     private let customView: CalendarDetailView
     private let currentRelay = BehaviorRelay<Int>(value: 0)
+    private let reloadRelay = PublishRelay<Void>() // dismiss시 새로고침
     
     init(viewModel: CalendarDetailViewModel) {
         self.viewModel = viewModel
@@ -40,6 +42,10 @@ final class CalendarDetailViewController: UIViewController {
         setDelegate()
         bindViewModel()
     }
+
+    func refresh() {
+        reloadRelay.accept(())
+    }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
@@ -53,14 +59,18 @@ final class CalendarDetailViewController: UIViewController {
     }
     
     private func bindViewModel() {
+        let viewDidAppear = rx
+            .methodInvoked(#selector(UIViewController.viewDidAppear(_:)))
+            .map { _ in }
+        let reload = Observable.merge(viewDidAppear, reloadRelay.asObservable())
         
         // Notification
-        let reload = NotificationCenter.default.rx
-            .notification(.homeCommentDidChange)
-            .do(onNext: { _ in
-                Logger.d("Notification: 이벤트 받음")
-            })
-            .mapToVoid()
+        // let reload = NotificationCenter.default.rx
+        //     .observe(AppNotification.Home.commentDidChange)
+        //     .do(onNext: { _ in
+        //         Logger.d("Notification: 이벤트 받음")
+        //     })
+        //     .mapToVoid()
 
         // 댓글버튼 탭
         let commentTapped = customView.commentButton.rx.tap

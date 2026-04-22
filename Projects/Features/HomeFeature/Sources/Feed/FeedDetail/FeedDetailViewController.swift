@@ -13,13 +13,14 @@ import RxRelay
 import Core
 import RxCocoa
 import Kingfisher
+import DSKit
 
-final class FeedDetailViewController: UIViewController, PopableViewController {
-    
-    var onPop: (() -> Void)?
+final class FeedDetailViewController: UIViewController, RefreshableViewController {
+
     private let disposeBag = DisposeBag()
     private let viewModel: FeedDetailViewModel
     private let customView: FeedDetailView
+    private let reloadRelay = PublishRelay<Void>()
     
     // 이미지 탭 이벤트(UIKit → Rx 브릿지)
     private let imageTapRelay = PublishRelay<UIImage>()
@@ -43,25 +44,25 @@ final class FeedDetailViewController: UIViewController, PopableViewController {
         super.viewDidLoad()
         bindViewModel()
     }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
 
-        if isMovingFromParent {
-            onPop?()
-        }
+    func refresh() {
+        reloadRelay.accept(())
     }
     
     // MARK: - Bindings
     private func bindViewModel() {
+        let viewDidAppear = rx
+            .methodInvoked(#selector(UIViewController.viewDidAppear(_:)))
+            .map { _ in }
+        let reload = Observable.merge(viewDidAppear, reloadRelay.asObservable())
         
         // Notification
-        let reload = NotificationCenter.default.rx
-            .notification(.homeCommentDidChange)
-            .do(onNext: { _ in
-                Logger.d("Notification: 이벤트 받음")
-            })
-            .mapToVoid()
+        // let reload = NotificationCenter.default.rx
+        //     .observe(AppNotification.Home.commentDidChange)
+        //     .do(onNext: { _ in
+        //         Logger.d("Notification: 이벤트 받음")
+        //     })
+        //     .mapToVoid()
 
         let input = FeedDetailViewModel.Input(
             imageTapped: customView.imageView.rx.tap.asObservable(),
@@ -84,4 +85,3 @@ final class FeedDetailViewController: UIViewController, PopableViewController {
             .disposed(by: disposeBag)
     }
 }
-

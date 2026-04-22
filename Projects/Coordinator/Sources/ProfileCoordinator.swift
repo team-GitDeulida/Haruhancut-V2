@@ -8,9 +8,9 @@
 import Domain
 import ProfileFeature
 import UIKit
-import HomeFeature
 import ImageFeature
 import Core
+import HomeFeatureV2
 
 public final class ProfileCoordinator: NSObject, Coordinator {
     
@@ -18,6 +18,7 @@ public final class ProfileCoordinator: NSObject, Coordinator {
     public var childCoordinators: [Coordinator] = []
     
     private let navigationController: UINavigationController
+    private weak var profileViewController: UIViewController?
     
     public init(
         navigationController: UINavigationController
@@ -30,12 +31,8 @@ public final class ProfileCoordinator: NSObject, Coordinator {
     public func start() {
         let builder = ProfileFeatureBuilder()
         var profile = builder.makeProfile()
-        
-        // pop 처리
-        profile.vc.onPop = { [weak self] in
-            guard let self else { return }
-            self.parentCoordinator?.childDidFinish(self)
-        }
+        profileViewController = profile.vc
+        navigationController.delegate = self
         
         // 프로필 미리보기
         profile.vm.onProfileImageTapped = { [weak self] imageURL in
@@ -58,13 +55,17 @@ public final class ProfileCoordinator: NSObject, Coordinator {
             guard let self = self else { return }
             let builder = FeedDetailBuilder()
             var feedDetail = builder.makeFeed(post: post)
+            let feedDetailViewController = feedDetail.vc
+            profileViewController?.navigationItem.backButtonDisplayMode = .minimal
             self.navigationController.pushViewController(feedDetail.vc, animated: true)
             
             // 댓글
             feedDetail.vm.onCommentTapped = { [weak self] post in
                 guard let self = self else { return }
                 
-                let commentVC = builder.makeComment(post: post)
+                let commentVC = builder.makeComment(post: post, onDismiss: { [weak feedDetailViewController] in
+                    feedDetailViewController?.refresh()
+                })
                 commentVC.modalPresentationStyle = .pageSheet
                 self.navigationController.present(commentVC, animated: true)
             }
@@ -89,6 +90,7 @@ public final class ProfileCoordinator: NSObject, Coordinator {
             let setting = builder.makeSetting()
             
             // 모든 설정 세팅 끝난 후 push
+            profileViewController?.navigationItem.backButtonDisplayMode = .default
             self.navigationController.pushViewController(setting.vc, animated: true)
         }
         
@@ -104,6 +106,7 @@ public final class ProfileCoordinator: NSObject, Coordinator {
             }
             
             // 모든 설정 세팅 끝난 후 push
+            profileViewController?.navigationItem.backButtonDisplayMode = .default
             self.navigationController.pushViewController(nicknameEdit.vc, animated: true)
         }
         
@@ -112,7 +115,24 @@ public final class ProfileCoordinator: NSObject, Coordinator {
     }
 }
 
-extension ProfileCoordinator: UIImagePickerControllerDelegate & UINavigationControllerDelegate {
+extension ProfileCoordinator: UINavigationControllerDelegate {
+    public func navigationController(
+        _ navigationController: UINavigationController,
+        didShow viewController: UIViewController,
+        animated: Bool
+    ) {
+        guard let profileViewController,
+              !navigationController.viewControllers.contains(profileViewController) else {
+            return
+        }
+
+        self.profileViewController = nil
+        navigationController.delegate = nil
+        parentCoordinator?.childDidFinish(self)
+    }
+}
+
+extension ProfileCoordinator: UIImagePickerControllerDelegate {
     
     func profilePresentImagePicker(completion: @escaping (UIImage) -> Void) {
         // MARK: - Picker열떄 completion 저장
@@ -166,4 +186,3 @@ extension ProfileCoordinator: UIImagePickerControllerDelegate & UINavigationCont
         picker.dismiss(animated: true)
     }
 }
-

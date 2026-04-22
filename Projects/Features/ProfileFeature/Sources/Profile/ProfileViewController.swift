@@ -12,21 +12,24 @@ import Core
 import RxSwift
 import RxCocoa
 import Domain
+import DSKit
 
-final class ProfileViewController: UIViewController, PopableViewController {
-    var onPop: (() -> Void)?
-    
+final class ProfileViewController: UIViewController, RefreshableViewController {
     let disposeBag = DisposeBag()
     private let customView: ProfileView
     let viewModel: ProfileViewModel
-    var onDisappear: (() -> Void)?
+    private let reloadRelay = PublishRelay<Void>()
     
-    private lazy var settingButton = UIBarButtonItem(
-        image: UIImage(systemName: "gearshape.fill"),
-        style: .plain,
-        target: nil,
-        action: nil
-    )
+    private lazy var settingButton: UIBarButtonItem = {
+        let item = UIBarButtonItem(
+            image: UIImage(systemName: "gearshape.fill"),
+            style: .plain,
+            target: nil,
+            action: nil
+        )
+        item.tintColor = .mainWhite
+        return item
+    }()
     
     init(viewModel: ProfileViewModel) {
         self.customView = ProfileView()
@@ -44,13 +47,9 @@ final class ProfileViewController: UIViewController, PopableViewController {
         setupDelegate()
         bindViewModel()
     }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
 
-        if isMovingFromParent {
-            onPop?()
-        }
+    func refresh() {
+        reloadRelay.accept(())
     }
     
     // MARK: - Delegate
@@ -62,7 +61,6 @@ final class ProfileViewController: UIViewController, PopableViewController {
     // MARK: - setupNavigation
     private func setupNavigation() {
         navigationItem.rightBarButtonItem = settingButton
-        navigationItem.backButtonTitle = "프로필"
     }
     
     required init?(coder: NSCoder) {
@@ -70,7 +68,6 @@ final class ProfileViewController: UIViewController, PopableViewController {
     }
     
     private func bindViewModel() {
-        
         let onProfileImageTapped = customView.profileImageView.rx
             .tap
             .asObservable()
@@ -97,12 +94,12 @@ final class ProfileViewController: UIViewController, PopableViewController {
             .tap
             .asObservable()
         
-        let reload = NotificationCenter.default.rx
-            .notification(.homeCommentDidChange)
-            .do(onNext: { _ in
-                Logger.d("Notification: 이벤트 받음")
-            })
-            .mapToVoid()
+        // let reload = NotificationCenter.default.rx
+        //     .observe(AppNotification.Home.commentDidChange)
+        //     .do(onNext: { _ in
+        //         Logger.d("Notification: 이벤트 받음")
+        //     })
+        //     .mapToVoid()
         
         let viewWillAppear = rx
             .methodInvoked(#selector(UIViewController.viewWillAppear(_:)))
@@ -113,7 +110,7 @@ final class ProfileViewController: UIViewController, PopableViewController {
                                            onNicknameEditButtonTapped: onNicknameEditButtonTapped,
                                            onSettingButtonTapped: onSettingButtonTapped,
                                            onImageTapped: onImageTapped,
-                                           reload: reload,
+                                           reload: reloadRelay.asObservable(),
                                            vcReloadTrigger: viewWillAppear)
         let output = viewModel.transform(input: input)
         
@@ -246,6 +243,3 @@ private func setupUI() {
     ])
 }
  */
-
-
-

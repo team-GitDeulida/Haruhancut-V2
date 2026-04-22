@@ -24,7 +24,7 @@ let project = Project(
         .target(
             name: "AuthFeatureInterface",
             destinations: .iOS,
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.Haruhancut.authfeature.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],
@@ -109,4 +109,3 @@ let project = Project(
         // ),
     ]
 )
-

@@ -68,6 +68,7 @@ import PackageDescription
 
         // productTypes: [:]
 
+        // default is .staticFramework 출처: https://sunrinnote.tistory.com/188
         productTypes: [
             "RxCocoa": .framework,
             "RxCocoaRuntime": .framework,
@@ -136,7 +137,12 @@ let package = Package(
 
         .package(
             url: "https://github.com/indextrown/CarbonListKit", 
-            from: "1.0.3"
+            from: "1.0.9"
+        ),
+
+        .package(
+            url: "https://github.com/ReactorKit/ReactorKit.git", 
+            from: "3.2.0"
         )
     ]
 

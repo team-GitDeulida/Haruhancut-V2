@@ -40,6 +40,7 @@ final class NicknameEditViewController: UIViewController {
     private func setNavigation() {
         let backItem = UIBarButtonItem()
         backItem.title = LocalizationKey.commonBack.localized
+        backItem.tintColor = .mainWhite
         navigationItem.backBarButtonItem = backItem
         navigationController?.navigationBar.tintColor = .mainWhite
     }

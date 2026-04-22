@@ -3,7 +3,7 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
-LANGUAGES = ["en", "ko"]
+LANGUAGES = ["en", "ko", "ja"]
 
 CSV_PATH = SCRIPT_DIR / "localizable.csv"
 LOCALIZING_DIR = PROJECT_ROOT / "Projects" / "Shared" / "DSKit" / "Resources" / "Localizing"

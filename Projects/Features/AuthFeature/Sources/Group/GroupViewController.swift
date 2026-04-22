@@ -18,10 +18,12 @@ final class GroupViewController: UIViewController {
     private let customView = GroupView()
     
     private lazy var backButton: UIBarButtonItem = {
-        UIBarButtonItem(image: UIImage(systemName: "chevron.left"),
-                        style: .plain,
-                        target: nil,
-                        action: nil)
+        let item = UIBarButtonItem(image: UIImage(systemName: "chevron.left"),
+                                   style: .plain,
+                                   target: nil,
+                                   action: nil)
+        item.tintColor = .mainWhite
+        return item
     }()
     
     // MARK: - Initializer
@@ -178,18 +180,27 @@ final class GroupViewController: UIViewController {
             .foregroundColor: UIColor.mainWhite,
             .font: UIFont.systemFont(ofSize: 34, weight: .bold)
         ]
-        
+
+        appearance.buttonAppearance.normal.titleTextAttributes = [
+            .foregroundColor: UIColor.mainWhite
+        ]
+        appearance.doneButtonAppearance.normal.titleTextAttributes = [
+            .foregroundColor: UIColor.mainWhite
+        ]
+        appearance.backButtonAppearance.normal.titleTextAttributes = [
+            .foregroundColor: UIColor.mainWhite
+        ]
+
         // 뒤로가기 버튼 색상 (chevron + 텍스트)
         navigationController?.navigationBar.tintColor = .mainWhite
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+        navigationController?.navigationBar.compactAppearance = appearance
         
         // 적용
         navigationItem.standardAppearance = appearance
         navigationItem.scrollEdgeAppearance = appearance
         navigationItem.compactAppearance = appearance
-        
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-        navigationController?.navigationBar.compactAppearance = appearance
     }
 }
 

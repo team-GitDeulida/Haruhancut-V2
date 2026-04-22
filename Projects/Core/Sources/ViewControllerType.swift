@@ -7,14 +7,6 @@
 
 import Foundation
 
-public protocol PopableViewController: AnyObject {
-    var onPop: (() -> Void)? { get set }
-}
-
-public protocol DismissableViewController: AnyObject {
-    var onDismiss: (() -> Void)? { get set }
-}
-
 public protocol RefreshableViewController: AnyObject {
     func refresh()
 }

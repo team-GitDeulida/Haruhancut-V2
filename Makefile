@@ -1,9 +1,28 @@
 # MicroFeature 모듈 생성
 .PHONY: generate
 
+# ex) make feature 모듈명
 # ex) make feature name=모듈명
+# - positional 인자는 접미사 없이 생성
+# - name= 방식은 기존처럼 Feature 접미사를 유지
+FEATURE_EXTRA_GOALS := $(filter-out feature,$(MAKECMDGOALS))
+FEATURE_NAME := $(firstword $(FEATURE_EXTRA_GOALS))
+
+ifeq ($(filter feature,$(MAKECMDGOALS)),feature)
+ifneq ($(FEATURE_EXTRA_GOALS),)
+$(eval $(FEATURE_EXTRA_GOALS):;@:)
+endif
+endif
+
 feature:
-	@tuist scaffold feature --name ${name}
+	@if [ -n "$(FEATURE_NAME)" ]; then \
+		tuist scaffold feature_nosuffix --name "$(FEATURE_NAME)"; \
+	elif [ -n "$(name)" ]; then \
+		tuist scaffold feature --name "$(name)"; \
+	else \
+		echo "Usage: make feature 모듈명 | make feature name=모듈명"; \
+		exit 1; \
+	fi
 
 # ex) make ui name=모듈명
 ui:

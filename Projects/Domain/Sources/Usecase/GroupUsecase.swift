@@ -186,10 +186,6 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
                     .updateGroup(path: dbPath, post: post)
                     .asObservable()
             }
-            .flatMap { _ in
-                self.loadAndFetchGroup()
-                    .mapToVoid()
-            }
     }
     
     public func deletePostAndReload(post: Post) -> Observable<Void> {

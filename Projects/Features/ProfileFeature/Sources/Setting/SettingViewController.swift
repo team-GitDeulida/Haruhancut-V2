@@ -41,6 +41,7 @@ final class SettingViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupNavigation()
         bind()
     }
     
@@ -136,6 +137,10 @@ final class SettingViewController: UIViewController {
             })
             .disposed(by: disposeBag)
     }
+
+    private func setupNavigation() {
+        navigationController?.navigationBar.tintColor = .mainWhite
+    }
 }
 
 // MARK: - Alert
@@ -161,4 +166,3 @@ extension SettingViewController {
         UIApplication.shared.open(url, options: [:], completionHandler: nil)
     }
 }
-

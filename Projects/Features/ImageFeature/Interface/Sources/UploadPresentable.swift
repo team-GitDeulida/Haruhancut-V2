@@ -13,6 +13,5 @@ public protocol UploadTrigger {
 }
 
 public typealias UploadViewModelType = ViewModelType & UploadTrigger
-public typealias UploadViewControllerType = UIViewController & PopableViewController
+public typealias UploadViewControllerType = UIViewController
 public typealias UploadPresentable = (vc: UploadViewControllerType, vm: any UploadViewModelType)
-

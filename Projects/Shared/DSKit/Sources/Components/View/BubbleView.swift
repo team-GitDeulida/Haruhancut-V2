@@ -24,6 +24,7 @@ public final class BubbleView: UIView {
         didSet {
             textLabel.text = text
             setNeedsDisplay() // 말풍선 다시 그리기 (tip 중앙 유지용)
+            invalidateIntrinsicContentSize()
         }
     }
     
@@ -82,6 +83,17 @@ public final class BubbleView: UIView {
 
         layer.sublayers?.removeAll(where: { $0 is CAShapeLayer })
         layer.insertSublayer(shapeLayer, at: 0)
+    }
+
+    public override var intrinsicContentSize: CGSize {
+        let maxWidth: CGFloat = min(UIScreen.main.bounds.width - 48, 280)
+        let measuredSize = textLabel.sizeThatFits(
+            CGSize(width: maxWidth - 32, height: .greatestFiniteMagnitude)
+        )
+        return CGSize(
+            width: measuredSize.width + 32,
+            height: measuredSize.height + 24 + tipHeight
+        )
     }
     
     private func makeUI() {
