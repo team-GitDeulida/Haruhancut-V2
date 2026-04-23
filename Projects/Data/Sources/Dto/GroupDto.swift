@@ -50,6 +50,12 @@ extension HCGroupDTO {
         postsByDate = postsByDate.merging(
             self.postsByDate?.compactMapValues { dict in
                 dict.compactMap { $0.value.toModel() }
+                    .sorted {
+                        if $0.createdAt == $1.createdAt {
+                            return $0.postId < $1.postId
+                        }
+                        return $0.createdAt < $1.createdAt
+                    }
             } ?? [:],
             uniquingKeysWith: { $1 }
         )
@@ -84,4 +90,3 @@ extension HCGroup {
         )
     }
 }
-

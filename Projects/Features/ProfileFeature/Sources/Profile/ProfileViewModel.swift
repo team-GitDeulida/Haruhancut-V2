@@ -97,6 +97,7 @@ final class ProfileViewModel: ProfileViewModelType {
                     .filter { $0.userId == self.userSession.userId }
                     .sorted { $0.createdAt > $1.createdAt }
             }
+            .distinctUntilChanged()
             .asDriver(onErrorJustReturn: [])
         
         // MARK: - Coordinator

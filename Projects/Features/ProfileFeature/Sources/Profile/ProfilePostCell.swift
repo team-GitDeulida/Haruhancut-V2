@@ -10,11 +10,12 @@ import Domain
 import Kingfisher
 
 public final class ProfilePostCell: UICollectionViewCell {
+    private var currentImageURL: String?
     
     public override func prepareForReuse() {
         super.prepareForReuse()
         imageView.kf.cancelDownloadTask() // 다운로드 취소
-        imageView.image = nil             // 기존 비트맵 이미지 제거
+        currentImageURL = nil
     }
     
     // 이미지 뷰: 셀의 배경 이미지를 보여준다
@@ -47,11 +48,18 @@ public final class ProfilePostCell: UICollectionViewCell {
     
     func configure(post: Post, targetSize: CGSize) {
         guard let url = URL(string: post.imageURL) else { return }
+
+        if currentImageURL == post.imageURL, imageView.image != nil {
+            return
+        }
+
+        currentImageURL = post.imageURL
         
         // let targetSize = contentView.bounds.size
         // let processor = DownsamplingImageProcessor(size: targetSize)
         imageView.kf.setImage(
             with: url,
+            placeholder: imageView.image
 //            options: [
 //                .processor(processor),             // 다운샘플링으로 픽셀 수를 줄임
 //                .backgroundDecode,                 // 디코딩 백그라운드 실행
