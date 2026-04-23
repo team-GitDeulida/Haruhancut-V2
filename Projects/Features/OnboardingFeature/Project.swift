@@ -24,7 +24,7 @@ let project = Project(
         .target(
             name: "OnboardingFeatureInterface",
             destinations: .iOS,
-            product: .staticFramework,
+            product: .framework,
             bundleId: "com.indextrown.Haruhancut.onboardingfeature.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],

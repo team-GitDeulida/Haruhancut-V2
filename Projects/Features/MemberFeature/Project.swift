@@ -24,7 +24,7 @@ let project = Project(
         .target(
             name: "MemberFeatureInterface",
             destinations: .iOS,
-            product: .staticFramework,
+            product: .framework,
             bundleId: "com.indextrown.Haruhancut.memberfeature.interface",
             deploymentTargets: .iOS("17.0"),
             sources: ["Interface/Sources/**"],

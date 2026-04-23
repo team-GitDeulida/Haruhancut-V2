@@ -49,7 +49,7 @@ public final class ProfilePostCell: UICollectionViewCell {
         guard let url = URL(string: post.imageURL) else { return }
         
         // let targetSize = contentView.bounds.size
-        let processor = DownsamplingImageProcessor(size: targetSize)
+        // let processor = DownsamplingImageProcessor(size: targetSize)
         imageView.kf.setImage(
             with: url,
 //            options: [

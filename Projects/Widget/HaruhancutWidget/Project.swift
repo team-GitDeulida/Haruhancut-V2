@@ -25,6 +25,8 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "하루한컷 위젯",
+                "CFBundleShortVersionString": "1.1.0",
+                "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "NSExtension": [
                     "NSExtensionPointIdentifier": "com.apple.widgetkit-extension"
                 ]
