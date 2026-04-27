@@ -45,6 +45,11 @@ final class FeedReactor: Reactor {
             return loadFeed()
         case .refresh:
             return loadFeed()
+            /*
+            Observable.just(())
+                .delay(.seconds(1), scheduler: MainScheduler.instance)
+                .flatMap { self.loadFeed() }
+             */
         case .deleteConfirmed(let post):
             return deletePost(post)
         }

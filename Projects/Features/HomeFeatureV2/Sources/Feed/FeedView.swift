@@ -8,18 +8,16 @@
 import UIKit
 import DSKit
 import Core
+import TurboListKit
 
 final class FeedView: UIView {
+    private let layoutAdapter: CollectionViewLayoutAdapter
 
     lazy var collectionView: UICollectionView = {
-        let layout = UICollectionViewFlowLayout()
-        layout.sectionInset = .init(top: 16, left: 16, bottom: 16, right: 16)
-        layout.minimumInteritemSpacing = 16
-        layout.minimumLineSpacing = 16
-
-        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        let collectionView = UICollectionView(layoutAdapter: layoutAdapter)
         collectionView.backgroundColor = .background
         collectionView.showsVerticalScrollIndicator = false
+        collectionView.alwaysBounceVertical = true
         collectionView.accessibilityIdentifier = UITestID.Feed.collectionView
         return collectionView
     }()
@@ -48,8 +46,9 @@ final class FeedView: UIView {
         return label
     }()
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    init(layoutAdapter: CollectionViewLayoutAdapter) {
+        self.layoutAdapter = layoutAdapter
+        super.init(frame: .zero)
         setupUI()
         setupConstraints()
     }

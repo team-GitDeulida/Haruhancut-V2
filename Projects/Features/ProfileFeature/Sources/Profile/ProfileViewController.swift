@@ -170,12 +170,19 @@ final class ProfileViewController: UIViewController, RefreshableViewController {
 }
 
 extension ProfileViewController: UICollectionViewDelegateFlowLayout {
+    /**
+     ProfilewView에서 아래 코드로 대체
+     let width = (UIScreen.main.bounds.width - 2) / 3
+     layout.itemSize = CGSize(width: width, height: width * 1.5)
+     */
+    /*
     func collectionView(_ collectionView: UICollectionView,
                         layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
         
         return itemSize(for: collectionView)
     }
+     */
 }
 
 

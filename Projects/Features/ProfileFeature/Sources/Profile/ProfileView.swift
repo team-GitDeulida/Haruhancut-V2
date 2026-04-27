@@ -51,6 +51,9 @@ public final class ProfileView: UIView {
         layout.minimumLineSpacing = spacing      // 줄과 줄 사이 세로 간격
         layout.sectionInset = .zero              // 전체 섹션의 여백
         
+        let width = (UIScreen.main.bounds.width - 2) / 3
+        layout.itemSize = CGSize(width: width, height: width * 1.5)
+        
         // .zero: 오토레이아웃
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.register(ProfilePostCell.self, forCellWithReuseIdentifier: ProfilePostCell.reuseIdentifier)

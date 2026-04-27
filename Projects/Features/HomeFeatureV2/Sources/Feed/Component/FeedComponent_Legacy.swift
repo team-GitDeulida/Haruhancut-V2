@@ -11,20 +11,20 @@ import Kingfisher
 import DSKit
 import Domain
 
-struct FeedComponent: ListComponent {
+struct FeedComponent_Legacy: ListComponent {
     typealias Content = Post
-    typealias View = FeedRowView
+    typealias View = FeedRowView_Legacy
     let content: Post
     
     init(post: Post) {
         self.content = post
     }
     
-    func makeView(context: ListComponentContext<Void>) -> FeedRowView {
-        FeedRowView()
+    func makeView(context: ListComponentContext<Void>) -> FeedRowView_Legacy {
+        FeedRowView_Legacy()
     }
     
-    func updateView(_ view: FeedRowView, context: ListComponentContext<Void>) {
+    func updateView(_ view: FeedRowView_Legacy, context: ListComponentContext<Void>) {
         view.configure(post: content)
     }
     
@@ -33,13 +33,13 @@ struct FeedComponent: ListComponent {
     }
 }
 
-extension FeedComponent: Equatable {
+extension FeedComponent_Legacy: Equatable {
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.content == rhs.content
     }
 }
 
-final class FeedRowView: UIView {
+final class FeedRowView_Legacy: UIView {
     private let imageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill

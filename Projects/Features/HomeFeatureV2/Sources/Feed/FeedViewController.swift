@@ -9,7 +9,8 @@ import UIKit
 import RxSwift
 import RxCocoa
 import RxRelay
-import CarbonListKit
+//import CarbonListKit
+import TurboListKit
 import ReactorKit
 import DSKit
 import Domain
@@ -17,9 +18,27 @@ import Domain
 final class FeedViewController: UIViewController, View {
 
     var disposeBag = DisposeBag()
+    private let layoutAdapter = CollectionViewLayoutAdapter()
+    private lazy var customView = FeedView(layoutAdapter: layoutAdapter)
     
-    private let customView = FeedView()
-    private lazy var adapter = ListAdapter(collectionView: customView.collectionView)
+    private lazy var collectionViewAdapter = CollectionViewAdapter(
+        configuration: CollectionViewAdapterConfiguration(
+            refreshControl: .enabled(
+                tintColor: .clear,
+                text: "새로고침 중...",
+                textColor: .mainWhite
+            ),
+            refreshControlAppearance: .init(
+                indicator: .image(UIImage(systemName: "arrow.clockwise")!)
+                    .size(22)
+                    .tintColor(.systemOrange)
+                    .spin(duration: 0.8)
+            )
+        ),
+        collectionView: customView.collectionView,
+        layoutAdapter: layoutAdapter
+    )
+   
     private let imageTappedRelay = PublishRelay<Post>()
     private let longPressedRelay = PublishRelay<Post>()
     private var currentComponents: [FeedComponent] = []
@@ -76,7 +95,7 @@ final class FeedViewController: UIViewController, View {
                 owner.updateRefreshingState(isLoading: isLoading)
             }
             .disposed(by: disposeBag)
-        
+
         reactor.state
             .map(\.components)
             .distinctUntilChanged()
@@ -89,38 +108,36 @@ final class FeedViewController: UIViewController, View {
 
     private func render(components: [FeedComponent]) {
         currentComponents = components
-        adapter.apply(
+        collectionViewAdapter.apply(
             List {
                 Section(id: "section-1") {
                     for component in components {
-                        Cell(id: component.content.postId, component: component)
-                            .onSelect { [weak self] _ in
-                                self?.imageTappedRelay.accept(component.content)
+                        Cell(id: component.post.postId, component: component)
+                            .didSelect { [weak self] context in
+                                guard
+                                    let feedComponent = context.anyComponent.as(FeedComponent.self)
+                                else { return }
+                                self?.imageTappedRelay.accept(feedComponent.post)
                             }
                     }
                 }
-                .layout(.grid(columns: 2, itemSpacing: 20, lineSpacing: 20))
-                .contentInsets(.init(top: 20, leading: 16, bottom: 0, trailing: 16))
-            }
-            .pullToRefresh(
-                style: .custom(.init(
-                    title: "새로고침",
-                    titleColor: .secondaryLabel,
-                    titleFont: .systemFont(ofSize: 14, weight: .medium),
-                    indicator: .image(
-                        image: UIImage(systemName: "arrow.clockwise")!,
-                        tintColor: .systemOrange,
-                        contentMode: .scaleAspectFit,
-                        size: .init(width: 22, height: 22),
-                        rotatesWhileRefreshing: true,
-                        rotationDuration: 0.8
+                .withSectionLayout(
+                    DefaultCompositionalLayoutSectionFactory.verticalGrid(
+                        numberOfItemsInRow: 2,
+                        itemSpacing: 20,
+                        lineSpacing: 20
                     )
-                ))
-            ) { [weak self] in
-                self?.reactor?.action.onNext(.refresh)
-                try? await Task.sleep(for: .seconds(1))
+                    .withSectionContentInsets(.init(top: 20, leading: 16, bottom: 0, trailing: 16))
+                )
+            }
+            .onRefresh { [weak self] _ in
+                print("REAL REFRESH")
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: .seconds(0.5))
+                    self?.reactor?.action.onNext(.refresh)
+                }
             },
-            updateStrategy: .animated
+            updateStrategy: .animatedBatchUpdates
         )
 
         let hasContent = !components.isEmpty
@@ -147,7 +164,7 @@ final class FeedViewController: UIViewController, View {
             currentComponents.indices.contains(indexPath.item)
         else { return }
 
-        let post = currentComponents[indexPath.item].content
+        let post = currentComponents[indexPath.item].post
         longPressedRelay.accept(post)
     }
 
