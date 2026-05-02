@@ -1,6 +1,6 @@
 //
 //  UIView+PressedEffect.swift
-//  HomeFeatureV2
+//  DSKit
 //
 //  Created by Codex on 4/20/26.
 //

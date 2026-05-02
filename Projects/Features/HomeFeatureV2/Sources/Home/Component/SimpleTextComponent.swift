@@ -8,6 +8,7 @@
 import Foundation
 import UIKit
 import CarbonListKit
+import DSKit
 
 struct SimpleTextComponent: ListComponent {
     let id: String = UUID().uuidString
