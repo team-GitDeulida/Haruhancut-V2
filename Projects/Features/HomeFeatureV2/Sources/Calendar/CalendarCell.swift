@@ -12,9 +12,14 @@ import Kingfisher
 import DSKit
 
 final class CalendarCell: FSCalendarCell {
+    private static let calendar = Calendar.current
+    private static let selectedOverlayColor = UIColor.hcColor.withAlphaComponent(0.4)
+    private static let todayBorderColor = UIColor.hcColor.cgColor
 
     private var currentImageURL: String?
     private var currentMonthFlag: Bool = false
+    private var lastLayoutBounds: CGRect = .zero
+    private var lastTitleText: String?
 
     private let cellImageView: UIImageView = {
         let view = UIImageView()
@@ -47,10 +52,17 @@ final class CalendarCell: FSCalendarCell {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        let minSide = min(contentView.bounds.width, contentView.bounds.height) - 6
+        let bounds = contentView.bounds
+        let titleText = titleLabel.text
+        guard bounds != lastLayoutBounds || titleText != lastTitleText else { return }
+
+        lastLayoutBounds = bounds
+        lastTitleText = titleText
+
+        let minSide = min(bounds.width, bounds.height) - 6
         let frame = CGRect(
-            x: (contentView.bounds.width - minSide) / 2,
-            y: (contentView.bounds.height - minSide) / 2,
+            x: (bounds.width - minSide) / 2,
+            y: (bounds.height - minSide) / 2,
             width: minSide,
             height: minSide
         )
@@ -63,19 +75,21 @@ final class CalendarCell: FSCalendarCell {
 
         let labelSize = titleLabel.intrinsicContentSize
         titleLabel.frame = CGRect(
-            x: (contentView.bounds.width - labelSize.width) / 2,
-            y: (contentView.bounds.height - labelSize.height) / 2,
+            x: (bounds.width - labelSize.width) / 2,
+            y: (bounds.height - labelSize.height) / 2,
             width: labelSize.width,
             height: labelSize.height
         )
     }
 
     public func configure(date: Date, isCurrentMonth: Bool, imageURL: String?) {
-        let calendar = Calendar.current
-        let isToday = calendar.isDateInToday(date)
+        let isToday = Self.calendar.isDateInToday(date)
         currentMonthFlag = isCurrentMonth
 
-        cellImageView.backgroundColor = currentMonthFlag ? .gray500 : .gray700
+        let fallbackBackgroundColor: UIColor = currentMonthFlag ? .gray500 : .gray700
+        if cellImageView.backgroundColor != fallbackBackgroundColor {
+            cellImageView.backgroundColor = fallbackBackgroundColor
+        }
 
         if let imageURL, let url = URL(string: imageURL) {
             if currentImageURL != imageURL {
@@ -97,18 +111,28 @@ final class CalendarCell: FSCalendarCell {
                 )
             }
 
-            cellImageView.backgroundColor = .clear
+            if cellImageView.backgroundColor != .clear {
+                cellImageView.backgroundColor = .clear
+            }
         } else {
             currentImageURL = nil
             cellImageView.kf.cancelDownloadTask()
-            cellImageView.image = nil
+            if cellImageView.image != nil {
+                cellImageView.image = nil
+            }
         }
 
         if isToday && isCurrentMonth {
-            cellImageView.layer.borderWidth = 3
-            cellImageView.layer.borderColor = UIColor.hcColor.cgColor
+            if cellImageView.layer.borderWidth != 3 {
+                cellImageView.layer.borderWidth = 3
+            }
+            if cellImageView.layer.borderColor !== Self.todayBorderColor {
+                cellImageView.layer.borderColor = Self.todayBorderColor
+            }
         } else {
-            cellImageView.layer.borderWidth = 0
+            if cellImageView.layer.borderWidth != 0 {
+                cellImageView.layer.borderWidth = 0
+            }
         }
 
         updateSelectionUI()
@@ -121,20 +145,30 @@ final class CalendarCell: FSCalendarCell {
     }
 
     private func updateSelectionUI() {
-        selectedOverlay.backgroundColor = isSelected && currentMonthFlag
-            ? UIColor.hcColor.withAlphaComponent(0.4)
-            : .clear
+        let targetColor = isSelected && currentMonthFlag ? Self.selectedOverlayColor : .clear
+        if selectedOverlay.backgroundColor != targetColor {
+            selectedOverlay.backgroundColor = targetColor
+        }
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
 
         cellImageView.kf.cancelDownloadTask()
-        cellImageView.image = nil
-        cellImageView.backgroundColor = .clear
-        cellImageView.layer.borderWidth = 0
-        selectedOverlay.backgroundColor = .clear
+        if cellImageView.image != nil {
+            cellImageView.image = nil
+        }
+        if cellImageView.backgroundColor != .clear {
+            cellImageView.backgroundColor = .clear
+        }
+        if cellImageView.layer.borderWidth != 0 {
+            cellImageView.layer.borderWidth = 0
+        }
+        if selectedOverlay.backgroundColor != .clear {
+            selectedOverlay.backgroundColor = .clear
+        }
         currentMonthFlag = false
         currentImageURL = nil
+        lastTitleText = nil
     }
 }
