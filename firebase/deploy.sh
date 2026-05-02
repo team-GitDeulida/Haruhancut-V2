@@ -12,7 +12,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FUNCTIONS_DIR="$SCRIPT_DIR/functions"
+FUNCTIONS_DIR="$SCRIPT_DIR/functions-typescript"
 
 # 배포를 위해 Firebase CLI가 설치되어 있어야 합니다.
 if ! command -v firebase >/dev/null 2>&1; then
@@ -23,20 +23,24 @@ fi
 
 # Functions 시크릿과 실행 환경 설정은 이 파일에서 읽습니다.
 if [ ! -f "$FUNCTIONS_DIR/.env" ]; then
-  echo "functions/.env 파일이 없습니다."
-  echo "functions/.env 파일을 만든 뒤 다시 실행해주세요."
+  echo "functions-typescript/.env 파일이 없습니다."
+  echo "functions-typescript/.env 파일을 만든 뒤 다시 실행해주세요."
   exit 1
 fi
 
-# 처음 실행하는 환경이면 functions 의존성을 먼저 설치합니다.
+# 처음 실행하는 환경이면 functions-typescript 의존성을 먼저 설치합니다.
 if [ ! -d "$FUNCTIONS_DIR/node_modules" ]; then
-  echo "functions 의존성을 먼저 설치합니다..."
+  echo "functions-typescript 의존성을 먼저 설치합니다..."
   npm --prefix "$FUNCTIONS_DIR" install
 fi
 
 # lint가 실패하면 배포하지 않도록 먼저 검사합니다.
-echo "functions lint 실행 중..."
+echo "functions-typescript lint 실행 중..."
 npm --prefix "$FUNCTIONS_DIR" run lint
+
+# 배포 전에 TypeScript를 JavaScript로 빌드합니다.
+echo "functions-typescript build 실행 중..."
+npm --prefix "$FUNCTIONS_DIR" run build
 
 # 기본 Firebase 프로젝트에 Functions만 배포합니다.
 echo "Firebase Functions 배포 중..."
