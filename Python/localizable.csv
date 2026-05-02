@@ -25,7 +25,7 @@ comment.title,Comments,댓글,コメント
 comment.input.placeholder,Enter a message,메시지를 입력하세요,メッセージを入力
 comment.send,Send,전송,送信
 comment.placeholder.preview,Test comment,테스트 댓글,テストコメント
-auth.signin.app_name,OneCut,하루한컷,ワンカット
+auth.signin.app_name,OneMoment,하루한컷,1日1カット
 auth.signin.kakao,Continue with Kakao,카카오로 계속하기,カカオで続ける
 auth.signin.apple,Continue with Apple,Apple로 계속하기,Appleで続ける
 auth.group.select.title,Do you have\na family invite code?,가족에게 받은\n그룹 초대 코드가 있으신가요?,ご家族から受け取った\nグループ招待コードはありますか？
@@ -52,7 +52,7 @@ auth.signup.profile.title.format,Set up %@'s profile.,%@ 님의 프로필을 설
 auth.signup.profile.subtitle,You can skip this for now!,지금은 넘어가도 돼요!,今はスキップしても大丈夫です！
 auth.signup.profile.done,Done,완료,完了
 member.invite.share.message,I'd like to invite you to our family group!\nInvite code: %@\n\nWant to learn more about the app? 👉 \n%@\n\nDownload the app 🍎\n%@,우리 가족 그룹에 초대할게요!\n초대코드: %@\n\n앱이 궁금하다면 👉 \n%@\n\n앱 설치하기 🍎\n%@,家族グループに招待します！\n招待コード: %@\n\nアプリの詳細はこちら 👉 \n%@\n\nアプリをダウンロード 🍎\n%@
-onboarding.page1.title,OneCut,하루 한컷,ワンカット
+onboarding.page1.title,OneMoment,하루 한컷,1日1カット
 onboarding.page1.subtitle,Share each day\nwith one photo.,가족과의 하루를 \n한 장의 사진으로 나눠보세요.,毎日を\n1枚の写真で分かち合いましょう。
 onboarding.page2.title,Share Daily Life,일상 공유,日常を共有
 onboarding.page2.subtitle,Share daily moments.\n,매일의 이야기를 함께 나눠요.\n,毎日の出来事を共有しましょう。\n

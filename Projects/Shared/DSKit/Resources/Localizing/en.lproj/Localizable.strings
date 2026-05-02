@@ -32,7 +32,7 @@
 "comment.input.placeholder" = "Enter a message";
 "comment.send" = "Send";
 "comment.placeholder.preview" = "Test comment";
-"auth.signin.app_name" = "OneCut";
+"auth.signin.app_name" = "OneMoment";
 "auth.signin.kakao" = "Continue with Kakao";
 "auth.signin.apple" = "Continue with Apple";
 "auth.group.select.title" = "Do you have\na family invite code?";
@@ -59,7 +59,7 @@
 "auth.signup.profile.subtitle" = "You can skip this for now!";
 "auth.signup.profile.done" = "Done";
 "member.invite.share.message" = "I'd like to invite you to our family group!\nInvite code: %@\n\nWant to learn more about the app? 👉 \n%@\n\nDownload the app 🍎\n%@";
-"onboarding.page1.title" = "OneCut";
+"onboarding.page1.title" = "OneMoment";
 "onboarding.page1.subtitle" = "Share each day\nwith one photo.";
 "onboarding.page2.title" = "Share Daily Life";
 "onboarding.page2.subtitle" = "Share daily moments.\n";

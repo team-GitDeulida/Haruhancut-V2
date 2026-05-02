@@ -24,7 +24,7 @@
 "comment.input.placeholder" = "メッセージを入力";
 "comment.send" = "送信";
 "comment.placeholder.preview" = "テストコメント";
-"auth.signin.app_name" = "ワンカット";
+"auth.signin.app_name" = "1日1カット";
 "auth.signin.kakao" = "カカオで続ける";
 "auth.signin.apple" = "Appleで続ける";
 "auth.group.select.title" = "ご家族から受け取った\nグループ招待コードはありますか？";
@@ -51,7 +51,7 @@
 "auth.signup.profile.subtitle" = "今はスキップしても大丈夫です！";
 "auth.signup.profile.done" = "完了";
 "member.invite.share.message" = "家族グループに招待します！\n招待コード: %@\n\nアプリの詳細はこちら 👉 \n%@\n\nアプリをダウンロード 🍎\n%@";
-"onboarding.page1.title" = "ワンカット";
+"onboarding.page1.title" = "1日1カット";
 "onboarding.page1.subtitle" = "毎日を\n1枚の写真で分かち合いましょう。";
 "onboarding.page2.title" = "日常を共有";
 "onboarding.page2.subtitle" = "毎日の出来事を共有しましょう。\n";
