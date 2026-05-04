@@ -46,7 +46,7 @@
 | :-------------: | :-------------------------------------------------------------: |
 | **FirebaseSDK** |    FCM을 이용한 푸쉬 알림 및 사용자 인증/데이터 관리를 위함     |
 |   **RxSwift**   | 비동기 흐름을 선언적으로 관리하고 이벤트 기반 로직 처리를 위함  |
-|  **WidgetKit**  | 앱을 열지 안아도 위젯으로 업로드한 사진을 확인할 수 있도록 구현 |
+|  **WidgetKit**  | 앱을 열지 않아도 위젯으로 오늘 업로드된 사진을 확인할 수 있도록 구현 |
 |  **KakaoSDK**   |                 카카오 소셜 로그인 구현을 위함                  |
 |  **GoogleSDK**  |                  구글 소셜 로그인 구현을 위함                   |
 | **Kingfisher**  |             이미지 캐싱 처리 및 UI 성능 개선을 위함             |
@@ -55,91 +55,121 @@
 
 # 3. 핵심 성과
 
-### **1. 제네릭 기반 Firebase CRUD 메서드 구현**
+### **1. 제네릭 기반 Firebase CRUD + 실시간 Observe 추상화**
 
 > **문제**  
-> 엔티티마다 CRUD 함수가 요구되어 JSON 직렬화/역직렬화 로직이 엔티티마다 반복됨.
+> Firebase Realtime Database를 사용할 때 엔티티마다
+> JSON 직렬화/역직렬화, 단건 조회, 부분 수정, 삭제, 실시간 구독 로직이 반복되어
+> Repository 계층이 쉽게 비대해지는 문제가 있었습니다.
 >
 > **해결**  
-> `Encodable / Decodable` 기반의 공통 제네릭 CRUD 메서드 구현
+> `Encodable / Decodable` 기반 제네릭 CRUD 메서드와
+> `observeValueStream(path:type:)` 실시간 구독 인터페이스를 공통화해
+> 모든 엔티티가 같은 방식으로 Firebase에 접근하도록 정리했습니다.
 >
 > **성과**  
-> 🔸 **모든 엔티티 CRUD를 하나의 인터페이스로 통일**  
-> 🔸 신규 엔티티 추가 시 모델만 만들면 즉시 CRUD 재사용 가능  
-> 🔸 유지보수성 대폭 향상 (중복 코드 제거)
+> 🔸 단건 조회 / 저장 / 수정 / 삭제 / 실시간 감지를 하나의 패턴으로 통일  
+> 🔸 신규 DTO 추가 시 Firebase 접근 코드를 거의 복붙 없이 확장 가능  
+> 🔸 Feature / Repository 레이어가 비즈니스 로직에 집중할 수 있는 구조 확보
 
 ```swift
-// 제네릭 CRUD
-func setValue<T: Encodable>(path: String, value: T) -> Observable<Bool>
-func readValue<T: Decodable>(path: String, type: T.Type) -> Observable<T>
-func updateValue<T: Encodable>(path: String, value: T) -> Observable<Bool>
-func deleteValue(path: String) -> Observable<Bool>
+// 공통 Firebase 인터페이스
+func setValue<T: Encodable>(path: String, value: T) -> Single<Void>
+func readValue<T: Decodable>(path: String, type: T.Type) -> Single<T>
+func updateValue<T: Encodable>(path: String, value: T) -> Single<Void>
+func deleteValue(path: String) -> Single<Void>
+func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T>
 
-// Repository 예시 — 중복 없는 Firebase 호출
-func fetchComments(groupId: String, postId: String) -> Observable<[CommentDTO]> {
-    let path = "groups/\(groupId)/posts/\(postId)/comments"
-    return firebase.readValue(path: path, type: [CommentDTO].self)
+// Usecase / Repository 에서는 경로와 타입만 정의하면 재사용 가능
+func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<T> {
+    return groupRepository.observeValueStream(path: path, type: type)
 }
 ```
 
 ---
 
-### **2. WidgetKit + App Group 기반 '오늘 최신 사진 1장을' 위젯에 노출**
+### **2. WidgetKit + App Group + FileManager 기반 위젯 동기화 구조 설계**
 
 > **문제**  
-> 가족이 올린 "오늘 사진"을 앱 외부 위젯에서 다시 보여주기 위해
-> 앱과 위젯 간 데이터를 공유할 수 있는 App Group 도입이 요구됨.  
-> 위젯은 앱과 별도 프로세스에서 동작하고 서로의 샌드박스에 접근할 수 없기 때문에
-> 앱이 보유한 피드 데이터를 직접 읽을 수 없는 문제 발생
+> 위젯은 앱과 다른 프로세스/샌드박스에서 실행되기 때문에
+> 앱 메모리나 일반 로컬 상태를 직접 참조할 수 없습니다.
+> 특히 "가족 그룹의 오늘 최신 사진 1장"을 홈 화면 위젯에 안정적으로 노출하려면
+> 앱과 위젯이 공통으로 읽을 수 있는 데이터 전달 경로가 필요했습니다.
 >
 > **해결**  
-> App Group 공유 컨테이너를 활용하여 앱 -> 위젯으로 사진을 전달하는 파일 기반 데이터 구조 설계
+> `App Group + FileManager` 기반 공유 컨테이너 구조를 설계했습니다.
 >
-> 1. 앱을 켜면 오늘 날짜 기준 가장 최신 1장을 추출
-> 2. 해당 이미지를 App Group내부 Photos/<yyyy-MM-dd>/<timestamp>-<postId>.jpg 형태로 저장
->    3, 게시글 삭제 시 동일 postId를 포함한 파일 자동 삭제
-> 3. 위젯 Provider는 오늘 날짜 폴더만 스캔하여 파일명 기준 최신 시간 1개 사진만 로딩
-> 4. 이전 날짜 폴더는 자정에 자동 삭제되어 용량 안정성 확보
+> 1. 앱에서 현재 유저 세션을 `Session/user.json`으로 저장
+> 2. 오늘 최신 게시글 이미지를 `Photos/<groupId>/<yyyy-MM-dd>/<timestamp>-<postId>.jpg` 형식으로 저장
+> 3. 저장 전에 다운샘플링 + 리사이즈 + JPEG 압축을 적용해 위젯 메모리 사용량을 절감
+> 4. 위젯 Provider는 `user.json`에서 groupId를 읽고, 오늘 폴더의 파일 중 가장 최신 1장만 로드
+> 5. 홈 실시간 데이터가 바뀌면 `WidgetCenter.reloadTimelines`로 즉시 위젯 갱신
+> 6. 게시글 삭제 시 동일 `postId`를 가진 파일도 함께 정리
 >
 > **성과**  
-> 🔸 앱을 열지 않아도 홈 화면에서 오늘 최신 사진 1장을 확인 가능  
-> 🔸 App Group 기반 파일 공유 구조로 앱·위젯 프로세스 분리 문제를 시스템 레벨에서 해결
+> 🔸 앱과 위젯의 프로세스 분리 문제를 App Group 공유 파일 시스템으로 해결  
+> 🔸 위젯 전용 경량 이미지 파이프라인으로 메모리 부담과 로딩 실패 가능성 완화  
+> 🔸 앱을 열지 않아도 홈 화면에서 "우리 그룹의 오늘 사진"을 바로 확인 가능
 
 ```swift
-struct PhotoProvider: TimelineProvider {
-    let appGroupID = "group.com.indextrown.Haruhancut.WidgetExtension"
-
-    func getTimeline(in context: Context, completion: @escaping (Timeline<PhotoEntry>) -> Void) {
-        let now = Date()
-
-        // 1) 오늘 날짜 폴더에서 최신 이미지 로드
-        let allFiles = fetchImageFiles(date: now)
-        let latestData = allFiles
-            .sorted { $0.lastPathComponent > $1.lastPathComponent }
-            .first
-            .flatMap { try? Data(contentsOf: $0) }
-
-        // 2) 이전 날짜 폴더 정리
-        deleteOldPhotoFolders(before: now)
-
-        let entry = PhotoEntry(date: now, imageData: latestData)
-
-        // 3) 다음 자정에 자동 갱신
-        completion(Timeline(entries: [entry], policy: .after(computeNextMidnight(after: now))))
-    }
-
-    private func fetchImageFiles(date: Date) -> [URL] {
-        let dateString = DateFormatter.photoFilenameFormatter.string(from: date)
-        guard
-            let folder = FileManager.default
-                .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
-                .appendingPathComponent("Photos", isDirectory: true)
-                .appendingPathComponent(dateString, isDirectory: true),
-            let files = try? FileManager.default.contentsOfDirectory(at: folder,
-                                                                     includingPropertiesForKeys: nil)
-        else { return [] }
-
-        return files.filter { $0.pathExtension.lowercased() == "jpg" }
+public enum WidgetSessionStore {
+    private static func sessionFile() -> URL? {
+        FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: WidgetPaths.appGroupId)?
+            .appendingPathComponent("Session", isDirectory: true)
+            .appendingPathComponent("user.json")
     }
 }
+
+public static func photosFolder(groupId: String, dateKey: String) -> URL? {
+    FileManager.default
+        .containerURL(forSecurityApplicationGroupIdentifier: appGroupId)?
+        .appendingPathComponent("Photos", isDirectory: true)
+        .appendingPathComponent(groupId, isDirectory: true)
+        .appendingPathComponent(dateKey, isDirectory: true)
+}
+
+guard let latest = files.sorted(by: {
+    $0.lastPathComponent > $1.lastPathComponent
+}).first else { return nil }
+```
+
+---
+
+### **3. Tuist 기반 멀티 모듈 구조로 앱/위젯/공용 코드 경계 분리**
+
+> **문제**  
+> 기능이 늘어날수록 앱 타깃 하나에 인증, 홈, 프로필, 위젯, 공용 유틸이 함께 섞이면
+> 의존성 경계가 흐려지고 빌드 구성 관리와 책임 분리가 어려워집니다.
+>
+> **해결**  
+> `Tuist` 워크스페이스를 기준으로
+> `App / Coordinator / Features / Core / Domain / Shared / Widget` 모듈을 분리하고,
+> 위젯 전용 공유 로직은 `WidgetSupport` 모듈로 별도 관리했습니다.
+>
+> **성과**  
+> 🔸 앱 본체와 위젯이 필요한 코드만 선택적으로 의존하는 구조 확보  
+> 🔸 기능 추가 시 수정 범위를 모듈 단위로 제한해 변경 영향도 파악이 쉬워짐  
+> 🔸 공용 코드와 기능 코드를 분리해 프로젝트 구조를 더 명확하게 정리
+
+```swift
+let workspace = Workspace(
+    name: "Haruhancut",
+    projects: [
+        "Projects/App",
+        "Projects/Widget/*",
+        "Projects/Coordinator",
+        "Projects/Features/*",
+        "Projects/Domain",
+        "Projects/Core",
+        "Projects/Shared/*"
+    ]
+)
+
+dependencies: [
+    .project(target: "Coordinator", path: "../Coordinator"),
+    .project(target: "Data", path: "../Data"),
+    .project(target: "WidgetSupport", path: "../Shared/WidgetSupport"),
+    .project(target: "HaruhancutWidget", path: "../Widget/HaruhancutWidget")
+]
 ```
