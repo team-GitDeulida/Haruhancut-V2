@@ -79,7 +79,6 @@ final class MainViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         configureHierarchy()
-        configureNavigationBar()
         configureAdapterCallbacks()
         applySections(animatingDifferences: false)
     }
@@ -94,18 +93,6 @@ final class MainViewController: UIViewController {
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-    }
-
-    private func configureNavigationBar() {
-        title = "CollectionViewAdapter"
-        navigationItem.largeTitleDisplayMode = .always
-        navigationController?.navigationBar.prefersLargeTitles = true
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            systemItem: .add,
-            primaryAction: UIAction { [weak self] _ in
-                self?.appendDemoItem()
-            }
-        )
     }
 
     private func makeAdapter() -> CollectionViewAdapter<DemoSection, DemoItem> {
@@ -189,7 +176,7 @@ final class MainViewController: UIViewController {
         )
     }
 
-    private func appendDemoItem() {
+    func appendDemoItem() {
         let count = (sections[.events]?.count ?? 0) + 1
         let newItem = DemoItem(
             title: "Snapshot Update \(count)",

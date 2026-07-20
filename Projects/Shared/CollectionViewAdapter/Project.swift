@@ -32,18 +32,7 @@ let project = Project(
             bundleId: "com.indextrown.Haruhancut.collectionviewadapter.demo",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
-                "UILaunchScreen": [:],
-                "UIApplicationSceneManifest": [
-                    "UIApplicationSupportsMultipleScenes": true,
-                    "UISceneConfigurations": [
-                        "UIWindowSceneSessionRoleApplication": [
-                            [
-                                "UISceneConfigurationName": "Default Configuration",
-                                "UISceneDelegateClassName": "$(PRODUCT_MODULE_NAME).SceneDelegate"
-                            ]
-                        ]
-                    ]
-                ]
+                "UILaunchScreen": [:]
             ]),
             sources: ["Demo/**"],
             resources: [],

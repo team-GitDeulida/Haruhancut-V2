@@ -1,6 +1,6 @@
 import UIKit
 
-/// A reusable diffable data source and collection-view delegate.
+/// A demo implementation of a reusable diffable data source and collection-view delegate.
 ///
 /// Keep the adapter strongly referenced for as long as its collection view is in use.
 @MainActor
