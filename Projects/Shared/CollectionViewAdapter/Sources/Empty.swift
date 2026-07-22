@@ -1,1 +1,5 @@
 
+
+protocol ComponentContext {
+    
+}

@@ -4,7 +4,7 @@ import SwiftUI
 struct CollectionViewAdapterDemoApp: App {
     var body: some Scene {
         WindowGroup {
-            DemoHomeView()
+            RootListView()
         }
     }
 }
