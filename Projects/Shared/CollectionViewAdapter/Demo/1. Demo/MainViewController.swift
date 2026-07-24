@@ -95,8 +95,8 @@ final class MainViewController: UIViewController {
         ])
     }
 
-    private func makeAdapter() -> CollectionViewAdapter<DemoSection, DemoItem> {
-        let adapter = CollectionViewAdapter<DemoSection, DemoItem>(
+    private func makeAdapter() -> FlowCollectionViewAdapter<DemoSection, DemoItem> {
+        let adapter = FlowCollectionViewAdapter<DemoSection, DemoItem>(
             collectionView: collectionView
         ) { collectionView, indexPath, item in
             guard let cell = collectionView.dequeueReusableCell(
