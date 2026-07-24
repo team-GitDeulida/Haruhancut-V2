@@ -1,7 +1,5 @@
 import SwiftUI
 
-import SwiftUI
-
 struct CustomLabel<Style: ShapeStyle>: View {
     let title: String
     let caption: String
@@ -58,6 +56,17 @@ struct RootListView: View {
                             title: "First CollectionViewAdapter",
                             caption: "기초적인 CollectionViewAdapter 사용법입니다",
                             shape: .green
+                        )
+                    }
+
+                    NavigationLink {
+                        ComponentAdapterDemoViewController()
+                            .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Component Adapter",
+                            caption: "Section DSL과 Compositional Layout 예제입니다",
+                            shape: .orange
                         )
                     }
                 }
