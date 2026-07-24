@@ -4,7 +4,7 @@ import UIKit
 ///
 /// Keep the adapter strongly referenced for as long as its collection view is in use.
 @MainActor
-public final class CollectionViewAdapter<SectionIdentifier: Hashable, ItemIdentifier: Hashable>:
+public final class FlowCollectionViewAdapter<SectionIdentifier: Hashable, ItemIdentifier: Hashable>:
     UICollectionViewDiffableDataSource<SectionIdentifier, ItemIdentifier>,
     UICollectionViewDelegateFlowLayout {
 
