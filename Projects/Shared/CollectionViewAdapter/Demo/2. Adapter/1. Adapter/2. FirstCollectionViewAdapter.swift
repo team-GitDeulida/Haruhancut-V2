@@ -177,7 +177,7 @@ extension FirstCollectionViewAdapter:
 
     /// 사용자가 특정 아이템을 선택했을 때 호출됩니다.
     ///
-    /// 선택된 아이템 모델이 `Touchable`을 채택했다면
+    /// 선택된 아이템 모델이 `LegacyTouchable`을 채택했다면
     /// 해당 모델의 `didTouch()`를 실행합니다.
     ///
     /// - Parameters:
@@ -190,7 +190,7 @@ extension FirstCollectionViewAdapter:
         let itemModel = items[indexPath.item]
 
         guard let touchableItem =
-                itemModel as? any Touchable
+                itemModel as? any LegacyTouchable
         else {
             return
         }
