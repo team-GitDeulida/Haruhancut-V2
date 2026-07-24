@@ -22,13 +22,13 @@ protocol CellItemModelBindable: AnyObject {
     )
 }
 
-protocol Touchable {
+protocol LegacyTouchable {
     func didTouch()
 }
 
 struct AccountCellItemModel:
     CellItemModelType,
-    Touchable {
+    LegacyTouchable {
     
     let account: BankAccount
     let onTouch: () -> Void
