@@ -36,6 +36,49 @@ public final class ContainerCell<C: Component>:
         bindingContext = nil
         component = nil
     }
+
+    /// Content가 요구하는 실제 높이로 estimated layout 값을 보정합니다.
+    ///
+    /// Grid가 제안한 열 너비는 그대로 유지하고 세로 크기만 Auto Layout으로
+    /// 계산합니다. 따라서 추정 높이가 실제 Content보다 클 때 label 영역이
+    /// 불필요하게 늘어나는 현상을 방지합니다.
+    public override func preferredLayoutAttributesFitting(
+        _ layoutAttributes:
+            UICollectionViewLayoutAttributes
+    ) -> UICollectionViewLayoutAttributes {
+        let attributes =
+            super.preferredLayoutAttributesFitting(
+                layoutAttributes
+            )
+        guard
+            let content,
+            attributes.size.width > 0
+        else {
+            return attributes
+        }
+
+        let fittingSize = CGSize(
+            width: attributes.size.width,
+            height:
+                UIView.layoutFittingCompressedSize
+                    .height
+        )
+        let fittedSize =
+            content.systemLayoutSizeFitting(
+                fittingSize,
+                withHorizontalFittingPriority:
+                    .required,
+                verticalFittingPriority:
+                    .fittingSizeLevel
+            )
+        guard fittedSize.height > 0 else {
+            return attributes
+        }
+
+        attributes.size.height =
+            ceil(fittedSize.height)
+        return attributes
+    }
     
     func contentWillDisplay() {
         guard

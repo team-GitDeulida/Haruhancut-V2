@@ -31,6 +31,37 @@ private struct TestComponent: Component {
     }
 }
 
+private final class FittingTestContentView:
+    UIView
+{
+    override var intrinsicContentSize:
+        CGSize
+    {
+        CGSize(
+            width:
+                UIView.noIntrinsicMetric,
+            height: 73
+        )
+    }
+}
+
+private struct FittingTestComponent:
+    Component
+{
+    let item: TestItem
+
+    func createContent()
+        -> FittingTestContentView
+    {
+        FittingTestContentView()
+    }
+
+    func render(
+        context _: ComponentContext,
+        content: FittingTestContentView
+    ) {}
+}
+
 final class CollectionViewAdapterTests: XCTestCase {
     func testAnyComponentUsesItemID() {
         let component = AnyComponent(
@@ -133,6 +164,98 @@ final class CollectionViewAdapterTests: XCTestCase {
         XCTAssertEqual(
             contentView.gestureRecognizers?.count,
             1
+        )
+    }
+
+    @MainActor
+    func testTouchableRecognizesAlongsidePressedEffect() {
+        let contentView = TestContentView()
+        contentView.installTouchHandlingIfNeeded()
+
+        guard
+            let tapGestureRecognizer =
+                contentView.gestureRecognizers?
+                    .compactMap({
+                        $0 as?
+                            UITapGestureRecognizer
+                    })
+                    .first
+        else {
+            return XCTFail(
+                "Touchable tap recognizer 생성 실패"
+            )
+        }
+
+        let pressedEffectRecognizer =
+            UILongPressGestureRecognizer()
+        let allowsSimultaneousRecognition =
+            tapGestureRecognizer.delegate?
+                .gestureRecognizer?(
+                    tapGestureRecognizer,
+                    shouldRecognizeSimultaneouslyWith:
+                        pressedEffectRecognizer
+                )
+            ?? false
+
+        XCTAssertTrue(
+            allowsSimultaneousRecognition
+        )
+    }
+
+    @MainActor
+    func testContainerCellFitsContentHeight() {
+        let component =
+            FittingTestComponent(
+                item: TestItem(
+                    id: 1,
+                    title: "Self sizing"
+                )
+            )
+        let cell =
+            ContainerCell<
+                FittingTestComponent
+            >(
+                frame: CGRect(
+                    x: 0,
+                    y: 0,
+                    width: 120,
+                    height: 200
+                )
+            )
+        cell.bindingContext =
+            ComponentContext()
+        cell.bind(
+            component:
+                AnyComponent(component)
+        )
+
+        let attributes =
+            UICollectionViewLayoutAttributes(
+                forCellWith:
+                    IndexPath(
+                        item: 0,
+                        section: 0
+                    )
+            )
+        attributes.size = CGSize(
+            width: 120,
+            height: 200
+        )
+
+        let fittedAttributes =
+            cell.preferredLayoutAttributesFitting(
+                attributes
+            )
+
+        XCTAssertEqual(
+            fittedAttributes.size.width,
+            120,
+            accuracy: 0.5
+        )
+        XCTAssertEqual(
+            fittedAttributes.size.height,
+            73,
+            accuracy: 0.5
         )
     }
 
@@ -610,9 +733,21 @@ final class CollectionViewAdapterTests: XCTestCase {
             secondAttributes.frame.minX,
             firstAttributes.frame.minX
         )
-        XCTAssertLessThanOrEqual(
+        XCTAssertEqual(
+            firstAttributes.frame.minX,
+            10,
+            accuracy: 0.5
+        )
+        XCTAssertEqual(
+            secondAttributes.frame.minX
+                - firstAttributes.frame.maxX,
+            12,
+            accuracy: 0.5
+        )
+        XCTAssertEqual(
             secondAttributes.frame.maxX,
-            collectionView.bounds.maxX + 0.5
+            310,
+            accuracy: 0.5
         )
     }
 

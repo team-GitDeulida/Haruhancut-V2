@@ -17,6 +17,8 @@ let project = Project(
                 .project(target: "AuthFeature", path: "../Features/AuthFeature"),
                 .project(target: "HomeFeatureV2", path: "../Features/HomeFeatureV2"),
                 .project(target: "HomeFeatureV2Interface", path: "../Features/HomeFeatureV2"),
+                .project(target: "HomeFeatureV3", path: "../Features/HomeFeatureV3"),
+                .project(target: "HomeFeatureV3Interface", path: "../Features/HomeFeatureV3"),
                 .project(target: "OnboardingFeature", path: "../Features/OnboardingFeature"),
                 .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
                 .project(target: "MemberFeature", path: "../Features/MemberFeature"),

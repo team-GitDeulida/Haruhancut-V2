@@ -279,20 +279,18 @@ public struct CollectionSectionLayout {
                     widthDimension: .fractionalWidth(
                         1 / CGFloat(columns)
                     ),
-                    heightDimension: .fractionalHeight(1)
+                    heightDimension: .estimated(
+                        max(1, estimatedRowHeight)
+                    )
                 )
-            )
-            item.contentInsets = NSDirectionalEdgeInsets(
-                top: 0,
-                leading: interItemSpacing / 2,
-                bottom: 0,
-                trailing: interItemSpacing / 2
             )
             let group = NSCollectionLayoutGroup.horizontal(
                 layoutSize: groupSize,
                 repeatingSubitem: item,
                 count: columns
             )
+            group.interItemSpacing =
+                .fixed(interItemSpacing)
             let section = NSCollectionLayoutSection(
                 group: group
             )
