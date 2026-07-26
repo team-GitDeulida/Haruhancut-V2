@@ -92,10 +92,17 @@ public struct LazySection: SectionModelType {
 }
 
 @MainActor
+struct SectionReachedEndConfiguration {
+    let threshold: CollectionViewReachedEndThreshold
+    let action: @MainActor () -> Void
+}
+
+@MainActor
 struct SectionConfiguration {
     var layout: CollectionSectionLayout = .verticalList()
     var header: SupplementaryView?
     var footer: SupplementaryView?
+    var reachedEnd: SectionReachedEndConfiguration?
 }
 
 @MainActor
@@ -219,6 +226,36 @@ public extension SectionModelType {
             configuration: configuration
         )
     }
+
+    /// 가로 Section의 끝 접근 영역에 진입했을 때 실행할 동작을 설정합니다.
+    ///
+    /// 현재 Section 단위 끝 접근 감지는 기본 제공
+    /// `CollectionSectionLayout.horizontalCarousel`에서 지원합니다.
+    /// 같은 영역에 머무르는 동안 한 번만 실행되며, 영역을 벗어났다가 다시
+    /// 진입하면 다음 callback을 전달합니다.
+    ///
+    /// - Parameters:
+    ///   - threshold: 가로 Section 끝에서 callback을 시작할 거리.
+    ///   - action: 끝 접근 시 실행할 동작.
+    /// - Returns: Section 끝 접근 설정을 가진 새 section 값.
+    func onReachedEnd(
+        threshold:
+            CollectionViewReachedEndThreshold =
+                .relativeToViewport(1.5),
+        perform action:
+            @escaping @MainActor () -> Void
+    ) -> ConfiguredSection<Self> {
+        var configuration = resolvedConfiguration
+        configuration.reachedEnd =
+            SectionReachedEndConfiguration(
+                threshold: threshold,
+                action: action
+            )
+        return ConfiguredSection(
+            base: self,
+            configuration: configuration
+        )
+    }
 }
 
 extension SectionModelType {
@@ -234,7 +271,8 @@ extension SectionModelType {
             layout: configuration.layout,
             items: makeItems(),
             header: configuration.header,
-            footer: configuration.footer
+            footer: configuration.footer,
+            reachedEnd: configuration.reachedEnd
         )
     }
 }
@@ -310,6 +348,7 @@ struct ResolvedSection {
     let items: [AnyComponent]
     let header: SupplementaryView?
     let footer: SupplementaryView?
+    let reachedEnd: SectionReachedEndConfiguration?
 
     var maximumEstimatedItemHeight: CGFloat {
         items.map(\.estimatedHeight).max() ?? 44

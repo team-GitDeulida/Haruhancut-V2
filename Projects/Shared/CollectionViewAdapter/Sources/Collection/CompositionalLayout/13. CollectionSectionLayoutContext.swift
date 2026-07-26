@@ -53,6 +53,15 @@ private enum CollectionSectionLayoutKindSignature:
     )
 }
 
+/// 가로 Section의 끝 접근 판단에 필요한 거리 정보입니다.
+struct CollectionViewSectionScrollMetrics {
+    /// 현재 화면에 표시되는 가로 viewport 길이입니다.
+    let viewportLength: CGFloat
+
+    /// 현재 viewport 끝과 Section content 끝 사이의 남은 거리입니다.
+    let remainingDistance: CGFloat
+}
+
 /// Custom section layout 생성 시 제공되는 읽기 전용 정보입니다.
 public struct CollectionSectionLayoutContext {
     /// 현재 section의 item 개수입니다.
@@ -95,6 +104,14 @@ public struct CollectionSectionLayout {
 
     var pinsFooterToVisibleBounds: Bool {
         footerPinToVisibleBounds
+    }
+
+    /// Section 단위 끝 접근 감지를 기본 제공하는 가로 layout인지 나타냅니다.
+    var supportsOrthogonalReachedEnd: Bool {
+        if case .horizontalCarousel = kindSignature {
+            return true
+        }
+        return false
     }
 
     /// Custom Compositional Layout section 전략을 만듭니다.
@@ -354,6 +371,58 @@ public struct CollectionSectionLayout {
                 sectionContentInsets
         }
         return section
+    }
+
+    /// 가로 Carousel의 현재 위치를 끝까지 남은 거리로 변환합니다.
+    ///
+    /// 기본 제공 Carousel은 하나의 group에 하나의 item을 배치하므로 item
+    /// 개수와 group 너비, 간격으로 전체 content 너비를 계산할 수 있습니다.
+    /// Custom layout은 배치 규칙을 알 수 없어 Section 단위 거리 감지를
+    /// 제공하지 않습니다.
+    func makeOrthogonalScrollMetrics(
+        itemCount: Int,
+        viewportWidth: CGFloat,
+        contentOffsetX: CGFloat
+    ) -> CollectionViewSectionScrollMetrics? {
+        guard
+            case let .horizontalCarousel(
+                itemWidth,
+                _,
+                spacing,
+                _,
+                configuredInsets
+            ) = kindSignature
+        else {
+            return nil
+        }
+
+        let viewportLength = max(0, viewportWidth)
+        guard viewportLength > 0 else {
+            return nil
+        }
+
+        let effectiveInsets = sectionContentInsets.map(
+            CollectionLayoutInsetsSignature.init
+        ) ?? configuredInsets
+        let count = max(0, itemCount)
+        let groupWidth = viewportLength * itemWidth
+        let itemContentWidth =
+            CGFloat(count) * groupWidth
+        let totalSpacing =
+            CGFloat(max(0, count - 1)) * spacing
+        let contentWidth =
+            effectiveInsets.leading
+            + itemContentWidth
+            + totalSpacing
+            + effectiveInsets.trailing
+        let visibleEnd =
+            contentOffsetX + viewportLength
+
+        return CollectionViewSectionScrollMetrics(
+            viewportLength: viewportLength,
+            remainingDistance:
+                contentWidth - visibleEnd
+        )
     }
 
     /// 두 Section layout이 같은 배치 결과를 만드는지 비교합니다.

@@ -1,36 +1,46 @@
 import CollectionViewAdapter
 import UIKit
 
-/// 가로 CollectionView에서 이미지 prefetch와 pagination을 함께
-/// 사용하는 예제입니다.
+/// 한 CollectionView에서 가로와 세로 Section의 독립 pagination을
+/// 함께 사용하는 예제입니다.
 @MainActor
 final class HorizontalImageInfiniteScrollViewController:
     UIViewController
 {
     private enum Constant {
-        static let sectionIdentifier =
+        static let horizontalSectionIdentifier =
             "horizontal-image-infinite-feed"
-        static let pageSize = 12
+        static let verticalSectionIdentifier =
+            "vertical-image-infinite-feed"
+        static let horizontalPageSize = 12
+        static let verticalPageSize = 16
         static let simulatedNetworkDelay:
             Duration = .milliseconds(650)
-        static let cardWidth: CGFloat = 300
         static let cardHeight: CGFloat = 320
     }
 
-    private let layoutAdapter =
-        CollectionViewLayoutAdapter()
     private let imageLoader =
         ImageInfiniteScrollImageLoader()
-    private var items:
+    private var horizontalItems:
         [HorizontalImageInfiniteScrollContentView.Item] = []
-    private var itemsByID:
+    private var horizontalItemsByID:
         [
             Int:
                 HorizontalImageInfiniteScrollContentView.Item
         ] = [:]
-    private var nextPage = 1
-    private var isLoadingNextPage = false
-    private var loadingTask: Task<Void, Never>?
+    private var verticalItems:
+        [ImageInfiniteScrollContentView.Item] = []
+    private var verticalItemsByID:
+        [Int: ImageInfiniteScrollContentView.Item] = [:]
+
+    private var nextHorizontalPage = 1
+    private var nextVerticalPage = 1
+    private var isLoadingHorizontalPage = false
+    private var isLoadingVerticalPage = false
+    private var horizontalLoadingTask:
+        Task<Void, Never>?
+    private var verticalLoadingTask:
+        Task<Void, Never>?
 
     private let descriptionLabel = UILabel()
     private let countLabel = UILabel()
@@ -39,59 +49,16 @@ final class HorizontalImageInfiniteScrollViewController:
     )
     private let statusStackView = UIStackView()
 
-    private lazy var sectionLayout =
-        CollectionSectionLayout { _ in
-            let itemSize = NSCollectionLayoutSize(
-                widthDimension: .fractionalWidth(1),
-                heightDimension: .fractionalHeight(1)
-            )
-            let item = NSCollectionLayoutItem(
-                layoutSize: itemSize
-            )
-            let groupSize = NSCollectionLayoutSize(
-                widthDimension: .absolute(
-                    Constant.cardWidth
-                ),
-                heightDimension: .absolute(
-                    Constant.cardHeight
-                )
-            )
-            let group = NSCollectionLayoutGroup.horizontal(
-                layoutSize: groupSize,
-                subitems: [item]
-            )
-            let section = NSCollectionLayoutSection(
-                group: group
-            )
-            section.interGroupSpacing = 12
-            section.contentInsets =
-                NSDirectionalEdgeInsets(
-                    top: 16,
-                    leading: 20,
-                    bottom: 16,
-                    trailing: 20
-                )
-            return section
-        }
-
     private lazy var collectionView: UICollectionView = {
-        let configuration =
-            UICollectionViewCompositionalLayoutConfiguration()
-        configuration.scrollDirection = .horizontal
-
-        let layout = UICollectionViewCompositionalLayout(
-            sectionProvider: layoutAdapter.sectionLayout,
-            configuration: configuration
-        )
         let collectionView = UICollectionView(
             frame: .zero,
-            collectionViewLayout: layout
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
         )
         collectionView.backgroundColor =
             .systemGroupedBackground
-        collectionView.alwaysBounceHorizontal = true
+        collectionView.alwaysBounceVertical = true
         collectionView.isPrefetchingEnabled = true
-        collectionView.decelerationRate = .fast
         collectionView.translatesAutoresizingMaskIntoConstraints =
             false
         return collectionView
@@ -100,8 +67,7 @@ final class HorizontalImageInfiniteScrollViewController:
     private lazy var adapter:
         CollectionViewAdapter = {
             let adapter = CollectionViewAdapter(
-                collectionView: collectionView,
-                layoutAdapter: layoutAdapter
+                collectionView: collectionView
             )
             adapter.prefetchItems = { [weak self] items in
                 self?.prefetchImages(for: items)
@@ -113,7 +79,7 @@ final class HorizontalImageInfiniteScrollViewController:
             adapter.reachedEndThreshold =
                 .relativeToViewport(1.5)
             adapter.reachedEnd = { [weak self] in
-                self?.loadNextPageIfNeeded()
+                self?.loadNextVerticalPageIfNeeded()
             }
             return adapter
         }()
@@ -121,37 +87,108 @@ final class HorizontalImageInfiniteScrollViewController:
     private var sections: SectionModels {
         SectionModels {
             LazySection(
-                identifier: Constant.sectionIdentifier
+                identifier:
+                    Constant.horizontalSectionIdentifier
             ) {
-                For(of: self.items) { item in
+                For(of: self.horizontalItems) { item in
                     HorizontalImageInfiniteScrollComponent(
                         item: item,
                         imageLoader: self.imageLoader
                     )
                 }
             }
-            .withSectionLayout(sectionLayout)
+            .withHeader(
+                MixedDirectionSectionHeaderComponent(
+                    item: .init(
+                        id: "horizontal-section-header",
+                        title: "1. 가로 Carousel",
+                        description:
+                            "Section onReachedEnd로 오른쪽 페이지를 추가합니다.",
+                        loadedCount:
+                            self.horizontalItems.count,
+                        isLoading:
+                            self.isLoadingHorizontalPage
+                    )
+                ),
+                height: .absolute(72)
+            )
+            .withSectionLayout(
+                .horizontalCarousel(
+                    itemWidth: 0.76,
+                    estimatedHeight:
+                        Constant.cardHeight,
+                    spacing: 12,
+                    behavior: .continuous,
+                    contentInsets:
+                        NSDirectionalEdgeInsets(
+                            top: 16,
+                            leading: 20,
+                            bottom: 16,
+                            trailing: 20
+                        )
+                )
+            )
+            .onReachedEnd(
+                threshold:
+                    .relativeToViewport(1.5)
+            ) { [weak self] in
+                self?.loadNextHorizontalPageIfNeeded()
+            }
+
+            LazySection(
+                identifier:
+                    Constant.verticalSectionIdentifier
+            ) {
+                For(of: self.verticalItems) { item in
+                    ImageInfiniteScrollComponent(
+                        item: item,
+                        imageLoader: self.imageLoader
+                    )
+                }
+            }
+            .withHeader(
+                MixedDirectionSectionHeaderComponent(
+                    item: .init(
+                        id: "vertical-section-header",
+                        title: "2. 세로 List",
+                        description:
+                            "Adapter reachedEnd로 아래쪽 페이지를 추가합니다.",
+                        loadedCount:
+                            self.verticalItems.count,
+                        isLoading:
+                            self.isLoadingVerticalPage
+                    )
+                ),
+                height: .absolute(72)
+            )
+            .withSectionLayout(
+                .verticalList(
+                    estimatedRowHeight: 108
+                )
+            )
         }
     }
 
     deinit {
-        loadingTask?.cancel()
+        horizontalLoadingTask?.cancel()
+        verticalLoadingTask?.cancel()
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         configureView()
-        appendPage(0)
+        appendHorizontalPage(0)
+        appendVerticalPage(0)
         updateStatus()
         render(animatingDifferences: false)
     }
 
     private func configureView() {
-        title = "Horizontal Image Infinite Scroll"
+        title = "Section Infinite Scroll"
         view.backgroundColor = .systemGroupedBackground
 
         descriptionLabel.text =
-            "가로 스크롤 · 이미지 prefetch · 1.5배 선행 pagination"
+            "가로·세로 Section · 독립 pagination · 이미지 prefetch"
         descriptionLabel.font = .preferredFont(
             forTextStyle: .subheadline
         )
@@ -218,14 +255,8 @@ final class HorizontalImageInfiniteScrollViewController:
                 equalTo: statusStackView.bottomAnchor,
                 constant: 12
             ),
-            collectionView.heightAnchor.constraint(
-                equalToConstant:
-                    Constant.cardHeight + 32
-            ),
             collectionView.bottomAnchor.constraint(
-                lessThanOrEqualTo:
-                    view.safeAreaLayoutGuide.bottomAnchor,
-                constant: -16
+                equalTo: view.bottomAnchor
             ),
         ])
     }
@@ -251,10 +282,6 @@ final class HorizontalImageInfiniteScrollViewController:
     ) -> [URL] {
         prefetchItems.compactMap { prefetchItem in
             guard
-                prefetchItem.sectionIdentifier ==
-                    AnyHashable(
-                        Constant.sectionIdentifier
-                    ),
                 let itemID =
                     prefetchItem.itemIdentifier.base
                         as? Int
@@ -262,20 +289,39 @@ final class HorizontalImageInfiniteScrollViewController:
                 return nil
             }
 
-            return itemsByID[itemID]?.imageURL
+            if prefetchItem.sectionIdentifier ==
+                AnyHashable(
+                    Constant.horizontalSectionIdentifier
+                )
+            {
+                return horizontalItemsByID[itemID]?
+                    .imageURL
+            }
+
+            if prefetchItem.sectionIdentifier ==
+                AnyHashable(
+                    Constant.verticalSectionIdentifier
+                )
+            {
+                return verticalItemsByID[itemID]?
+                    .imageURL
+            }
+
+            return nil
         }
     }
 
-    private func loadNextPageIfNeeded() {
-        guard !isLoadingNextPage else {
+    private func loadNextHorizontalPageIfNeeded() {
+        guard !isLoadingHorizontalPage else {
             return
         }
 
-        isLoadingNextPage = true
+        isLoadingHorizontalPage = true
         updateStatus()
+        render(animatingDifferences: false)
 
-        let page = nextPage
-        loadingTask = Task { @MainActor [weak self] in
+        let page = nextHorizontalPage
+        horizontalLoadingTask = Task { @MainActor [weak self] in
             try? await Task.sleep(
                 for: Constant.simulatedNetworkDelay
             )
@@ -283,17 +329,48 @@ final class HorizontalImageInfiniteScrollViewController:
                 return
             }
 
-            appendPage(page)
-            nextPage += 1
-            isLoadingNextPage = false
+            appendHorizontalPage(page)
+            nextHorizontalPage += 1
+            isLoadingHorizontalPage = false
+            horizontalLoadingTask = nil
             updateStatus()
             render(animatingDifferences: false)
         }
     }
 
-    private func appendPage(_ page: Int) {
-        let firstID = page * Constant.pageSize
-        let newItems = (0..<Constant.pageSize).map {
+    private func loadNextVerticalPageIfNeeded() {
+        guard !isLoadingVerticalPage else {
+            return
+        }
+
+        isLoadingVerticalPage = true
+        updateStatus()
+        render(animatingDifferences: false)
+
+        let page = nextVerticalPage
+        verticalLoadingTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(
+                for: Constant.simulatedNetworkDelay
+            )
+            guard !Task.isCancelled, let self else {
+                return
+            }
+
+            appendVerticalPage(page)
+            nextVerticalPage += 1
+            isLoadingVerticalPage = false
+            verticalLoadingTask = nil
+            updateStatus()
+            render(animatingDifferences: false)
+        }
+    }
+
+    private func appendHorizontalPage(_ page: Int) {
+        let firstID =
+            page * Constant.horizontalPageSize
+        let newItems = (
+            0..<Constant.horizontalPageSize
+        ).map {
             offset in
             let id = firstID + offset
             return HorizontalImageInfiniteScrollContentView
@@ -302,30 +379,68 @@ final class HorizontalImageInfiniteScrollViewController:
                     title: "가로 사진 \(id + 1)",
                     subtitle:
                         "가로 방향에서도 다음 카드 이미지를 미리 준비합니다.",
-                    imageURL: imageURL(for: id),
+                    imageURL:
+                        horizontalImageURL(for: id),
                     page: page + 1
                 )
         }
 
         for item in newItems {
-            itemsByID[item.id] = item
+            horizontalItemsByID[item.id] = item
         }
-        items.append(contentsOf: newItems)
+        horizontalItems.append(contentsOf: newItems)
     }
 
-    private func imageURL(for id: Int) -> URL {
+    private func appendVerticalPage(_ page: Int) {
+        let firstID =
+            page * Constant.verticalPageSize
+        let newItems = (
+            0..<Constant.verticalPageSize
+        ).map {
+            offset in
+            let id = firstID + offset
+            return ImageInfiniteScrollContentView.Item(
+                id: id,
+                title: "세로 사진 \(id + 1)",
+                subtitle:
+                    "화면 아래쪽 1.5배 전에 다음 세로 페이지를 요청합니다.",
+                imageURL:
+                    verticalImageURL(for: id),
+                page: page + 1
+            )
+        }
+
+        for item in newItems {
+            verticalItemsByID[item.id] = item
+        }
+        verticalItems.append(contentsOf: newItems)
+    }
+
+    private func horizontalImageURL(
+        for id: Int
+    ) -> URL {
         URL(
             string:
                 "https://picsum.photos/seed/haruhancut-horizontal-\(id)/600/400"
         )!
     }
 
-    private func updateStatus() {
-        countLabel.text = isLoadingNextPage
-            ? "\(items.count)개 · 다음 페이지 불러오는 중"
-            : "\(items.count)개 · 오른쪽으로 스크롤하세요"
+    private func verticalImageURL(
+        for id: Int
+    ) -> URL {
+        URL(
+            string:
+                "https://picsum.photos/seed/haruhancut-vertical-\(id)/600/400"
+        )!
+    }
 
-        if isLoadingNextPage {
+    private func updateStatus() {
+        countLabel.text =
+            "가로 \(horizontalItems.count)개 · 세로 \(verticalItems.count)개"
+
+        if isLoadingHorizontalPage ||
+            isLoadingVerticalPage
+        {
             activityIndicator.startAnimating()
         } else {
             activityIndicator.stopAnimating()

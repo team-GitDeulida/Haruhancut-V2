@@ -164,6 +164,13 @@ extension CollectionViewAdapter {
                 sectionIDs.insert(section.identifier).inserted,
                 "중복 section identifier: \(section.identifier)"
             )
+            if section.reachedEnd != nil {
+                precondition(
+                    section.layout
+                        .supportsOrthogonalReachedEnd,
+                    "Section onReachedEnd는 기본 제공 horizontalCarousel layout에서 지원합니다."
+                )
+            }
 
             var itemIDs: Set<AnyHashable> = []
             for item in section.items {

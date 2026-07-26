@@ -902,6 +902,226 @@ final class CollectionViewAdapterTests: XCTestCase {
     }
 
     @MainActor
+    func testHorizontalCarouselSectionReachesEndAtRelativeThreshold()
+        async
+    {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 400
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        let items = (0..<10).map {
+            TestItem(
+                id: $0,
+                title: "가로 Item \($0)"
+            )
+        }
+        let reachedEndExpectation = expectation(
+            description: "가로 Section 화면 1.5배 이내 끝 접근"
+        )
+        var callbackCount = 0
+
+        adapter.bind(
+            SectionModels {
+                LazySection(identifier: "photos") {
+                    For(of: items) {
+                        TestComponent(item: $0)
+                    }
+                }
+                .withSectionLayout(
+                    .horizontalCarousel(
+                        itemWidth: 0.5,
+                        estimatedHeight: 160,
+                        spacing: 10,
+                        behavior: .continuous,
+                        contentInsets:
+                            NSDirectionalEdgeInsets(
+                                top: 0,
+                                leading: 20,
+                                bottom: 0,
+                                trailing: 20
+                            )
+                    )
+                )
+                .onReachedEnd(
+                    threshold:
+                        .relativeToViewport(1.5)
+                ) {
+                    callbackCount += 1
+                    reachedEndExpectation.fulfill()
+                }
+            },
+            animatingDifferences: false
+        )
+
+        adapter.layoutAdapter
+            .handleOrthogonalScroll(
+                sectionIdentifier:
+                    AnyHashable("photos"),
+                contentOffset: CGPoint(
+                    x: 900,
+                    y: 0
+                ),
+                viewportWidth: 320
+            )
+        await Task.yield()
+        await Task.yield()
+        XCTAssertEqual(callbackCount, 0)
+
+        adapter.layoutAdapter
+            .handleOrthogonalScroll(
+                sectionIdentifier:
+                    AnyHashable("photos"),
+                contentOffset: CGPoint(
+                    x: 950,
+                    y: 0
+                ),
+                viewportWidth: 320
+            )
+
+        await fulfillment(
+            of: [reachedEndExpectation],
+            timeout: 1
+        )
+        XCTAssertEqual(callbackCount, 1)
+    }
+
+    @MainActor
+    func testHorizontalCarouselSectionRearmsAfterLeavingThreshold()
+        async
+    {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 400
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        let items = (0..<10).map {
+            TestItem(
+                id: $0,
+                title: "가로 Item \($0)"
+            )
+        }
+        let firstDeliveryExpectation = expectation(
+            description: "가로 Section 첫 끝 접근"
+        )
+        let secondDeliveryExpectation = expectation(
+            description: "가로 Section 재진입 끝 접근"
+        )
+        var callbackCount = 0
+
+        adapter.bind(
+            SectionModels {
+                LazySection(identifier: "photos") {
+                    For(of: items) {
+                        TestComponent(item: $0)
+                    }
+                }
+                .withSectionLayout(
+                    .horizontalCarousel(
+                        itemWidth: 0.5,
+                        estimatedHeight: 160,
+                        spacing: 10,
+                        behavior: .continuous,
+                        contentInsets:
+                            NSDirectionalEdgeInsets(
+                                top: 0,
+                                leading: 20,
+                                bottom: 0,
+                                trailing: 20
+                            )
+                    )
+                )
+                .onReachedEnd(
+                    threshold:
+                        .relativeToViewport(1.5)
+                ) {
+                    callbackCount += 1
+                    if callbackCount == 1 {
+                        firstDeliveryExpectation
+                            .fulfill()
+                    } else if callbackCount == 2 {
+                        secondDeliveryExpectation
+                            .fulfill()
+                    }
+                }
+            },
+            animatingDifferences: false
+        )
+
+        adapter.layoutAdapter
+            .handleOrthogonalScroll(
+                sectionIdentifier:
+                    AnyHashable("photos"),
+                contentOffset: CGPoint(
+                    x: 950,
+                    y: 0
+                ),
+                viewportWidth: 320
+            )
+        await fulfillment(
+            of: [firstDeliveryExpectation],
+            timeout: 1
+        )
+
+        adapter.layoutAdapter
+            .handleOrthogonalScroll(
+                sectionIdentifier:
+                    AnyHashable("photos"),
+                contentOffset: CGPoint(
+                    x: 1_000,
+                    y: 0
+                ),
+                viewportWidth: 320
+            )
+        await Task.yield()
+        await Task.yield()
+        XCTAssertEqual(callbackCount, 1)
+
+        adapter.layoutAdapter
+            .handleOrthogonalScroll(
+                sectionIdentifier:
+                    AnyHashable("photos"),
+                contentOffset: CGPoint(
+                    x: 800,
+                    y: 0
+                ),
+                viewportWidth: 320
+            )
+        adapter.layoutAdapter
+            .handleOrthogonalScroll(
+                sectionIdentifier:
+                    AnyHashable("photos"),
+                contentOffset: CGPoint(
+                    x: 950,
+                    y: 0
+                ),
+                viewportWidth: 320
+            )
+
+        await fulfillment(
+            of: [secondDeliveryExpectation],
+            timeout: 1
+        )
+        XCTAssertEqual(callbackCount, 2)
+    }
+
+    @MainActor
     func testAdapterReachesEndAtRelativeViewportThreshold()
         async
     {

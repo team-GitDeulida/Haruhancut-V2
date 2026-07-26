@@ -35,6 +35,10 @@ public final class CollectionViewAdapter:
     let scrollCallbacks =
         CollectionViewAdapterScrollCallbacks()
 
+    /// Section별 끝 접근 callback과 전달 상태의 저장소입니다.
+    let sectionReachedEndCallbacks =
+        CollectionViewAdapterSectionReachedEndCallbacks()
+
     /// 마지막으로 bind한, layout과 supplementary 설정까지 해석된 Section입니다.
     var sections: [ResolvedSection] = []
 
@@ -109,6 +113,14 @@ public final class CollectionViewAdapter:
         _ = diffableDataSource
         collectionView.delegate = self
         collectionView.prefetchDataSource = self
+        layoutAdapter.orthogonalSectionDidScroll = {
+            [weak self] sectionIdentifier, metrics in
+            self?.triggerSectionReachedEndIfNeeded(
+                sectionIdentifier:
+                    sectionIdentifier,
+                metrics: metrics
+            )
+        }
     }
 
     /// Section model을 collection view에 반영합니다.
@@ -132,6 +144,9 @@ public final class CollectionViewAdapter:
 
         let oldSections = sections
         sections = newSections
+        updateSectionReachedEndConfigurations(
+            newSections
+        )
         layoutAdapter.updateSections(newSections)
 
         applySnapshot(

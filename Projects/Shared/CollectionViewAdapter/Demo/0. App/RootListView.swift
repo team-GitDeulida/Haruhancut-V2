@@ -109,8 +109,8 @@ struct RootListView: View {
                             .toSwiftUI()
                     } label: {
                         CustomLabel(
-                            title: "Horizontal Image Infinite Scroll",
-                            caption: "가로 스크롤에서 이미지 prefetch와 pagination을 사용합니다",
+                            title: "Section Infinite Scroll",
+                            caption: "가로·세로 Section의 독립 pagination을 비교합니다",
                             shape: .yellow
                         )
                     }

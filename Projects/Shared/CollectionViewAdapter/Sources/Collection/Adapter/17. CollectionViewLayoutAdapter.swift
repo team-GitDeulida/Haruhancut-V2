@@ -18,6 +18,15 @@ import UIKit
 @MainActor
 public final class CollectionViewLayoutAdapter {
     private var sections: [ResolvedSection] = []
+    private var sectionsByIdentifier:
+        [AnyHashable: ResolvedSection] = [:]
+
+    /// 가로 Section의 현재 거리 정보를 Adapter에 전달합니다.
+    var orthogonalSectionDidScroll:
+        (
+            AnyHashable,
+            CollectionViewSectionScrollMetrics
+        ) -> Void = { _, _ in }
 
     /// 현재 bind된 Section에 대응하는 Compositional Layout provider입니다.
     ///
@@ -37,8 +46,48 @@ public final class CollectionViewLayoutAdapter {
             else {
                 return nil
             }
-            return self.sections[sectionIndex]
-                .makeLayoutSection()
+
+            let resolvedSection =
+                self.sections[sectionIndex]
+            let layoutSection =
+                resolvedSection.makeLayoutSection()
+
+            guard
+                resolvedSection.reachedEnd != nil,
+                resolvedSection.layout
+                    .supportsOrthogonalReachedEnd
+            else {
+                return layoutSection
+            }
+
+            let sectionIdentifier =
+                resolvedSection.identifier
+            let existingHandler =
+                layoutSection
+                    .visibleItemsInvalidationHandler
+            layoutSection
+                .visibleItemsInvalidationHandler = {
+                    [weak self]
+                    visibleItems,
+                    contentOffset,
+                    environment in
+                    existingHandler?(
+                        visibleItems,
+                        contentOffset,
+                        environment
+                    )
+                    self?.handleOrthogonalScroll(
+                        sectionIdentifier:
+                            sectionIdentifier,
+                        contentOffset:
+                            contentOffset,
+                        viewportWidth:
+                            environment.container
+                                .effectiveContentSize
+                                .width
+                    )
+                }
+            return layoutSection
         }
     }
 
@@ -49,5 +98,45 @@ public final class CollectionViewLayoutAdapter {
         _ sections: [ResolvedSection]
     ) {
         self.sections = sections
+        sectionsByIdentifier = Dictionary(
+            uniqueKeysWithValues: sections.map {
+                ($0.identifier, $0)
+            }
+        )
+    }
+
+    /// 가로 Section의 offset을 거리 정보로 바꿔 Adapter에 전달합니다.
+    ///
+    /// 별도 메서드로 분리해 UIKit handler뿐 아니라 회귀 테스트에서도 같은
+    /// 거리 계산과 전달 경로를 사용할 수 있습니다.
+    func handleOrthogonalScroll(
+        sectionIdentifier: AnyHashable,
+        contentOffset: CGPoint,
+        viewportWidth: CGFloat
+    ) {
+        guard
+            let section =
+                sectionsByIdentifier[
+                    sectionIdentifier
+                ],
+            section.reachedEnd != nil,
+            let metrics =
+                section.layout
+                    .makeOrthogonalScrollMetrics(
+                        itemCount:
+                            section.items.count,
+                        viewportWidth:
+                            viewportWidth,
+                        contentOffsetX:
+                            contentOffset.x
+                    )
+        else {
+            return
+        }
+
+        orthogonalSectionDidScroll(
+            sectionIdentifier,
+            metrics
+        )
     }
 }
