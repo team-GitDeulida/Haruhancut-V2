@@ -200,6 +200,37 @@ final class CollectionViewAdapterTests: XCTestCase {
         XCTAssertFalse(
             allowsSimultaneousRecognition
         )
+
+        let requiresSemanticLongPressToFail =
+            tapGestureRecognizer.delegate?
+                .gestureRecognizer?(
+                    tapGestureRecognizer,
+                    shouldRequireFailureOf:
+                        semanticLongPressRecognizer
+                )
+            ?? false
+
+        XCTAssertTrue(
+            requiresSemanticLongPressToFail
+        )
+
+        let pressedEffectLongPressRecognizer =
+            UILongPressGestureRecognizer()
+        pressedEffectLongPressRecognizer
+            .minimumPressDuration = 0
+
+        let requiresPressedEffectToFail =
+            tapGestureRecognizer.delegate?
+                .gestureRecognizer?(
+                    tapGestureRecognizer,
+                    shouldRequireFailureOf:
+                        pressedEffectLongPressRecognizer
+                )
+            ?? false
+
+        XCTAssertFalse(
+            requiresPressedEffectToFail
+        )
     }
 
     @MainActor

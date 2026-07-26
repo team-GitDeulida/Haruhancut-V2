@@ -102,6 +102,45 @@ final class AppUITests: XCTestCase {
         let firstCell = feedCollection.cells.element(boundBy: 0)
             XCTAssertTrue(firstCell.exists, "첫 번째 셀이 존재하지 않음")
         firstCell.press(forDuration: 1.0)
+
+        // 삭제 알림을 취소했을 때 상세 화면으로 이동하지 않았는지 확인
+        let deleteAlert = app.alerts.firstMatch
+        XCTAssertTrue(
+            deleteAlert.waitForExistence(timeout: 20),
+            "삭제 확인 알림이 나타나지 않음"
+        )
+
+        let cancelButton = deleteAlert.buttons["취소"]
+        XCTAssertTrue(
+            cancelButton.waitForExistence(timeout: 5),
+            "삭제 취소 버튼이 나타나지 않음"
+        )
+        cancelButton.tap()
+
+        XCTAssertTrue(
+            deleteAlert.waitForNonExistence(timeout: 5),
+            "삭제 확인 알림이 닫히지 않음"
+        )
+
+        let feedIsInteractiveExpectation =
+            XCTNSPredicateExpectation(
+                predicate: NSPredicate(
+                    format:
+                        "exists == true AND hittable == true"
+                ),
+                object: feedCollection
+            )
+        XCTAssertEqual(
+            XCTWaiter().wait(
+                for: [feedIsInteractiveExpectation],
+                timeout: 5
+            ),
+            .completed,
+            "long press 후 상세 화면으로 이동함"
+        )
+
+        // 같은 셀을 다시 길게 눌러 실제 삭제를 진행
+        firstCell.press(forDuration: 1.0)
         
         // 삭제 버튼 확인
         let deleteButton = app.alerts.buttons["삭제"]
