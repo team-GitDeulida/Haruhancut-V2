@@ -20,10 +20,13 @@ public final class ContainerSupplementaryView<C: Component>:
     ComponentContainerLifecycle
 {
     private var content: C.Content?
+    private var component: C?
+    private var isContentActive = false
 
     var bindingContext: ComponentContext? {
         didSet {
             oldValue?.cancel()
+            isContentActive = false
         }
     }
 
@@ -43,6 +46,7 @@ public final class ContainerSupplementaryView<C: Component>:
             )
             return
         }
+        self.component = concreteComponent
 
         let renderedContent: C.Content
         if let content {
@@ -74,18 +78,39 @@ public final class ContainerSupplementaryView<C: Component>:
             content: renderedContent,
             context: context
         )
+        isContentActive = true
     }
 
-    func contentWillDisplay() {}
+    func contentWillDisplay() {
+        guard
+            !isContentActive,
+            let component,
+            let content,
+            let context = bindingContext
+        else {
+            return
+        }
+
+        component.render(
+            content: content,
+            context: context
+        )
+        isContentActive = true
+    }
 
     func contentDidEndDisplay() {
+        guard isContentActive else {
+            return
+        }
+
         bindingContext?.cancel()
+        isContentActive = false
     }
 
     public override func prepareForReuse() {
         super.prepareForReuse()
-        bindingContext?.cancel()
         bindingContext = nil
+        component = nil
     }
 
 }

@@ -7,7 +7,13 @@ private struct TestItem: Identifiable, Equatable {
     let title: String
 }
 
-private final class TestContentView: UIView, Touchable {}
+private final class TestContentView:
+    UIView,
+    Touchable,
+    ContainsButton
+{
+    let buttonTapEvent = ComponentEvent<Void>()
+}
 
 private struct TestComponent: Component {
     let item: TestItem
@@ -109,5 +115,70 @@ final class CollectionViewAdapterTests: XCTestCase {
                 to: newComponent
             )
         )
+    }
+
+    @MainActor
+    func testTouchableReusesEventAndGestureRecognizer() {
+        let contentView = TestContentView()
+
+        let firstEvent = contentView.touchEvent
+        let secondEvent = contentView.touchEvent
+        contentView.installTouchHandlingIfNeeded()
+
+        XCTAssertTrue(firstEvent === secondEvent)
+        XCTAssertEqual(
+            contentView.gestureRecognizers?.count,
+            1
+        )
+    }
+
+    @MainActor
+    func testCellRestoresEventBindingsWhenRedisplayed() {
+        var touchCount = 0
+        var buttonTapCount = 0
+        let component = TestComponent(
+            item: TestItem(
+                id: 7,
+                title: "계좌"
+            )
+        )
+        .onTouch {
+            touchCount += 1
+        }
+        .onButtonTap {
+            buttonTapCount += 1
+        }
+        let cell = ContainerCell<
+            OnButtonTapModifier<
+                OnTouchModifier<TestComponent>
+            >
+        >()
+        cell.bindingContext = ComponentContext()
+        cell.bind(component: AnyComponent(component))
+
+        guard
+            let content = cell.contentView.subviews
+                .compactMap({ $0 as? TestContentView })
+                .first
+        else {
+            return XCTFail("Component Content 생성 실패")
+        }
+
+        content.touchEvent.send(())
+        content.buttonTapEvent.send(())
+        XCTAssertEqual(touchCount, 1)
+        XCTAssertEqual(buttonTapCount, 1)
+
+        cell.contentDidEndDisplay()
+        content.touchEvent.send(())
+        content.buttonTapEvent.send(())
+        XCTAssertEqual(touchCount, 1)
+        XCTAssertEqual(buttonTapCount, 1)
+
+        cell.contentWillDisplay()
+        content.touchEvent.send(())
+        content.buttonTapEvent.send(())
+        XCTAssertEqual(touchCount, 2)
+        XCTAssertEqual(buttonTapCount, 2)
     }
 }

@@ -20,23 +20,46 @@ public final class ContainerCell<C: Component>:
     ComponentContainerLifecycle {
     
     private var content: C.Content?
+    private var component: C?
+    private var isContentActive = false
     
     var bindingContext: ComponentContext? {
         didSet {
             oldValue?.cancel()
+            isContentActive = false
         }
     }
     
     public override func prepareForReuse() {
         super.prepareForReuse()
-        bindingContext?.cancel()
         bindingContext = nil
+        component = nil
     }
     
-    func contentWillDisplay() {}
+    func contentWillDisplay() {
+        guard
+            !isContentActive,
+            let component,
+            let content,
+            let context = bindingContext
+        else {
+            return
+        }
+
+        component.render(
+            content: content,
+            context: context
+        )
+        isContentActive = true
+    }
 
     func contentDidEndDisplay() {
+        guard isContentActive else {
+            return
+        }
+
         bindingContext?.cancel()
+        isContentActive = false
     }
     
     /// Type-erased 모델에서 Component를 복원하고 Content를 렌더링합니다.
@@ -54,6 +77,7 @@ public final class ContainerCell<C: Component>:
             )
             return
         }
+        self.component = component
 
         let renderedContent: C.Content
         if let content {
@@ -84,6 +108,7 @@ public final class ContainerCell<C: Component>:
             content: renderedContent,
             context: context
         )
+        isContentActive = true
     }
     
 
