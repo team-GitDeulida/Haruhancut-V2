@@ -105,6 +105,17 @@ struct RootListView: View {
                     }
 
                     NavigationLink {
+                        HorizontalImageInfiniteScrollViewController()
+                            .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Horizontal Image Infinite Scroll",
+                            caption: "가로 스크롤에서 이미지 prefetch와 pagination을 사용합니다",
+                            shape: .yellow
+                        )
+                    }
+
+                    NavigationLink {
                         GridDemoViewController()
                             .toSwiftUI()
                             .navigationTitle("Grid Layout")
