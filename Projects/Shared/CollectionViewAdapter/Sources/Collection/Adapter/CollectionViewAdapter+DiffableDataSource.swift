@@ -63,8 +63,8 @@ private struct AdapterComponentSignature: Equatable {
     }
 }
 
-/// Section boundary supplementary의 표시와 배치 상태를 비교하는 값입니다.
-private struct AdapterBoundarySignature: Equatable {
+/// Section boundary supplementary의 container와 배치 상태를 비교하는 값입니다.
+private struct AdapterBoundaryLayoutSignature: Equatable {
     /// Boundary view의 종류와 layout 설정입니다.
     enum Placement: Equatable {
         case header(
@@ -85,8 +85,8 @@ private struct AdapterBoundarySignature: Equatable {
         )
     }
 
-    /// Header 또는 footer에 표시할 Component 상태입니다.
-    let component: AdapterComponentSignature
+    /// Header 또는 footer를 담는 Component container의 재사용 키입니다.
+    let componentReuseKey: String
 
     /// Header 또는 footer의 layout 배치 상태입니다.
     let placement: Placement
@@ -139,8 +139,13 @@ extension CollectionViewAdapter {
             snapshot: &snapshot
         )
 
-        collectionView?.collectionViewLayout
-            .invalidateLayout()
+        if layoutRequiresInvalidation(
+            oldSections: oldSections,
+            newSections: newSections
+        ) {
+            collectionView?.collectionViewLayout
+                .invalidateLayout()
+        }
         diffableDataSource.apply(
             snapshot,
             animatingDifferences: animatingDifferences,
@@ -229,11 +234,19 @@ extension CollectionViewAdapter {
                 continue
             }
 
-            if boundarySignature(of: oldSection)
-                != boundarySignature(of: newSection) {
+            if boundaryLayoutRequiresSectionReload(
+                oldSection: oldSection,
+                newSection: newSection
+            ) {
                 snapshot.reloadSections([sectionID])
                 continue
             }
+
+            reconfigureChangedVisibleBoundaries(
+                oldSection: oldSection,
+                newSection: newSection,
+                sectionID: sectionID
+            )
 
             let oldItems = Dictionary(
                 uniqueKeysWithValues:
@@ -276,19 +289,76 @@ extension CollectionViewAdapter {
         }
     }
 
-    /// Section header와 footer의 Content 및 layout 상태를 비교 가능한 값으로 만듭니다.
-    private func boundarySignature(
+    /// Boundary container 또는 layout 변경에 Section reload가 필요한지 판단합니다.
+    func boundaryLayoutRequiresSectionReload(
+        oldSection: ResolvedSection,
+        newSection: ResolvedSection
+    ) -> Bool {
+        boundaryLayoutSignature(of: oldSection)
+            != boundaryLayoutSignature(
+                of: newSection
+            )
+    }
+
+    /// Section 배치가 실제로 달라져 layout 재계산이 필요한지 판단합니다.
+    func layoutRequiresInvalidation(
+        oldSections: [ResolvedSection],
+        newSections: [ResolvedSection]
+    ) -> Bool {
+        let oldByID = Dictionary(
+            uniqueKeysWithValues: oldSections.map {
+                ($0.identifier, $0)
+            }
+        )
+
+        for newSection in newSections {
+            guard
+                let oldSection =
+                    oldByID[newSection.identifier]
+            else {
+                continue
+            }
+
+            if !oldSection.layout.isLayoutEquivalent(
+                to: newSection.layout
+            ) {
+                return true
+            }
+
+            if oldSection.maximumEstimatedItemHeight
+                != newSection
+                    .maximumEstimatedItemHeight
+            {
+                return true
+            }
+
+            if boundaryLayoutRequiresSectionReload(
+                oldSection: oldSection,
+                newSection: newSection
+            ) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    /// Section header와 footer의 container 및 layout 상태를 비교합니다.
+    ///
+    /// 같은 container에서 표시 값만 달라진 경우에는 Section reload가
+    /// 필요하지 않습니다.
+    private func boundaryLayoutSignature(
         of section: ResolvedSection
-    ) -> [AdapterBoundarySignature] {
-        var signatures: [AdapterBoundarySignature] = []
+    ) -> [AdapterBoundaryLayoutSignature] {
+        var signatures: [
+            AdapterBoundaryLayoutSignature
+        ] = []
 
         if let header = section.header {
             signatures.append(
-                AdapterBoundarySignature(
-                    component:
-                        AdapterComponentSignature(
-                            component: header.component
-                        ),
+                AdapterBoundaryLayoutSignature(
+                    componentReuseKey:
+                        header.component.reuseKey,
                     placement: .header(
                         kind: header.kind,
                         alignment:
@@ -307,11 +377,9 @@ extension CollectionViewAdapter {
 
         if let footer = section.footer {
             signatures.append(
-                AdapterBoundarySignature(
-                    component:
-                        AdapterComponentSignature(
-                            component: footer.component
-                        ),
+                AdapterBoundaryLayoutSignature(
+                    componentReuseKey:
+                        footer.component.reuseKey,
                     placement: .footer(
                         kind: footer.kind,
                         alignment:
@@ -329,5 +397,48 @@ extension CollectionViewAdapter {
         }
 
         return signatures
+    }
+
+    /// 내용만 바뀐 현재 표시 중 header와 footer를 제자리에서 다시 렌더링합니다.
+    private func reconfigureChangedVisibleBoundaries(
+        oldSection: ResolvedSection,
+        newSection: ResolvedSection,
+        sectionID: AdapterSectionIdentifier
+    ) {
+        reconfigureChangedVisibleBoundary(
+            old: oldSection.header,
+            new: newSection.header,
+            sectionID: sectionID
+        )
+        reconfigureChangedVisibleBoundary(
+            old: oldSection.footer,
+            new: newSection.footer,
+            sectionID: sectionID
+        )
+    }
+
+    /// 같은 container를 유지하면서 Component 내용이 달라진 boundary를 갱신합니다.
+    private func reconfigureChangedVisibleBoundary(
+        old: SupplementaryView?,
+        new: SupplementaryView?,
+        sectionID: AdapterSectionIdentifier
+    ) {
+        guard
+            let old,
+            let new,
+            AdapterComponentSignature(
+                component: old.component
+            ) != AdapterComponentSignature(
+                component: new.component
+            )
+        else {
+            return
+        }
+
+        reconfigureVisibleSupplementaryViews(
+            ofKind: new.kind,
+            in: sectionID,
+            with: new.component
+        )
     }
 }

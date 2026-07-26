@@ -129,6 +129,55 @@ extension CollectionViewAdapter {
         }
     }
 
+    /// 표시 중인 Section supplementary view의 container를 유지한 채 다시 렌더링합니다.
+    ///
+    /// Header나 footer의 Component 타입과 layout 배치는 같고 Item 값만
+    /// 달라진 경우 Section 전체 reload로 인한 깜빡임을 피합니다.
+    func reconfigureVisibleSupplementaryViews(
+        ofKind kind: String,
+        in sectionID: AdapterSectionIdentifier,
+        with component: AnyComponent
+    ) {
+        guard
+            let collectionView,
+            let sectionIndex =
+                diffableDataSource.snapshot()
+                    .indexOfSection(sectionID)
+        else {
+            return
+        }
+
+        let visibleIndexPaths =
+            collectionView
+                .indexPathsForVisibleSupplementaryElements(
+                    ofKind: kind
+                )
+
+        for indexPath in visibleIndexPaths
+        where indexPath.section == sectionIndex {
+            guard
+                let view =
+                    collectionView.supplementaryView(
+                        forElementKind: kind,
+                        at: indexPath
+                    )
+            else {
+                continue
+            }
+
+            let context = makeContext(
+                collectionView: collectionView,
+                indexPath: indexPath,
+                sectionIdentifier:
+                    sectionID.rawValue
+            )
+            (view as? ComponentContextBindable)?
+                .bindingContext = context
+            (view as? SupplementaryComponentBindable)?
+                .bind(component: component)
+        }
+    }
+
     /// Component의 현재 위치와 layout 무효화 동작을 담은 context를 만듭니다.
     private func makeContext(
         collectionView: UICollectionView,

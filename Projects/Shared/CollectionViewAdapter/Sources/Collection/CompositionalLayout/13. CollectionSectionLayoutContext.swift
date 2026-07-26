@@ -7,6 +7,52 @@
 
 import UIKit
 
+/// Layout 비교에 사용하는 방향별 inset 값입니다.
+private struct CollectionLayoutInsetsSignature:
+    Equatable
+{
+    let top: CGFloat
+    let leading: CGFloat
+    let bottom: CGFloat
+    let trailing: CGFloat
+
+    init(_ insets: NSDirectionalEdgeInsets) {
+        top = insets.top
+        leading = insets.leading
+        bottom = insets.bottom
+        trailing = insets.trailing
+    }
+}
+
+/// 기본 제공 layout의 설정과 custom layout 인스턴스를 식별합니다.
+private enum CollectionSectionLayoutKindSignature:
+    Equatable
+{
+    case custom(UUID)
+    case verticalList(
+        estimatedRowHeight: CGFloat?,
+        spacing: CGFloat,
+        contentInsets:
+            CollectionLayoutInsetsSignature
+    )
+    case grid(
+        columns: Int,
+        estimatedRowHeight: CGFloat,
+        interItemSpacing: CGFloat,
+        lineSpacing: CGFloat,
+        contentInsets:
+            CollectionLayoutInsetsSignature
+    )
+    case horizontalCarousel(
+        itemWidth: CGFloat,
+        estimatedHeight: CGFloat,
+        spacing: CGFloat,
+        behavior: Int,
+        contentInsets:
+            CollectionLayoutInsetsSignature
+    )
+}
+
 /// Custom section layout 생성 시 제공되는 읽기 전용 정보입니다.
 public struct CollectionSectionLayoutContext {
     /// 현재 section의 item 개수입니다.
@@ -35,6 +81,9 @@ public struct CollectionSectionLayout {
         (CollectionSectionLayoutContext) ->
         NSCollectionLayoutSection
 
+    private let kindSignature:
+        CollectionSectionLayoutKindSignature
+
     private var sectionContentInsets:
         NSDirectionalEdgeInsets?
     private var headerPinToVisibleBounds = false
@@ -60,6 +109,19 @@ public struct CollectionSectionLayout {
             CollectionSectionLayoutContext
         ) -> NSCollectionLayoutSection
     ) {
+        kindSignature = .custom(UUID())
+        self.makeLayout = makeLayout
+    }
+
+    /// 비교 가능한 기본 layout 설정과 생성 동작을 함께 보관합니다.
+    private init(
+        kindSignature:
+            CollectionSectionLayoutKindSignature,
+        makeLayout: @escaping (
+            CollectionSectionLayoutContext
+        ) -> NSCollectionLayoutSection
+    ) {
+        self.kindSignature = kindSignature
         self.makeLayout = makeLayout
     }
 
@@ -121,7 +183,17 @@ public struct CollectionSectionLayout {
         spacing: CGFloat = 0,
         contentInsets: NSDirectionalEdgeInsets = .zero
     ) -> Self {
-        Self { context in
+        Self(
+            kindSignature: .verticalList(
+                estimatedRowHeight:
+                    estimatedRowHeight,
+                spacing: spacing,
+                contentInsets:
+                    CollectionLayoutInsetsSignature(
+                        contentInsets
+                    )
+            )
+        ) { context in
             let height = estimatedRowHeight
                 ?? context.maximumEstimatedItemHeight
             let itemSize = NSCollectionLayoutSize(
@@ -165,7 +237,20 @@ public struct CollectionSectionLayout {
             "grid columns는 1 이상이어야 합니다."
         )
 
-        return Self { _ in
+        return Self(
+            kindSignature: .grid(
+                columns: columns,
+                estimatedRowHeight:
+                    estimatedRowHeight,
+                interItemSpacing:
+                    interItemSpacing,
+                lineSpacing: lineSpacing,
+                contentInsets:
+                    CollectionLayoutInsetsSignature(
+                        contentInsets
+                    )
+            )
+        ) { _ in
             let groupSize = NSCollectionLayoutSize(
                 widthDimension: .fractionalWidth(1),
                 heightDimension: .estimated(
@@ -186,7 +271,7 @@ public struct CollectionSectionLayout {
             )
             let group = NSCollectionLayoutGroup.horizontal(
                 layoutSize: groupSize,
-                subitem: item,
+                repeatingSubitem: item,
                 count: columns
             )
             let section = NSCollectionLayoutSection(
@@ -220,7 +305,18 @@ public struct CollectionSectionLayout {
             "itemWidth는 0보다 크고 1 이하여야 합니다."
         )
 
-        return Self { _ in
+        return Self(
+            kindSignature: .horizontalCarousel(
+                itemWidth: itemWidth,
+                estimatedHeight: estimatedHeight,
+                spacing: spacing,
+                behavior: behavior.rawValue,
+                contentInsets:
+                    CollectionLayoutInsetsSignature(
+                        contentInsets
+                    )
+            )
+        ) { _ in
             let groupSize = NSCollectionLayoutSize(
                 widthDimension: .fractionalWidth(itemWidth),
                 heightDimension: .estimated(
@@ -256,6 +352,23 @@ public struct CollectionSectionLayout {
                 sectionContentInsets
         }
         return section
+    }
+
+    /// 두 Section layout이 같은 배치 결과를 만드는지 비교합니다.
+    func isLayoutEquivalent(
+        to other: CollectionSectionLayout
+    ) -> Bool {
+        kindSignature == other.kindSignature
+            && sectionContentInsets.map(
+                CollectionLayoutInsetsSignature.init
+            )
+                == other.sectionContentInsets.map(
+                    CollectionLayoutInsetsSignature.init
+                )
+            && headerPinToVisibleBounds
+                == other.headerPinToVisibleBounds
+            && footerPinToVisibleBounds
+                == other.footerPinToVisibleBounds
     }
 
     func applyBoundaryConfiguration(

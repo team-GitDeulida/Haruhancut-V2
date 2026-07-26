@@ -131,7 +131,7 @@ final class PinnedHeaderInfiniteScrollViewController:
             appendPage(page)
             nextPage += 1
             isLoadingNextPage = false
-            render()
+            render(animatingDifferences: false)
         }
     }
 

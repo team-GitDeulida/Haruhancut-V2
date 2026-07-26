@@ -13,6 +13,7 @@ private final class TestContentView:
     ContainsButton
 {
     let buttonTapEvent = ComponentEvent<Void>()
+    var renderedTitle: String?
 }
 
 private struct TestComponent: Component {
@@ -24,8 +25,10 @@ private struct TestComponent: Component {
 
     func render(
         context _: ComponentContext,
-        content _: TestContentView
-    ) {}
+        content: TestContentView
+    ) {
+        content.renderedTitle = item.title
+    }
 }
 
 final class CollectionViewAdapterTests: XCTestCase {
@@ -353,6 +356,310 @@ final class CollectionViewAdapterTests: XCTestCase {
                 AnyHashable(7),
                 AnyHashable(8),
             ]
+        )
+    }
+
+    @MainActor
+    func testBoundaryContentChangeDoesNotRequireSectionReload() {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 800
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        let oldModels = SectionModels {
+            LazySection(identifier: "feed") {
+                TestComponent(
+                    item: TestItem(
+                        id: 1,
+                        title: "첫 번째 Item"
+                    )
+                )
+            }
+            .withHeader(
+                TestComponent(
+                    item: TestItem(
+                        id: 100,
+                        title: "1개 로드"
+                    )
+                ),
+                height: .absolute(44)
+            )
+            .withFooter(
+                TestComponent(
+                    item: TestItem(
+                        id: 200,
+                        title: "대기 중"
+                    )
+                ),
+                height: .absolute(44)
+            )
+        }
+        let newModels = SectionModels {
+            LazySection(identifier: "feed") {
+                TestComponent(
+                    item: TestItem(
+                        id: 1,
+                        title: "첫 번째 Item"
+                    )
+                )
+                TestComponent(
+                    item: TestItem(
+                        id: 2,
+                        title: "두 번째 Item"
+                    )
+                )
+            }
+            .withHeader(
+                TestComponent(
+                    item: TestItem(
+                        id: 100,
+                        title: "2개 로드"
+                    )
+                ),
+                height: .absolute(44)
+            )
+            .withFooter(
+                TestComponent(
+                    item: TestItem(
+                        id: 200,
+                        title: "로딩 중"
+                    )
+                ),
+                height: .absolute(44)
+            )
+        }
+        let oldSection =
+            oldModels.sections[0].resolve()
+        let newSection =
+            newModels.sections[0].resolve()
+
+        XCTAssertFalse(
+            adapter
+                .boundaryLayoutRequiresSectionReload(
+                    oldSection: oldSection,
+                    newSection: newSection
+                )
+        )
+        XCTAssertFalse(
+            adapter.layoutRequiresInvalidation(
+                oldSections: [oldSection],
+                newSections: [newSection]
+            )
+        )
+    }
+
+    @MainActor
+    func testLayoutConfigurationChangeRequiresInvalidation() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        let listSection =
+            LazySection(identifier: "feed") {
+                TestComponent(
+                    item: TestItem(
+                        id: 1,
+                        title: "Item"
+                    )
+                )
+            }
+            .withSectionLayout(
+                .verticalList(spacing: 8)
+            )
+            .resolve()
+        let gridSection =
+            LazySection(identifier: "feed") {
+                TestComponent(
+                    item: TestItem(
+                        id: 1,
+                        title: "Item"
+                    )
+                )
+            }
+            .withSectionLayout(
+                .grid(
+                    columns: 2,
+                    interItemSpacing: 8
+                )
+            )
+            .resolve()
+
+        XCTAssertTrue(
+            adapter.layoutRequiresInvalidation(
+                oldSections: [listSection],
+                newSections: [gridSection]
+            )
+        )
+    }
+
+    @MainActor
+    func testAdapterReconfiguresVisibleHeaderInPlace()
+        async
+    {
+        let initialItems = (0..<20).map {
+            TestItem(
+                id: $0,
+                title: "Item \($0)"
+            )
+        }
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 400
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        adapter.bind(
+            SectionModels {
+                LazySection(identifier: "feed") {
+                    For(of: initialItems) {
+                        TestComponent(item: $0)
+                    }
+                }
+                .withHeader(
+                    TestComponent(
+                        item: TestItem(
+                            id: 100,
+                            title: "1개 로드"
+                        )
+                    ),
+                    height: .absolute(44)
+                )
+                .withSectionLayout(
+                    CollectionSectionLayout
+                        .verticalList()
+                        .withHeaderPinToVisibleBounds(
+                            true
+                        )
+                )
+            },
+            animatingDifferences: false
+        )
+        collectionView.layoutIfNeeded()
+        collectionView.contentOffset = CGPoint(
+            x: 0,
+            y: 400
+        )
+        collectionView.layoutIfNeeded()
+
+        let headerIndexPath = IndexPath(
+            item: 0,
+            section: 0
+        )
+        guard
+            let firstHeader =
+                collectionView.supplementaryView(
+                    forElementKind:
+                        UICollectionView
+                            .elementKindSectionHeader,
+                    at: headerIndexPath
+                ),
+            let firstContent =
+                firstHeader.subviews
+                    .compactMap({
+                        $0 as? TestContentView
+                    })
+                    .first
+        else {
+            return XCTFail("첫 header 생성 실패")
+        }
+        XCTAssertEqual(
+            firstContent.renderedTitle,
+            "1개 로드"
+        )
+        let initialHeaderFrame = firstHeader.frame
+
+        let updateExpectation = expectation(
+            description: "Item 추가 snapshot 적용"
+        )
+        let updatedItems = initialItems
+            + (20..<40).map {
+                TestItem(
+                    id: $0,
+                    title: "Item \($0)"
+                )
+            }
+        adapter.bind(
+            SectionModels {
+                LazySection(identifier: "feed") {
+                    For(of: updatedItems) {
+                        TestComponent(item: $0)
+                    }
+                }
+                .withHeader(
+                    TestComponent(
+                        item: TestItem(
+                            id: 100,
+                            title: "2개 로드"
+                        )
+                    ),
+                    height: .absolute(44)
+                )
+                .withSectionLayout(
+                    CollectionSectionLayout
+                        .verticalList()
+                        .withHeaderPinToVisibleBounds(
+                            true
+                        )
+                )
+            },
+            animatingDifferences: false,
+            completion: {
+                updateExpectation.fulfill()
+            }
+        )
+
+        await fulfillment(
+            of: [updateExpectation],
+            timeout: 1
+        )
+        collectionView.layoutIfNeeded()
+
+        guard
+            let updatedHeader =
+                collectionView.supplementaryView(
+                    forElementKind:
+                        UICollectionView
+                            .elementKindSectionHeader,
+                    at: headerIndexPath
+                ),
+            let updatedContent =
+                updatedHeader.subviews
+                    .compactMap({
+                        $0 as? TestContentView
+                    })
+                    .first
+        else {
+            return XCTFail("갱신된 header 확인 실패")
+        }
+
+        XCTAssertTrue(firstHeader === updatedHeader)
+        XCTAssertTrue(firstContent === updatedContent)
+        XCTAssertEqual(
+            updatedHeader.frame,
+            initialHeaderFrame
+        )
+        XCTAssertEqual(
+            updatedContent.renderedTitle,
+            "2개 로드"
         )
     }
 
