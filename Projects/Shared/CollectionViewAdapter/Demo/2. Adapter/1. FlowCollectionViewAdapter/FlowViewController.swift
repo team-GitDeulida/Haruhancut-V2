@@ -45,7 +45,7 @@ struct DemoItem: Hashable {
     }
 }
 
-final class MainViewController: UIViewController {
+final class FlowViewController: UIViewController {
     private let sectionInsets = UIEdgeInsets(top: 8, left: 20, bottom: 28, right: 20)
     private let itemSpacing: CGFloat = 12
 
@@ -74,7 +74,7 @@ final class MainViewController: UIViewController {
     }()
 
     private lazy var adapter = makeAdapter()
-    private var sections = MainViewController.initialSections
+    private var sections = FlowViewController.initialSections
 
     override func viewDidLoad() {
         super.viewDidLoad()

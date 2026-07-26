@@ -28,18 +28,6 @@ struct RootListView: View {
             List {
                 Section("UIKit Examples") {
                     NavigationLink {
-                        CollectionViewAdapterExampleView()
-                    } label: {
-                        CustomLabel(
-                            title: "CollectionViewAdapter",
-                            caption: "UIViewController를 SwiftUI에서 실행합니다",
-                            shape: .yellow
-                        )
-                    }
-                }
-                
-                Section("CollectionView") {
-                    NavigationLink {
                         AccountListViewController(accounts: BankAccount.sample).toSwiftUI()
                     } label: {
                         CustomLabel(
@@ -48,13 +36,26 @@ struct RootListView: View {
                             shape: .blue
                         )
                     }
+                }
+                
+                Section("CollectionView") {
+                    
+                    NavigationLink {
+                        CollectionViewAdapterExampleView()
+                    } label: {
+                        CustomLabel(
+                            title: "FlowCollectionViewAdapter",
+                            caption: "외부에서 셀의 타입을 요구합니다",
+                            shape: .yellow
+                        )
+                    }
                     
                     NavigationLink {
                         AdapterAccountListViewController(accounts: BankAccount.sample).toSwiftUI()
                     } label: {
                         CustomLabel(
                             title: "First CollectionViewAdapter",
-                            caption: "기초적인 CollectionViewAdapter 사용법입니다",
+                            caption: "외부에서 셀의 타입을 요구하지 않습니다",
                             shape: .green
                         )
                     }
@@ -95,7 +96,7 @@ struct RootListView: View {
 }
 
 private struct CollectionViewAdapterExampleView: View {
-    @State private var viewController = MainViewController()
+    @State private var viewController = FlowViewController()
 
     var body: some View {
         viewController
