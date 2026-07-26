@@ -69,6 +69,17 @@ struct RootListView: View {
                             shape: .orange
                         )
                     }
+
+                    NavigationLink {
+                        PinnedHeaderInfiniteScrollViewController()
+                            .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Pinned Header + Infinite Scroll",
+                            caption: "고정 헤더와 페이지 단위 무한 스크롤 예제입니다",
+                            shape: .yellow
+                        )
+                    }
                 }
 
                 Section("Next Examples") {
