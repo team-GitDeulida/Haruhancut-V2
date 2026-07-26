@@ -30,6 +30,7 @@ public final class ContainerCell<C: Component>:
         }
     }
     
+    /// 재사용 전에 기존 render 수명과 Component 상태를 정리합니다.
     public override func prepareForReuse() {
         super.prepareForReuse()
         bindingContext = nil

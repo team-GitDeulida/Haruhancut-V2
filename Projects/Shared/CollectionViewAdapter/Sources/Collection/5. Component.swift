@@ -44,6 +44,7 @@ public protocol Component: CompositionalLayoutSizeable {
     )
 }
 
+/// Component를 직접 렌더링할 때 사용하는 편의 API를 제공합니다.
 public extension Component {
     
     /// 호출부에서 `content`, `context` label 순서로 렌더링합니다.

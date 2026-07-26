@@ -18,6 +18,7 @@ public protocol CompositionalLayoutSizeable {
     var estimatedHeight: CGFloat { get }
 }
 
+/// 추정 높이의 기본값을 제공합니다.
 public extension CompositionalLayoutSizeable {
     
     /// 별도 지정이 없을 때 사용하는 기본 추정 높이입니다.

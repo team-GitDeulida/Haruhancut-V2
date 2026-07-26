@@ -216,4 +216,590 @@ final class CollectionViewAdapterTests: XCTestCase {
             expectedIndexPath
         )
     }
+
+    @MainActor
+    func testAdapterOwnsPrefetchDataSource() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+
+        XCTAssertTrue(
+            collectionView.prefetchDataSource === adapter
+        )
+    }
+
+    @MainActor
+    func testAdapterRetainsDiffableDataSource() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+
+        XCTAssertTrue(
+            collectionView.dataSource
+                === adapter.diffableDataSource
+        )
+    }
+
+    @MainActor
+    func testDiffableItemIdentifierIsScopedBySection() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        adapter.bind(
+            SectionModels {
+                LazySection(identifier: "first") {
+                    TestComponent(
+                        item: TestItem(
+                            id: 7,
+                            title: "첫 번째 계좌"
+                        )
+                    )
+                }
+                LazySection(identifier: "second") {
+                    TestComponent(
+                        item: TestItem(
+                            id: 7,
+                            title: "두 번째 계좌"
+                        )
+                    )
+                }
+            },
+            animatingDifferences: false
+        )
+
+        let itemIdentifiers =
+            adapter.diffableDataSource
+                .snapshot()
+                .itemIdentifiers
+
+        XCTAssertEqual(itemIdentifiers.count, 2)
+        XCTAssertNotEqual(
+            itemIdentifiers[0],
+            itemIdentifiers[1]
+        )
+        XCTAssertEqual(
+            itemIdentifiers.map(\.rawValue),
+            [
+                AnyHashable(7),
+                AnyHashable(7),
+            ]
+        )
+    }
+
+    @MainActor
+    func testAdapterAppliesAppendedItemToSnapshot() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        adapter.bind(
+            SectionModels {
+                LazySection(identifier: "accounts") {
+                    TestComponent(
+                        item: TestItem(
+                            id: 7,
+                            title: "여행 적금"
+                        )
+                    )
+                }
+            },
+            animatingDifferences: false
+        )
+        adapter.bind(
+            SectionModels {
+                LazySection(identifier: "accounts") {
+                    TestComponent(
+                        item: TestItem(
+                            id: 7,
+                            title: "여행 적금"
+                        )
+                    )
+                    TestComponent(
+                        item: TestItem(
+                            id: 8,
+                            title: "생활비 통장"
+                        )
+                    )
+                }
+            },
+            animatingDifferences: false
+        )
+
+        XCTAssertEqual(
+            adapter.diffableDataSource
+                .snapshot()
+                .itemIdentifiers
+                .map(\.rawValue),
+            [
+                AnyHashable(7),
+                AnyHashable(8),
+            ]
+        )
+    }
+
+    @MainActor
+    func testAdapterForwardsPrefetchItemsWithStableIdentifiers() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        adapter.bind(
+            SectionModels {
+                LazySection(identifier: "accounts") {
+                    TestComponent(
+                        item: TestItem(
+                            id: 7,
+                            title: "여행 적금"
+                        )
+                    )
+                    TestComponent(
+                        item: TestItem(
+                            id: 8,
+                            title: "생활비 통장"
+                        )
+                    )
+                }
+            },
+            animatingDifferences: false
+        )
+
+        var receivedItems: [
+            CollectionViewPrefetchItem
+        ] = []
+        adapter.prefetchItems = { items in
+            receivedItems = items
+        }
+
+        let requestedIndexPath = IndexPath(
+            item: 1,
+            section: 0
+        )
+        adapter.collectionView(
+            collectionView,
+            prefetchItemsAt: [
+                requestedIndexPath,
+            ]
+        )
+
+        XCTAssertEqual(
+            receivedItems,
+            [
+                CollectionViewPrefetchItem(
+                    indexPath: requestedIndexPath,
+                    sectionIdentifier:
+                        AnyHashable("accounts"),
+                    itemIdentifier:
+                        AnyHashable(8)
+                ),
+            ]
+        )
+    }
+
+    @MainActor
+    func testAdapterForwardsCancelPrefetchingItems() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        adapter.bind(
+            SectionModels {
+                LazySection(identifier: "accounts") {
+                    TestComponent(
+                        item: TestItem(
+                            id: 7,
+                            title: "여행 적금"
+                        )
+                    )
+                }
+            },
+            animatingDifferences: false
+        )
+
+        var cancelledItems: [
+            CollectionViewPrefetchItem
+        ] = []
+        adapter.cancelPrefetchingItems = { items in
+            cancelledItems = items
+        }
+
+        let requestedIndexPath = IndexPath(
+            item: 0,
+            section: 0
+        )
+        adapter.collectionView(
+            collectionView,
+            cancelPrefetchingForItemsAt: [
+                requestedIndexPath,
+            ]
+        )
+
+        XCTAssertEqual(
+            cancelledItems,
+            [
+                CollectionViewPrefetchItem(
+                    indexPath: requestedIndexPath,
+                    sectionIdentifier:
+                        AnyHashable("accounts"),
+                    itemIdentifier:
+                        AnyHashable(7)
+                ),
+            ]
+        )
+    }
+
+    @MainActor
+    func testAdapterIgnoresInvalidPrefetchIndexPath() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+
+        var callbackCount = 0
+        adapter.prefetchItems = { _ in
+            callbackCount += 1
+        }
+
+        adapter.collectionView(
+            collectionView,
+            prefetchItemsAt: [
+                IndexPath(
+                    item: 100,
+                    section: 10
+                ),
+            ]
+        )
+
+        XCTAssertEqual(callbackCount, 0)
+    }
+
+    @MainActor
+    func testAdapterReachesEndAtRelativeViewportThreshold()
+        async
+    {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 800
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        collectionView.contentSize = CGSize(
+            width: 320,
+            height: 2_400
+        )
+        collectionView.contentOffset = CGPoint(
+            x: 0,
+            y: 400
+        )
+        adapter.reachedEndThreshold =
+            .relativeToViewport(1.5)
+
+        let reachedEndExpectation = expectation(
+            description: "화면 1.5배 이내 끝 접근"
+        )
+        adapter.reachedEnd = {
+            reachedEndExpectation.fulfill()
+        }
+
+        adapter.scrollViewDidScroll(collectionView)
+
+        await fulfillment(
+            of: [reachedEndExpectation],
+            timeout: 1
+        )
+    }
+
+    @MainActor
+    func testAdapterDoesNotReachEndBeforeRelativeThreshold()
+        async
+    {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 800
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        collectionView.contentSize = CGSize(
+            width: 320,
+            height: 2_400
+        )
+        collectionView.contentOffset = CGPoint(
+            x: 0,
+            y: 300
+        )
+        adapter.reachedEndThreshold =
+            .relativeToViewport(1.5)
+
+        var callbackCount = 0
+        adapter.reachedEnd = {
+            callbackCount += 1
+        }
+
+        adapter.scrollViewDidScroll(collectionView)
+        await Task.yield()
+        await Task.yield()
+
+        XCTAssertEqual(callbackCount, 0)
+    }
+
+    @MainActor
+    func testAdapterReachesEndAtAbsoluteThreshold()
+        async
+    {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 800
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        collectionView.contentSize = CGSize(
+            width: 320,
+            height: 2_400
+        )
+        collectionView.contentOffset = CGPoint(
+            x: 0,
+            y: 1_100
+        )
+        adapter.reachedEndThreshold = .absolute(500)
+
+        let reachedEndExpectation = expectation(
+            description: "500 point 이내 끝 접근"
+        )
+        adapter.reachedEnd = {
+            reachedEndExpectation.fulfill()
+        }
+
+        adapter.scrollViewDidScroll(collectionView)
+
+        await fulfillment(
+            of: [reachedEndExpectation],
+            timeout: 1
+        )
+    }
+
+    @MainActor
+    func testAdapterReachesHorizontalEnd()
+        async
+    {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 800
+            ),
+            collectionViewLayout: layout
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView,
+            layoutAdapter:
+                CollectionViewLayoutAdapter()
+        )
+        collectionView.contentSize = CGSize(
+            width: 960,
+            height: 800
+        )
+        collectionView.contentOffset = CGPoint(
+            x: 160,
+            y: 0
+        )
+        adapter.reachedEndThreshold =
+            .relativeToViewport(1.5)
+
+        let reachedEndExpectation = expectation(
+            description: "가로 화면 1.5배 이내 끝 접근"
+        )
+        adapter.reachedEnd = {
+            reachedEndExpectation.fulfill()
+        }
+
+        adapter.scrollViewDidScroll(collectionView)
+
+        await fulfillment(
+            of: [reachedEndExpectation],
+            timeout: 1
+        )
+    }
+
+    @MainActor
+    func testAdapterReachedEndThresholdUsesAdjustedContentInset()
+        async
+    {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 800
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        collectionView.contentInsetAdjustmentBehavior =
+            .never
+        collectionView.contentInset = UIEdgeInsets(
+            top: 20,
+            left: 0,
+            bottom: 30,
+            right: 0
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        collectionView.contentSize = CGSize(
+            width: 320,
+            height: 2_400
+        )
+        adapter.reachedEndThreshold =
+            .relativeToViewport(1.5)
+
+        let reachedEndExpectation = expectation(
+            description: "조정된 viewport 1.5배 이내 끝 접근"
+        )
+        adapter.reachedEnd = {
+            reachedEndExpectation.fulfill()
+        }
+
+        collectionView.contentOffset = CGPoint(
+            x: 0,
+            y: 475
+        )
+        adapter.scrollViewDidScroll(collectionView)
+        await Task.yield()
+        await Task.yield()
+
+        collectionView.contentOffset = CGPoint(
+            x: 0,
+            y: 505
+        )
+        adapter.scrollViewDidScroll(collectionView)
+
+        await fulfillment(
+            of: [reachedEndExpectation],
+            timeout: 1
+        )
+    }
+
+    @MainActor
+    func testAdapterDisablesReachedEndWithoutCallback() {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 800
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        collectionView.contentSize = CGSize(
+            width: 320,
+            height: 1_000
+        )
+
+        adapter.scrollViewDidScroll(collectionView)
+
+        XCTAssertFalse(
+            adapter.scrollCallbacks
+                .isReachedEndDeliveryScheduled
+        )
+    }
+
+    @MainActor
+    func testAdapterCoalescesReachedEndDelivery()
+        async
+    {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 800
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        collectionView.contentSize = CGSize(
+            width: 320,
+            height: 1_000
+        )
+
+        let reachedEndExpectation = expectation(
+            description: "중복 끝 접근 요청 합치기"
+        )
+        reachedEndExpectation.assertForOverFulfill = true
+        var callbackCount = 0
+        adapter.reachedEnd = {
+            callbackCount += 1
+            reachedEndExpectation.fulfill()
+        }
+
+        adapter.scrollViewDidScroll(collectionView)
+        adapter.scrollViewDidScroll(collectionView)
+
+        await fulfillment(
+            of: [reachedEndExpectation],
+            timeout: 1
+        )
+        XCTAssertEqual(callbackCount, 1)
+    }
 }

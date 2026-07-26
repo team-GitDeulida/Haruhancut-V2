@@ -103,6 +103,7 @@ public protocol Touchable: AnyObject {
     var touchEvent: ComponentEvent<Void> { get }
 }
 
+/// `Touchable` UIView에 기본 터치 이벤트 구현을 제공합니다.
 public extension Touchable where Self: UIView {
     /// UIView 수명에 연결된 기본 터치 이벤트입니다.
     ///

@@ -1,15 +1,13 @@
 import CollectionViewAdapter
 import UIKit
 
-/// 고정 section header와 prefetch 기반 무한 스크롤을 조합한 예제입니다.
+/// 고정 header와 화면 거리 기반 무한 스크롤을 조합한 예제입니다.
 @MainActor
 final class PinnedHeaderInfiniteScrollViewController:
-    UIViewController,
-    UICollectionViewDataSourcePrefetching
+    UIViewController
 {
     private enum Constant {
         static let pageSize = 20
-        static let prefetchThreshold = 5
         static let simulatedNetworkDelay:
             Duration = .milliseconds(650)
     }
@@ -27,7 +25,6 @@ final class PinnedHeaderInfiniteScrollViewController:
         )
         collectionView.backgroundColor = .systemBackground
         collectionView.alwaysBounceVertical = true
-        collectionView.prefetchDataSource = self
         collectionView.translatesAutoresizingMaskIntoConstraints =
             false
         return collectionView
@@ -37,11 +34,10 @@ final class PinnedHeaderInfiniteScrollViewController:
         let adapter = CollectionViewAdapter(
             collectionView: collectionView
         )
-        adapter.willDisplayItem = {
-            [weak self] _, _, indexPath in
-            self?.loadNextPageIfNeeded(
-                approachingItemAt: indexPath.item
-            )
+        adapter.reachedEndThreshold =
+            .relativeToViewport(1.5)
+        adapter.reachedEnd = { [weak self] in
+            self?.loadNextPageIfNeeded()
         }
         return adapter
     }()
@@ -94,20 +90,6 @@ final class PinnedHeaderInfiniteScrollViewController:
         render(animatingDifferences: false)
     }
 
-    func collectionView(
-        _ collectionView: UICollectionView,
-        prefetchItemsAt indexPaths: [IndexPath]
-    ) {
-        guard let furthestItem = indexPaths.map(\.item).max()
-        else {
-            return
-        }
-
-        loadNextPageIfNeeded(
-            approachingItemAt: furthestItem
-        )
-    }
-
     private func configureView() {
         title = "Pinned Header + Infinite Scroll"
         view.backgroundColor = .systemBackground
@@ -129,14 +111,8 @@ final class PinnedHeaderInfiniteScrollViewController:
         ])
     }
 
-    private func loadNextPageIfNeeded(
-        approachingItemAt itemIndex: Int
-    ) {
-        guard
-            itemIndex >=
-                items.count - Constant.prefetchThreshold,
-            !isLoadingNextPage
-        else {
+    private func loadNextPageIfNeeded() {
+        guard !isLoadingNextPage else {
             return
         }
 
@@ -144,7 +120,7 @@ final class PinnedHeaderInfiniteScrollViewController:
         render(animatingDifferences: false)
 
         let page = nextPage
-        loadingTask = Task { [weak self] in
+        loadingTask = Task { @MainActor [weak self] in
             try? await Task.sleep(
                 for: Constant.simulatedNetworkDelay
             )
@@ -166,7 +142,7 @@ final class PinnedHeaderInfiniteScrollViewController:
             return InfiniteScrollRowContentView.Item(
                 id: id,
                 title: "피드 아이템 \(id + 1)",
-                subtitle: "마지막 5개 셀에 접근하면 다음 페이지를 불러옵니다.",
+                subtitle: "끝에서 화면 높이의 1.5배 전에 다음 페이지를 불러옵니다.",
                 page: page + 1
             )
         }

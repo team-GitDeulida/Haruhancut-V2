@@ -70,6 +70,7 @@ public final class UIComponentView<C: Component>: UIView {
         componentContext?.cancel()
     }
 
+    /// Content의 Auto Layout fitting 결과를 host view의 고유 크기로 반환합니다.
     public override var intrinsicContentSize: CGSize {
         content.systemLayoutSizeFitting(
             UIView.layoutFittingCompressedSize
@@ -167,6 +168,7 @@ public struct ComponentView<C: Component>: View {
     }
 }
 
+/// SwiftUI `View`를 함께 채택한 Component에 기본 body를 제공합니다.
 public extension Component where Self: View {
     /// `Component & View` 타입의 기본 SwiftUI body입니다.
     @MainActor

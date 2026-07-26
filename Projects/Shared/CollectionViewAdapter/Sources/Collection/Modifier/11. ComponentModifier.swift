@@ -23,6 +23,7 @@ where
     var wrapped: Wrapped { get }
 }
 
+/// 원본 Component의 Item, 높이와 Content 생성을 그대로 전달합니다.
 public extension ComponentModifier {
     /// 원본 Component의 Item을 그대로 사용합니다.
     var item: Item {
@@ -185,6 +186,7 @@ extension OnToggleModifier: ComponentUpdateTokenProviding {
     }
 }
 
+/// `Touchable` Content에 터치 처리 modifier를 추가합니다.
 public extension Component where Content: Touchable {
     /// Content가 필요 없는 간단한 터치 동작을 선언적으로 추가합니다.
     ///
@@ -209,6 +211,7 @@ public extension Component where Content: Touchable {
     }
 }
 
+/// `ContainsButton` Content에 버튼 처리 modifier를 추가합니다.
 public extension Component where Content: ContainsButton {
     /// Content가 필요 없는 간단한 버튼 동작을 선언적으로 추가합니다.
     ///
@@ -233,6 +236,7 @@ public extension Component where Content: ContainsButton {
     }
 }
 
+/// `ContainsSwitch` Content에 토글 처리 modifier를 추가합니다.
 public extension Component where Content: ContainsSwitch {
     /// Content가 필요 없는 토글 동작을 선언적으로 추가합니다.
     ///

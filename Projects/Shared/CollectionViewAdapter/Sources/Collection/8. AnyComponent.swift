@@ -12,6 +12,10 @@ protocol ComponentUpdateTokenProviding {
     var componentUpdateToken: AnyHashable { get }
 }
 
+/// 서로 다른 concrete Component를 하나의 타입으로 보관합니다.
+///
+/// Adapter는 이 값을 사용해 Component의 식별자, 추정 높이와 container
+/// 타입을 generic 타입 정보 없이 처리합니다.
 public struct AnyComponent: CompositionalLayoutSizeable {
     
     /// 원본 Component의 안정적인 식별자입니다.

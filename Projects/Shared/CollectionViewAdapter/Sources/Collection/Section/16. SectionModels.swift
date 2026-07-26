@@ -134,6 +134,7 @@ public struct ConfiguredSection<Base: SectionModelType>:
     }
 }
 
+/// Section에 header, footer와 layout 설정을 합성합니다.
 public extension SectionModelType {
     /// 동일한 `Component`를 section header 위치에 배치합니다.
     ///
