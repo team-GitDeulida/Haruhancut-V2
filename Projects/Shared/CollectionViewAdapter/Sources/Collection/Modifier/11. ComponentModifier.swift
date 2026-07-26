@@ -9,11 +9,13 @@ import UIKit
 
 /// 기존 Component를 감싸 기능을 합성하는 modifier 계약입니다.
 ///
-/// `Wrapped.Content == Content` 제약 덕분에 modifier는 UIView를 새로 감싸지
-/// 않고 기존 Content의 생성과 재사용 수명을 그대로 유지합니다.
-@MainActor
+/// 원본과 같은 Item과 Content를 사용하므로 modifier는 UIView를 새로
+/// 감싸지 않고 기존 Content의 생성과 재사용 수명을 그대로 유지합니다.
 public protocol ComponentModifier: Component
-where Wrapped.Content == Content {
+where
+    Wrapped.Content == Content,
+    Wrapped.Item == Item
+{
     /// modifier가 감싸는 원본 Component 타입입니다.
     associatedtype Wrapped: Component
 
@@ -22,9 +24,9 @@ where Wrapped.Content == Content {
 }
 
 public extension ComponentModifier {
-    /// 원본 Component의 식별자를 그대로 사용합니다.
-    var identifier: AnyHashable {
-        wrapped.identifier
+    /// 원본 Component의 Item을 그대로 사용합니다.
+    var item: Item {
+        wrapped.item
     }
 
     /// 원본 Component의 추정 높이를 그대로 사용합니다.
@@ -33,18 +35,13 @@ public extension ComponentModifier {
     }
 
     /// 원본 Component와 동일한 Content를 생성합니다.
+    @MainActor
     func createContent() -> Content {
         wrapped.createContent()
     }
 }
 
-private struct ModifierContentVersion: Hashable {
-    let wrapped: AnyHashable
-    let modifierID: UUID
-}
-
 /// `Touchable` Content의 터치 이벤트를 처리하는 modifier입니다.
-@MainActor
 public struct OnTouchModifier<Wrapped: Component>: ComponentModifier
 where Wrapped.Content: Touchable {
     /// 감싸는 원본 Component입니다.
@@ -66,17 +63,8 @@ where Wrapped.Content: Touchable {
         self.action = action
     }
 
-    /// 원본 표시 상태와 현재 modifier 클로저 연결을 함께 구분합니다.
-    public var contentVersion: AnyHashable {
-        AnyHashable(
-            ModifierContentVersion(
-                wrapped: wrapped.contentVersion,
-                modifierID: modifierID
-            )
-        )
-    }
-
     /// 원본을 렌더링한 뒤 터치 이벤트를 현재 render 수명에 연결합니다.
+    @MainActor
     public func render(
         context: ComponentContext,
         content: Wrapped.Content
@@ -102,7 +90,6 @@ where Wrapped.Content: Touchable {
 }
 
 /// `ContainsButton` Content의 버튼 이벤트를 처리하는 modifier입니다.
-@MainActor
 public struct OnButtonTapModifier<Wrapped: Component>: ComponentModifier
 where Wrapped.Content: ContainsButton {
     /// 감싸는 원본 Component입니다.
@@ -124,17 +111,8 @@ where Wrapped.Content: ContainsButton {
         self.action = action
     }
 
-    /// 원본 표시 상태와 현재 modifier 클로저 연결을 함께 구분합니다.
-    public var contentVersion: AnyHashable {
-        AnyHashable(
-            ModifierContentVersion(
-                wrapped: wrapped.contentVersion,
-                modifierID: modifierID
-            )
-        )
-    }
-
     /// 원본을 렌더링한 뒤 버튼 이벤트를 현재 render 수명에 연결합니다.
+    @MainActor
     public func render(
         context: ComponentContext,
         content: Wrapped.Content
@@ -151,7 +129,6 @@ where Wrapped.Content: ContainsButton {
 }
 
 /// `ContainsSwitch` Content의 토글 이벤트를 처리하는 modifier입니다.
-@MainActor
 public struct OnToggleModifier<Wrapped: Component>: ComponentModifier
 where Wrapped.Content: ContainsSwitch {
     /// 감싸는 원본 Component입니다.
@@ -173,17 +150,8 @@ where Wrapped.Content: ContainsSwitch {
         self.action = action
     }
 
-    /// 원본 표시 상태와 현재 modifier 클로저 연결을 함께 구분합니다.
-    public var contentVersion: AnyHashable {
-        AnyHashable(
-            ModifierContentVersion(
-                wrapped: wrapped.contentVersion,
-                modifierID: modifierID
-            )
-        )
-    }
-
     /// 원본을 렌더링한 뒤 토글 이벤트를 현재 render 수명에 연결합니다.
+    @MainActor
     public func render(
         context: ComponentContext,
         content: Wrapped.Content
@@ -196,6 +164,24 @@ where Wrapped.Content: ContainsSwitch {
             action(content, isOn)
         }
         context.cancellationBag.store(observation)
+    }
+}
+
+extension OnTouchModifier: ComponentUpdateTokenProviding {
+    var componentUpdateToken: AnyHashable {
+        AnyHashable(modifierID)
+    }
+}
+
+extension OnButtonTapModifier: ComponentUpdateTokenProviding {
+    var componentUpdateToken: AnyHashable {
+        AnyHashable(modifierID)
+    }
+}
+
+extension OnToggleModifier: ComponentUpdateTokenProviding {
+    var componentUpdateToken: AnyHashable {
+        AnyHashable(modifierID)
     }
 }
 

@@ -12,7 +12,6 @@ import Foundation
 /// Compositional Layout 환경에서 항목의 초기 추정 크기를 표현하는
 /// 프로토콜입니다. 실제 높이는 Auto Layout self-sizing으로 결정되며
 /// 이 값은 `estimated` dimension의 초기값으로 사용됩니다.
-@MainActor
 public protocol CompositionalLayoutSizeable {
     
     /// Compositional Layout이 최초 크기 계산에 사용할 추정 높이입니다.

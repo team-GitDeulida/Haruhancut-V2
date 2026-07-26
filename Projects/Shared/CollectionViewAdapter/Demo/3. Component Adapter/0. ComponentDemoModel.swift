@@ -1,7 +1,7 @@
 import Foundation
 
 /// Component 기반 예제에서 표시할 계좌 모델입니다.
-struct ComponentDemoAccount: Hashable {
+struct ComponentDemoAccount {
     /// Diffable item의 안정적인 식별자입니다.
     let id: String
 

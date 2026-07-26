@@ -11,6 +11,35 @@ final class ComponentDemoRowContentView:
     ContainsButton,
     ContainsSwitch
 {
+    struct Item: Identifiable, Equatable {
+        enum Accessory: Equatable {
+            case button(String)
+            case toggle(isOn: Bool)
+            case chevron
+        }
+
+        enum Appearance: Equatable {
+            case connectedCard
+            case standaloneCard
+        }
+
+        let id: String
+        let title: String
+        let subtitle: String?
+        let symbolName: String
+        let accessory: Accessory
+        let appearance: Appearance
+    }
+
+    var item: Item? {
+        didSet {
+            guard item != oldValue else {
+                return
+            }
+            applyItem()
+        }
+    }
+
     let buttonTapEvent = ComponentEvent<Void>()
     let switchToggleEvent = ComponentEvent<Bool>()
 
@@ -47,26 +76,30 @@ final class ComponentDemoRowContentView:
         }
     }
 
-    /// Component가 가진 최신 표시 상태를 UIView에 반영합니다.
-    func configure(
-        title: String,
-        subtitle: String?,
-        symbolName: String,
-        accessory: ComponentDemoRowComponent.Accessory,
-        appearance: ComponentDemoRowComponent.Appearance
-    ) {
-        titleLabel.text = title
-        subtitleLabel.text = subtitle
-        subtitleLabel.isHidden = subtitle == nil
-        symbolView.image = UIImage(systemName: symbolName)
+    /// Component가 전달한 최신 Item을 UIView에 반영합니다.
+    private func applyItem() {
+        guard let item else {
+            titleLabel.text = nil
+            subtitleLabel.text = nil
+            subtitleLabel.isHidden = true
+            symbolView.image = nil
+            return
+        }
+
+        titleLabel.text = item.title
+        subtitleLabel.text = item.subtitle
+        subtitleLabel.isHidden = item.subtitle == nil
+        symbolView.image = UIImage(
+            systemName: item.symbolName
+        )
 
         accessibilityLabel = [
-            title,
-            subtitle,
+            item.title,
+            item.subtitle,
         ].compactMap { $0 }.joined(separator: ", ")
 
-        apply(accessory: accessory)
-        apply(appearance: appearance)
+        apply(accessory: item.accessory)
+        apply(appearance: item.appearance)
     }
 
     private func configureView() {
@@ -238,7 +271,7 @@ final class ComponentDemoRowContentView:
     }
 
     private func apply(
-        accessory: ComponentDemoRowComponent.Accessory
+        accessory: Item.Accessory
     ) {
         actionButton.isHidden = true
         toggle.isHidden = true
@@ -261,7 +294,7 @@ final class ComponentDemoRowContentView:
     }
 
     private func apply(
-        appearance: ComponentDemoRowComponent.Appearance
+        appearance: Item.Appearance
     ) {
         switch appearance {
         case .connectedCard:

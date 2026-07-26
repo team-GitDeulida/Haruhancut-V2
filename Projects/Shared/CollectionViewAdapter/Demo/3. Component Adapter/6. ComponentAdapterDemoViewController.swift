@@ -46,15 +46,15 @@ final class ComponentAdapterDemoViewController: UIViewController {
             LazySection(identifier: "accounts") {
                 For(of: self.accounts) { account in
                     ComponentDemoRowComponent(
-                        identifier: account.id
+                        item: .init(
+                            id: account.id,
+                            title: account.name,
+                            subtitle: account.balanceText,
+                            symbolName: account.symbolName,
+                            accessory: .button("송금"),
+                            appearance: .connectedCard
+                        )
                     )
-                    .title(
-                        account.name,
-                        subtitle: account.balanceText
-                    )
-                    .symbol(account.symbolName)
-                    .accessory(.button("송금"))
-                    .appearance(.connectedCard)
                     .onTouch { [weak self] in
                         self?.showAccount(account)
                     }
@@ -65,16 +65,20 @@ final class ComponentAdapterDemoViewController: UIViewController {
             }
             .withHeader(
                 ComponentDemoTextComponent(
-                    identifier: "accounts-header",
-                    text: "내 계좌",
-                    style: .header
+                    item: .init(
+                        id: "accounts-header",
+                        text: "내 계좌",
+                        style: .header
+                    )
                 )
             )
             .withFooter(
                 ComponentDemoTextComponent(
-                    identifier: "accounts-footer",
-                    text: "예금자보호 안내 보기",
-                    style: .footer
+                    item: .init(
+                        id: "accounts-footer",
+                        text: "예금자보호 안내 보기",
+                        style: .footer
+                    )
                 )
             )
             .withSectionLayout(
@@ -83,19 +87,17 @@ final class ComponentAdapterDemoViewController: UIViewController {
             
             LazySection(identifier: "settings") {
                 ComponentDemoRowComponent(
-                    identifier: "notification"
-                )
-                .title(
-                    "입출금 알림",
-                    subtitle: "계좌 활동을 바로 알려드려요"
-                )
-                .symbol("bell.fill")
-                .accessory(
-                    .toggle(
-                        isOn: self.isNotificationEnabled
+                    item: .init(
+                        id: "notification",
+                        title: "입출금 알림",
+                        subtitle: "계좌 활동을 바로 알려드려요",
+                        symbolName: "bell.fill",
+                        accessory: .toggle(
+                            isOn: self.isNotificationEnabled
+                        ),
+                        appearance: .standaloneCard
                     )
                 )
-                .appearance(.standaloneCard)
                 .onToggle { [weak self] isOn in
                     self?.updateNotification(isOn: isOn)
                 }

@@ -22,21 +22,23 @@ private struct AdapterItemIdentifier:
     let rawValue: AnyHashable
 }
 
-private struct AdapterComponentSignature: Hashable {
-    let identifier: AnyHashable
-    let contentVersion: AnyHashable
-    let reuseKey: String
+private struct AdapterComponentSignature: Equatable {
+    let component: AnyComponent
 
-    @MainActor
-    init(_ component: AnyComponent) {
-        identifier = component.identifier
-        contentVersion = component.contentVersion
-        reuseKey = component.reuseKey
+    static func == (
+        lhs: AdapterComponentSignature,
+        rhs: AdapterComponentSignature
+    ) -> Bool {
+        lhs.component.id
+            == rhs.component.id
+            && lhs.component.isContentEqual(
+                to: rhs.component
+            )
     }
 }
 
-private struct AdapterBoundarySignature: Hashable {
-    enum Placement: Hashable {
+private struct AdapterBoundarySignature: Equatable {
+    enum Placement: Equatable {
         case header(
             kind: String,
             alignment: Int,
@@ -63,7 +65,7 @@ private struct AdapterBoundarySignature: Hashable {
 ///
 /// 외부에서는 `bind(_:)`로 section tree만 넘깁니다. 내부에서는
 /// Diffable Data Source, generic container 등록, custom
-/// `CellItemModelBindable.bind(cellItemModel:)`, supplementary provider와
+/// Component cell binding, supplementary provider와
 /// `CollectionViewLayoutAdapter` 동기화를 관리합니다.
 @MainActor
 public final class CollectionViewAdapter:
@@ -198,7 +200,7 @@ public final class CollectionViewAdapter:
                 section.items.map {
                     AdapterItemIdentifier(
                         section: sectionID,
-                        rawValue: $0.identifier
+                        rawValue: $0.id
                     )
                 },
                 toSection: sectionID
@@ -292,7 +294,7 @@ public final class CollectionViewAdapter:
                 $0.identifier == itemID.section.rawValue
             }),
             let component = section.items.first(where: {
-                $0.identifier == itemID.rawValue
+                $0.id == itemID.rawValue
             })
         else {
             return nil
@@ -309,8 +311,8 @@ public final class CollectionViewAdapter:
         )
         (cell as? ComponentContextBindable)?
             .bindingContext = context
-        (cell as? CellItemModelBindable)?
-            .bind(cellItemModel: component)
+        (cell as? CellComponentBindable)?
+            .bind(component: component)
         return cell
     }
 
@@ -387,8 +389,8 @@ public final class CollectionViewAdapter:
             var itemIDs: Set<AnyHashable> = []
             for item in section.items {
                 precondition(
-                    itemIDs.insert(item.identifier).inserted,
-                    "section \(section.identifier)의 중복 item identifier: \(item.identifier)"
+                    itemIDs.insert(item.id).inserted,
+                    "section \(section.identifier)의 중복 item ID: \(item.id)"
                 )
             }
         }
@@ -489,7 +491,7 @@ public final class CollectionViewAdapter:
             let oldItems = Dictionary(
                 uniqueKeysWithValues:
                     oldSection.items.map {
-                        ($0.identifier, $0)
+                        ($0.id, $0)
                     }
             )
             var itemsToReload: [AdapterItemIdentifier] = []
@@ -498,19 +500,20 @@ public final class CollectionViewAdapter:
 
             for newItem in newSection.items {
                 guard
-                    let oldItem = oldItems[newItem.identifier]
+                    let oldItem = oldItems[newItem.id]
                 else {
                     continue
                 }
 
                 let itemID = AdapterItemIdentifier(
                     section: sectionID,
-                    rawValue: newItem.identifier
+                    rawValue: newItem.id
                 )
                 if oldItem.reuseKey != newItem.reuseKey {
                     itemsToReload.append(itemID)
-                } else if oldItem.contentVersion
-                    != newItem.contentVersion {
+                } else if !oldItem.isContentEqual(
+                    to: newItem
+                ) {
                     itemsToReconfigure.append(itemID)
                 }
             }
@@ -536,7 +539,7 @@ public final class CollectionViewAdapter:
                 AdapterBoundarySignature(
                     component:
                         AdapterComponentSignature(
-                            header.component
+                            component: header.component
                         ),
                     placement: .header(
                         kind: header.kind,
@@ -559,7 +562,7 @@ public final class CollectionViewAdapter:
                 AdapterBoundarySignature(
                     component:
                         AdapterComponentSignature(
-                            footer.component
+                            component: footer.component
                         ),
                     placement: .footer(
                         kind: footer.kind,

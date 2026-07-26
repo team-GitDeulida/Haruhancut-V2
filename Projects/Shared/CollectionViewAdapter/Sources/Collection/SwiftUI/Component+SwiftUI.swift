@@ -169,6 +169,7 @@ public struct ComponentView<C: Component>: View {
 
 public extension Component where Self: View {
     /// `Component & View` 타입의 기본 SwiftUI body입니다.
+    @MainActor
     var body: some View {
         ComponentView(self)
     }

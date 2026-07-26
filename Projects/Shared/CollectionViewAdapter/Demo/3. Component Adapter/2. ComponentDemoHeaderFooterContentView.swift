@@ -3,6 +3,26 @@ import UIKit
 
 /// Section의 header와 footer에서 공통으로 사용하는 UIView입니다.
 final class ComponentDemoTextContentView: UIView {
+    struct Item: Identifiable, Equatable {
+        enum Style: Equatable {
+            case header
+            case footer
+        }
+
+        let id: String
+        let text: String
+        let style: Style
+    }
+
+    var item: Item? {
+        didSet {
+            guard item != oldValue else {
+                return
+            }
+            applyItem()
+        }
+    }
+
     private let surfaceView = UIView()
     private let label = UILabel()
 
@@ -20,17 +40,19 @@ final class ComponentDemoTextContentView: UIView {
         fatalError("init(coder:)는 지원하지 않습니다.")
     }
 
-    /// 최신 문자열과 카드 위치 스타일을 반영합니다.
-    func configure(
-        text: String,
-        style: ComponentDemoTextComponent.Style
-    ) {
-        label.text = text
+    /// Component가 전달한 최신 Item을 반영합니다.
+    private func applyItem() {
+        guard let item else {
+            label.text = nil
+            return
+        }
+
+        label.text = item.text
         surfaceView.layer.cornerRadius =
             ComponentDemoStyle.cardCornerRadius
         surfaceView.layer.masksToBounds = true
 
-        switch style {
+        switch item.style {
         case .header:
             label.font = UIFontMetrics(forTextStyle: .title2)
                 .scaledFont(
