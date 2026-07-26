@@ -802,4 +802,127 @@ final class CollectionViewAdapterTests: XCTestCase {
         )
         XCTAssertEqual(callbackCount, 1)
     }
+
+    @MainActor
+    func testAdapterDoesNotRepeatReachedEndWhileInsideThreshold()
+        async
+    {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 800
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        collectionView.contentSize = CGSize(
+            width: 320,
+            height: 1_000
+        )
+
+        let firstDeliveryExpectation = expectation(
+            description: "첫 끝 접근 callback"
+        )
+        let repeatedDeliveryExpectation = expectation(
+            description: "영역 내부의 중복 callback 없음"
+        )
+        repeatedDeliveryExpectation.isInverted = true
+        var callbackCount = 0
+        adapter.reachedEnd = {
+            callbackCount += 1
+            if callbackCount == 1 {
+                firstDeliveryExpectation.fulfill()
+            } else {
+                repeatedDeliveryExpectation.fulfill()
+            }
+        }
+
+        adapter.scrollViewDidScroll(collectionView)
+        await fulfillment(
+            of: [firstDeliveryExpectation],
+            timeout: 1
+        )
+
+        adapter.scrollViewDidScroll(collectionView)
+
+        await fulfillment(
+            of: [repeatedDeliveryExpectation],
+            timeout: 0.1
+        )
+        XCTAssertEqual(callbackCount, 1)
+    }
+
+    @MainActor
+    func testAdapterRearmsReachedEndAfterLeavingThreshold()
+        async
+    {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 800
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        collectionView.contentSize = CGSize(
+            width: 320,
+            height: 2_400
+        )
+        adapter.reachedEndThreshold =
+            .relativeToViewport(1.5)
+
+        let firstDeliveryExpectation = expectation(
+            description: "첫 끝 접근 callback"
+        )
+        let secondDeliveryExpectation = expectation(
+            description: "재진입 끝 접근 callback"
+        )
+        var callbackCount = 0
+        adapter.reachedEnd = {
+            callbackCount += 1
+            if callbackCount == 1 {
+                firstDeliveryExpectation.fulfill()
+            } else if callbackCount == 2 {
+                secondDeliveryExpectation.fulfill()
+            }
+        }
+
+        collectionView.contentOffset = CGPoint(
+            x: 0,
+            y: 400
+        )
+        adapter.scrollViewDidScroll(collectionView)
+        await fulfillment(
+            of: [firstDeliveryExpectation],
+            timeout: 1
+        )
+
+        collectionView.contentOffset = CGPoint(
+            x: 0,
+            y: 300
+        )
+        adapter.scrollViewDidScroll(collectionView)
+
+        collectionView.contentOffset = CGPoint(
+            x: 0,
+            y: 400
+        )
+        adapter.scrollViewDidScroll(collectionView)
+
+        await fulfillment(
+            of: [secondDeliveryExpectation],
+            timeout: 1
+        )
+        XCTAssertEqual(callbackCount, 2)
+    }
 }

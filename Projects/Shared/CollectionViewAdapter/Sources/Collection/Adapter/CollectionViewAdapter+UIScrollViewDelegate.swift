@@ -28,6 +28,11 @@ final class CollectionViewAdapterScrollCallbacks {
 
     /// 동일한 MainActor 실행 차례의 중복 callback 예약을 방지합니다.
     var isReachedEndDeliveryScheduled = false
+
+    /// 끝 접근 영역에 진입한 상태인지 나타냅니다.
+    ///
+    /// 영역을 벗어나기 전까지 `reachedEnd`가 다시 실행되지 않도록 합니다.
+    var isInsideReachedEndThreshold = false
 }
 
 extension CollectionViewAdapter {
@@ -44,10 +49,15 @@ extension CollectionViewAdapter {
         set {
             scrollCallbacks.reachedEndThreshold =
                 newValue
+            scrollCallbacks.isInsideReachedEndThreshold =
+                false
         }
     }
 
     /// CollectionView 끝에 접근했을 때 실행할 동작입니다.
+    ///
+    /// 설정한 threshold 영역에 진입할 때 한 번 실행되며, 영역을 벗어났다가
+    /// 다시 진입하면 다음 callback을 전달합니다.
     ///
     /// `nil`이면 거리 계산을 생략합니다. UIKit의 visible view 갱신과
     /// Diffable snapshot 적용이 겹치지 않도록 callback은 현재
@@ -59,6 +69,8 @@ extension CollectionViewAdapter {
         }
         set {
             scrollCallbacks.reachedEnd = newValue
+            scrollCallbacks.isInsideReachedEndThreshold =
+                false
         }
     }
 
@@ -85,7 +97,7 @@ extension CollectionViewAdapter {
         )
     }
 
-    /// 남은 거리와 설정한 threshold를 비교해 callback 전달을 예약합니다.
+    /// threshold 영역에 새로 진입했으면 callback 전달을 예약합니다.
     private func triggerReachedEndIfNeeded(
         scrollView: UIScrollView,
         contentOffset: CGPoint
@@ -154,9 +166,20 @@ extension CollectionViewAdapter {
         }
 
         guard remainingDistance <= triggerDistance else {
+            scrollCallbacks.isInsideReachedEndThreshold =
+                false
             return
         }
 
+        guard
+            !scrollCallbacks
+                .isInsideReachedEndThreshold
+        else {
+            return
+        }
+
+        scrollCallbacks.isInsideReachedEndThreshold =
+            true
         scheduleReachedEndDelivery()
     }
 
