@@ -33,9 +33,18 @@ final class PinnedHeaderInfiniteScrollViewController:
         return collectionView
     }()
 
-    private lazy var adapter = CollectionViewAdapter(
-        collectionView: collectionView
-    )
+    private lazy var adapter: CollectionViewAdapter = {
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        adapter.willDisplayItem = {
+            [weak self] _, _, indexPath in
+            self?.loadNextPageIfNeeded(
+                approachingItemAt: indexPath.item
+            )
+        }
+        return adapter
+    }()
 
     private var sections: SectionModels {
         SectionModels {
@@ -89,15 +98,14 @@ final class PinnedHeaderInfiniteScrollViewController:
         _ collectionView: UICollectionView,
         prefetchItemsAt indexPaths: [IndexPath]
     ) {
-        guard
-            let furthestItem = indexPaths.map(\.item).max(),
-            furthestItem >=
-                items.count - Constant.prefetchThreshold
+        guard let furthestItem = indexPaths.map(\.item).max()
         else {
             return
         }
 
-        loadNextPageIfNeeded()
+        loadNextPageIfNeeded(
+            approachingItemAt: furthestItem
+        )
     }
 
     private func configureView() {
@@ -121,8 +129,14 @@ final class PinnedHeaderInfiniteScrollViewController:
         ])
     }
 
-    private func loadNextPageIfNeeded() {
-        guard !isLoadingNextPage else {
+    private func loadNextPageIfNeeded(
+        approachingItemAt itemIndex: Int
+    ) {
+        guard
+            itemIndex >=
+                items.count - Constant.prefetchThreshold,
+            !isLoadingNextPage
+        else {
             return
         }
 

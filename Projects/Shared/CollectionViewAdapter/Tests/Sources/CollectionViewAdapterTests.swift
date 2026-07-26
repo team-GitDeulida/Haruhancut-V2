@@ -181,4 +181,39 @@ final class CollectionViewAdapterTests: XCTestCase {
         XCTAssertEqual(touchCount, 2)
         XCTAssertEqual(buttonTapCount, 2)
     }
+
+    @MainActor
+    func testAdapterForwardsWillDisplayItem() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        let cell = UICollectionViewCell()
+        let expectedIndexPath = IndexPath(
+            item: 15,
+            section: 0
+        )
+        var receivedIndexPath: IndexPath?
+
+        adapter.willDisplayItem = {
+            _, receivedCell, indexPath in
+            XCTAssertTrue(receivedCell === cell)
+            receivedIndexPath = indexPath
+        }
+
+        adapter.collectionView(
+            collectionView,
+            willDisplay: cell,
+            forItemAt: expectedIndexPath
+        )
+
+        XCTAssertEqual(
+            receivedIndexPath,
+            expectedIndexPath
+        )
+    }
 }

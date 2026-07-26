@@ -75,6 +75,17 @@ public final class CollectionViewAdapter:
     /// Adapter가 관리하는 collection view입니다.
     public private(set) weak var collectionView: UICollectionView?
 
+    /// Item이 실제 화면에 표시되기 직전에 실행할 동작입니다.
+    ///
+    /// 무한 스크롤처럼 표시 위치를 기준으로 동작해야 할 때 사용합니다.
+    /// closure에서 화면을 캡처한다면 순환 참조를 피하도록 약하게
+    /// 캡처해야 합니다.
+    public var willDisplayItem: (
+        _ collectionView: UICollectionView,
+        _ cell: UICollectionViewCell,
+        _ indexPath: IndexPath
+    ) -> Void = { _, _, _ in }
+
     private let layoutAdapter:
         CollectionViewLayoutAdapter
     private var sections: [ResolvedSection] = []
@@ -253,6 +264,11 @@ public final class CollectionViewAdapter:
     ) {
         (cell as? ComponentContainerLifecycle)?
             .contentWillDisplay()
+        willDisplayItem(
+            collectionView,
+            cell,
+            indexPath
+        )
     }
 
     public func collectionView(
