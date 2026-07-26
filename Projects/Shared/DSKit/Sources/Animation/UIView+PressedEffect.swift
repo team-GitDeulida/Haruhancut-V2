@@ -8,7 +8,10 @@
 import ObjectiveC
 import UIKit
 
-private final class PressEffectGestureHandler: NSObject {
+private final class PressEffectGestureHandler:
+    NSObject,
+    UIGestureRecognizerDelegate
+{
     weak var view: UIView?
     let pressedScale: CGFloat
 
@@ -40,6 +43,15 @@ private final class PressEffectGestureHandler: NSObject {
             view.transform = CGAffineTransform(scaleX: targetScale, y: targetScale)
         }
     }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer:
+            UIGestureRecognizer
+    ) -> Bool {
+        otherGestureRecognizer is UITapGestureRecognizer ||
+            otherGestureRecognizer is UILongPressGestureRecognizer
+    }
 }
 
 private enum AssociatedKeys {
@@ -70,6 +82,7 @@ public extension UIView {
         )
         gesture.minimumPressDuration = 0
         gesture.cancelsTouchesInView = false
+        gesture.delegate = handler
         addGestureRecognizer(gesture)
     }
 }

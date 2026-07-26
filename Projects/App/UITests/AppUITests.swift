@@ -231,23 +231,34 @@ final class AppUITests: XCTestCase {
         let end2 = commentTable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 1.2))
         start2.press(forDuration: 0.05, thenDragTo: end2)
         
-        // 상세 화면 복귀 확인
-        let detailImage = app.images.firstMatch
-        XCTAssertTrue(detailImage.waitForExistence(timeout: 20),
-                      "상세 화면 진입 실패")
-        XCTAssertTrue(detailImage.waitForExistence(timeout: 10),
-                      "댓글창이 내려가지 않음")
-        
+        XCTAssertTrue(
+            commentTable.waitForNonExistence(timeout: 10),
+            "댓글창이 내려가지 않음"
+        )
+
         // 뒤로가기
-        let backButton = app.navigationBars.buttons.firstMatch
+        let backButton = app.navigationBars.buttons["BackButton"]
         XCTAssertTrue(backButton.waitForExistence(timeout: 10),
                       "뒤로가기 버튼이 없음")
         backButton.tap()
-        
-        // 홈 화면 복귀 확인
-        let cameraButton = app.buttons[UITestID.Feed.cameraButton]
-        XCTAssertTrue(cameraButton.waitForExistence(timeout: 10),
-                      "홈으로 복귀하지 않음")
+
+        // 상세 화면 뒤에 남아 있는 요소가 아니라 실제 홈 화면인지 확인
+        let feedCollection =
+            app.collectionViews[UITestID.Feed.collectionView]
+        let homeExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(
+                format: "exists == true AND hittable == true"
+            ),
+            object: feedCollection
+        )
+        XCTAssertEqual(
+            XCTWaiter().wait(
+                for: [homeExpectation],
+                timeout: 10
+            ),
+            .completed,
+            "홈으로 복귀하지 않음"
+        )
     }
     
     // 시스템 알림권한 허용

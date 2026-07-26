@@ -79,18 +79,37 @@ private extension FeedReactor {
     }
 
     func deletePost(_ post: Post) -> Observable<Mutation> {
+        let previousComponents = currentState.components
+        let remainingComponents = previousComponents.filter {
+            $0.post.postId != post.postId
+        }
+
+        let synchronizeDeletion = groupUsecase
+            .deletePostAndReload(post: post)
+            .takeLast(1)
+            .flatMap { [weak self] _ -> Observable<Mutation> in
+                guard let self else { return .empty() }
+                return .just(
+                    .setComponents(
+                        self.makeComponents(
+                            from: self.groupSession.postsByDate
+                        )
+                    )
+                )
+            }
+            .catch { error in
+                Logger.e(
+                    "FeedReactor deletePostAndReload failed: \(error)"
+                )
+                return .just(
+                    .setComponents(previousComponents)
+                )
+            }
+
         return Observable.concat([
             .just(.setLoading(true)),
-            groupUsecase
-                .deletePostAndReload(post: post)
-                .catch { error in
-                    Logger.e("FeedReactor deletePostAndReload failed: \(error)")
-                    return .empty()
-                }
-                .flatMap { [weak self] _ -> Observable<Mutation> in
-                    guard let self else { return .empty() }
-                    return .just(.setComponents(self.makeComponents(from: self.groupSession.postsByDate)))
-                },
+            .just(.setComponents(remainingComponents)),
+            synchronizeDeletion,
             .just(.setLoading(false))
         ])
     }

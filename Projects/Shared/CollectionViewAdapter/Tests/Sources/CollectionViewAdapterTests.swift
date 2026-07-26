@@ -168,7 +168,7 @@ final class CollectionViewAdapterTests: XCTestCase {
     }
 
     @MainActor
-    func testTouchableRecognizesAlongsidePressedEffect() {
+    func testTouchableDoesNotRecognizeAlongsideSemanticLongPress() {
         let contentView = TestContentView()
         contentView.installTouchHandlingIfNeeded()
 
@@ -186,18 +186,18 @@ final class CollectionViewAdapterTests: XCTestCase {
             )
         }
 
-        let pressedEffectRecognizer =
+        let semanticLongPressRecognizer =
             UILongPressGestureRecognizer()
         let allowsSimultaneousRecognition =
             tapGestureRecognizer.delegate?
                 .gestureRecognizer?(
                     tapGestureRecognizer,
                     shouldRecognizeSimultaneouslyWith:
-                        pressedEffectRecognizer
+                        semanticLongPressRecognizer
                 )
             ?? false
 
-        XCTAssertTrue(
+        XCTAssertFalse(
             allowsSimultaneousRecognition
         )
     }

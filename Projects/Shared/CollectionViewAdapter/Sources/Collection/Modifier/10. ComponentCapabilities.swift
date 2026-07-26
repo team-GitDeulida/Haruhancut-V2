@@ -63,20 +63,6 @@ private final class ComponentTouchGestureRecognizer:
         return false
     }
 
-    /// 눌림 효과를 위한 zero-duration long press와 tap을 함께 인식합니다.
-    ///
-    /// `Touchable` Content가 별도의 pressed-effect recognizer를 가지고
-    /// 있더라도 시각 효과가 `.onTouch` 전달을 가로막지 않게 합니다.
-    func gestureRecognizer(
-        _ gestureRecognizer: UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith
-            otherGestureRecognizer:
-                UIGestureRecognizer
-    ) -> Bool {
-        otherGestureRecognizer
-            is UILongPressGestureRecognizer
-    }
-
     @objc
     private func didRecognizeTouch() {
         event.send(())

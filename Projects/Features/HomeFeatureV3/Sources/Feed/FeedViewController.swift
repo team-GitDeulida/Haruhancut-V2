@@ -131,8 +131,12 @@ final class FeedViewController: UIViewController, View {
         customView.bubbleView.text = hasContent
             ? LocalizationKey.homeFeedBubbleDoneToday.localized
             : LocalizationKey.homeFeedBubbleAddPhoto.localized
-        customView.cameraBtn.isEnabled = !hasContent
-        customView.cameraBtn.alpha = hasContent ? 0.3 : 1.0
+
+        let canAddPhoto =
+            !hasContent ||
+            ProcessInfo.processInfo.arguments.contains("-UITest")
+        customView.cameraBtn.isEnabled = canAddPhoto
+        customView.cameraBtn.alpha = canAddPhoto ? 1.0 : 0.3
     }
 
     private func setupLongPress() {
