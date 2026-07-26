@@ -81,6 +81,19 @@ struct RootListView: View {
                             shape: .yellow
                         )
                     }
+
+                    NavigationLink {
+                        GridDemoViewController()
+                            .toSwiftUI()
+                            .navigationTitle("Grid Layout")
+                            .navigationBarTitleDisplayMode(.inline)
+                    } label: {
+                        CustomLabel(
+                            title: "Grid Layout",
+                            caption: "2열 카드와 Item 상태 갱신 예제입니다",
+                            shape: .yellow
+                        )
+                    }
                 }
 
                 Section("Next Examples") {
