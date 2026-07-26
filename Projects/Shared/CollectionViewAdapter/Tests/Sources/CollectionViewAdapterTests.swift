@@ -505,6 +505,97 @@ final class CollectionViewAdapterTests: XCTestCase {
     }
 
     @MainActor
+    func testGridPlacesEveryColumnInsideCollectionBounds() {
+        let collectionView = UICollectionView(
+            frame: CGRect(
+                x: 0,
+                y: 0,
+                width: 320,
+                height: 400
+            ),
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(
+            collectionView: collectionView
+        )
+        let items = (0..<4).map {
+            TestItem(
+                id: $0,
+                title: "Grid Item \($0)"
+            )
+        }
+        adapter.bind(
+            SectionModels {
+                LazySection(identifier: "grid") {
+                    For(of: items) {
+                        TestComponent(item: $0)
+                    }
+                }
+                .withSectionLayout(
+                    .grid(
+                        columns: 2,
+                        estimatedRowHeight: 100,
+                        interItemSpacing: 12,
+                        lineSpacing: 12,
+                        contentInsets:
+                            NSDirectionalEdgeInsets(
+                                top: 0,
+                                leading: 10,
+                                bottom: 0,
+                                trailing: 10
+                            )
+                    )
+                )
+            },
+            animatingDifferences: false
+        )
+        collectionView.layoutIfNeeded()
+
+        guard
+            let firstAttributes =
+                collectionView
+                    .collectionViewLayout
+                    .layoutAttributesForItem(
+                        at: IndexPath(
+                            item: 0,
+                            section: 0
+                        )
+                    ),
+            let secondAttributes =
+                collectionView
+                    .collectionViewLayout
+                    .layoutAttributesForItem(
+                        at: IndexPath(
+                            item: 1,
+                            section: 0
+                        )
+                    )
+        else {
+            return XCTFail("Grid layout attributes 생성 실패")
+        }
+
+        XCTAssertEqual(
+            firstAttributes.frame.minY,
+            secondAttributes.frame.minY,
+            accuracy: 0.5
+        )
+        XCTAssertEqual(
+            firstAttributes.frame.width,
+            secondAttributes.frame.width,
+            accuracy: 0.5
+        )
+        XCTAssertGreaterThan(
+            secondAttributes.frame.minX,
+            firstAttributes.frame.minX
+        )
+        XCTAssertLessThanOrEqual(
+            secondAttributes.frame.maxX,
+            collectionView.bounds.maxX + 0.5
+        )
+    }
+
+    @MainActor
     func testAdapterReconfiguresVisibleHeaderInPlace()
         async
     {
