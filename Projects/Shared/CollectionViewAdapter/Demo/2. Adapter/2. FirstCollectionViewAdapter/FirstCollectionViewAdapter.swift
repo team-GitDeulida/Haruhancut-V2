@@ -233,8 +233,11 @@ extension FirstCollectionViewAdapter:
             + layout.sectionInset.right
 
         let containerWidth =
-            collectionView.bounds.width
-            - horizontalInset
+            max(
+                0,
+                collectionView.bounds.width
+                    - horizontalInset
+            )
 
         return itemModel.size(
             containerWidth: containerWidth

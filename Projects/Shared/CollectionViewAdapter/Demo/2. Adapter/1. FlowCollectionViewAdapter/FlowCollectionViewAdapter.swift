@@ -275,7 +275,13 @@ public final class FlowCollectionViewAdapter<SectionIdentifier: Hashable, ItemId
         return referenceSizeForFooter(collectionView, collectionViewLayout, section, identifier)
     }
 
-    private func sectionIdentifier(at index: Int) -> SectionIdentifier? {
+    /// 현재 snapshot에서 지정한 위치의 Section 식별자를 안전하게 반환합니다.
+    ///
+    /// - Parameter index: 조회할 Section 위치.
+    /// - Returns: 위치가 유효하면 Section 식별자, 아니면 `nil`.
+    public func sectionIdentifier(
+        at index: Int
+    ) -> SectionIdentifier? {
         let identifiers = snapshot().sectionIdentifiers
         guard identifiers.indices.contains(index) else { return nil }
         return identifiers[index]

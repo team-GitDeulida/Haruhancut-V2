@@ -42,6 +42,13 @@ public final class CollectionViewAdapter:
     /// 마지막으로 bind한, layout과 supplementary 설정까지 해석된 Section입니다.
     var sections: [ResolvedSection] = []
 
+    /// Section과 Item 식별자로 Component를 즉시 찾기 위한 조회 저장소입니다.
+    var componentsBySectionIdentifier:
+        [
+            AnyHashable:
+                [AnyHashable: AnyComponent]
+        ] = [:]
+
     /// 이미 등록한 cell reuse key입니다.
     var registeredCellReuseKeys: Set<String> = []
 
@@ -144,6 +151,7 @@ public final class CollectionViewAdapter:
 
         let oldSections = sections
         sections = newSections
+        updateComponentLookup(in: newSections)
         updateSectionReachedEndConfigurations(
             newSections
         )

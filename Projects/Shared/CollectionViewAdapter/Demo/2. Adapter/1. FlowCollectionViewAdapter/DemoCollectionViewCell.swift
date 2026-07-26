@@ -43,6 +43,12 @@ final class DemoCollectionViewCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        layer.removeAllAnimations()
+        transform = .identity
+    }
+
     override var isHighlighted: Bool {
         didSet {
             UIView.animate(withDuration: 0.16) {

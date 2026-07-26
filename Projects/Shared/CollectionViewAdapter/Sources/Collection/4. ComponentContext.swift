@@ -52,7 +52,7 @@ public final class ComponentContext {
     /// Collection view 안에서 Component가 표시되는 위치입니다.
     public let indexPath: IndexPath?
     
-    /// Collection view 안에서 Component가 표시되는 위치입니다.
+    /// Component가 속한 Section의 안정적인 식별자입니다.
     public let sectionIdentifier: AnyHashable?
     
     /// 현재 render에서 만든 event 연결과 비동기 작업을 보관합니다.

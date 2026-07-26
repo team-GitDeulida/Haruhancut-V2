@@ -113,7 +113,9 @@ final class FlowViewController: UIViewController {
         adapter.supplementaryViewProvider = { [weak adapter] collectionView, kind, indexPath in
             guard
                 kind == UICollectionView.elementKindSectionHeader,
-                let section = adapter?.snapshot().sectionIdentifiers[indexPath.section],
+                let section = adapter?.sectionIdentifier(
+                    at: indexPath.section
+                ),
                 let header = collectionView.dequeueReusableSupplementaryView(
                     ofKind: kind,
                     withReuseIdentifier: DemoSectionHeaderView.reuseIdentifier,
@@ -148,7 +150,13 @@ final class FlowViewController: UIViewController {
                 Int((availableWidth + self.itemSpacing) / (minimumItemWidth + self.itemSpacing))
             )
             let totalSpacing = CGFloat(columnCount - 1) * self.itemSpacing
-            let itemWidth = floor((availableWidth - totalSpacing) / CGFloat(columnCount))
+            let itemWidth = max(
+                0,
+                floor(
+                    (availableWidth - totalSpacing)
+                        / CGFloat(columnCount)
+                )
+            )
             return CGSize(width: itemWidth, height: 172)
         }
 

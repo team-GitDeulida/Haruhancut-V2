@@ -127,6 +127,7 @@ final class CollectionViewAdapterTests: XCTestCase {
         let firstEvent = contentView.touchEvent
         let secondEvent = contentView.touchEvent
         contentView.installTouchHandlingIfNeeded()
+        contentView.installTouchHandlingIfNeeded()
 
         XCTAssertTrue(firstEvent === secondEvent)
         XCTAssertEqual(
@@ -327,6 +328,12 @@ final class CollectionViewAdapterTests: XCTestCase {
             },
             animatingDifferences: false
         )
+        let retainedItemIdentifier =
+            adapter.diffableDataSource
+                .snapshot()
+                .itemIdentifiers
+                .first
+
         adapter.bind(
             SectionModels {
                 LazySection(identifier: "accounts") {
@@ -347,15 +354,29 @@ final class CollectionViewAdapterTests: XCTestCase {
             animatingDifferences: false
         )
 
+        let snapshot =
+            adapter.diffableDataSource.snapshot()
         XCTAssertEqual(
-            adapter.diffableDataSource
-                .snapshot()
-                .itemIdentifiers
-                .map(\.rawValue),
+            snapshot.itemIdentifiers.first,
+            retainedItemIdentifier
+        )
+        XCTAssertEqual(
+            snapshot.itemIdentifiers.map(\.rawValue),
             [
                 AnyHashable(7),
                 AnyHashable(8),
             ]
+        )
+        XCTAssertEqual(
+            adapter.componentsBySectionIdentifier[
+                AnyHashable("accounts")
+            ]?.count,
+            2
+        )
+        XCTAssertNotNil(
+            adapter.componentsBySectionIdentifier[
+                AnyHashable("accounts")
+            ]?[AnyHashable(8)]
         )
     }
 
@@ -1122,7 +1143,7 @@ final class CollectionViewAdapterTests: XCTestCase {
     }
 
     @MainActor
-    func testAdapterReachesEndAtRelativeViewportThreshold()
+    func testAdapterReachesEndAtRelativeViewportThresholdBoundary()
         async
     {
         let collectionView = UICollectionView(
@@ -1205,7 +1226,7 @@ final class CollectionViewAdapterTests: XCTestCase {
     }
 
     @MainActor
-    func testAdapterReachesEndAtAbsoluteThreshold()
+    func testAdapterReachesEndAtAbsoluteThresholdBoundary()
         async
     {
         let collectionView = UICollectionView(
@@ -1247,7 +1268,7 @@ final class CollectionViewAdapterTests: XCTestCase {
     }
 
     @MainActor
-    func testAdapterReachesHorizontalEnd()
+    func testAdapterReachesHorizontalEndAtThresholdBoundary()
         async
     {
         let layout = UICollectionViewFlowLayout()

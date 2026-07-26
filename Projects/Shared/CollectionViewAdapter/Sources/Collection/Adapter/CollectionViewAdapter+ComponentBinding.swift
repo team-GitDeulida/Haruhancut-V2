@@ -17,13 +17,13 @@ extension CollectionViewAdapter {
         indexPath: IndexPath,
         itemID: AdapterItemIdentifier
     ) -> UICollectionViewCell? {
+        let sectionIdentifier =
+            itemID.section.rawValue
         guard
-            let section = sections.first(where: {
-                $0.identifier == itemID.section.rawValue
-            }),
-            let component = section.items.first(where: {
-                $0.id == itemID.rawValue
-            })
+            let component =
+                componentsBySectionIdentifier[
+                    sectionIdentifier
+                ]?[itemID.rawValue]
         else {
             return nil
         }
@@ -35,13 +35,33 @@ extension CollectionViewAdapter {
         let context = makeContext(
             collectionView: collectionView,
             indexPath: indexPath,
-            sectionIdentifier: section.identifier
+            sectionIdentifier: sectionIdentifier
         )
         (cell as? ComponentContextBindable)?
             .bindingContext = context
         (cell as? CellComponentBindable)?
             .bind(component: component)
         return cell
+    }
+
+    /// 새 Section tree를 셀 생성에 사용하는 상수 시간 조회표로 변환합니다.
+    func updateComponentLookup(
+        in sections: [ResolvedSection]
+    ) {
+        componentsBySectionIdentifier = Dictionary(
+            uniqueKeysWithValues:
+                sections.map { section in
+                    (
+                        section.identifier,
+                        Dictionary(
+                            uniqueKeysWithValues:
+                                section.items.map {
+                                    ($0.id, $0)
+                                }
+                        )
+                    )
+                }
+        )
     }
 
     /// Section의 header 또는 footer Component를 표시할 view를 만듭니다.
