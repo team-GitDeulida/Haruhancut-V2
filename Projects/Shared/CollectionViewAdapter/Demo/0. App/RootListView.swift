@@ -83,6 +83,28 @@ struct RootListView: View {
                     }
 
                     NavigationLink {
+                        ImageInfiniteScrollViewController()
+                            .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Image Prefetch + Infinite Scroll",
+                            caption: "이미지 prefetch와 다음 페이지 로딩을 함께 사용합니다",
+                            shape: .yellow
+                        )
+                    }
+
+                    NavigationLink {
+                        ImageWithoutPrefetchInfiniteScrollViewController()
+                            .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Image Loading + Infinite Scroll",
+                            caption: "prefetch 없이 표시 시점에 이미지를 요청합니다",
+                            shape: .yellow
+                        )
+                    }
+
+                    NavigationLink {
                         GridDemoViewController()
                             .toSwiftUI()
                             .navigationTitle("Grid Layout")
