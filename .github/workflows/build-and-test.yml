@@ -95,10 +95,10 @@ jobs:
           restore-keys: |
             deriveddata-${{ runner.os }}-xcode16.4-${{ matrix.module }}-
 
-      - name: Install Tuist
-        run: |
-          brew tap tuist/tuist
-          brew install tuist@4.115.0
+      - name: Set up Mise and Tuist
+        uses: jdx/mise-action@v4
+        with:
+          cache: true
 
       - name: Generate Project
         run: |
