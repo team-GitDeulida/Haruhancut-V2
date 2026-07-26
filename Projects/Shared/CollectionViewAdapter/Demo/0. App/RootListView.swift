@@ -129,6 +129,18 @@ struct RootListView: View {
                     }
                 }
 
+                Section("SwiftUI") {
+                    NavigationLink {
+                        SwiftUIComponentListView()
+                    } label: {
+                        CustomLabel(
+                            title: "Components in SwiftUI List",
+                            caption: "기존 Component를 SwiftUI 기본 List에서 재사용합니다",
+                            shape: .yellow
+                        )
+                    }
+                }
+
                 Section("Next Examples") {
                     Text("새 예제는 NavigationLink를 추가해 확장할 수 있습니다.")
                         .font(.footnote)
