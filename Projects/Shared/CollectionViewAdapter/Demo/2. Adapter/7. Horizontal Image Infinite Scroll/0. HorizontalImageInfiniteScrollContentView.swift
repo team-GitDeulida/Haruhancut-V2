@@ -9,6 +9,7 @@ final class MixedDirectionSectionHeaderContentView: UIView {
         let description: String
         let loadedCount: Int
         let isLoading: Bool
+        let contentHorizontalInset: CGFloat
     }
 
     var item: Item? {
@@ -27,6 +28,14 @@ final class MixedDirectionSectionHeaderContentView: UIView {
     private let activityIndicator = UIActivityIndicatorView(
         style: .medium
     )
+    private lazy var textStackViewLeadingConstraint =
+        textStackView.leadingAnchor.constraint(
+            equalTo: leadingAnchor
+        )
+    private lazy var activityIndicatorTrailingConstraint =
+        activityIndicator.trailingAnchor.constraint(
+            equalTo: trailingAnchor
+        )
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -51,6 +60,10 @@ final class MixedDirectionSectionHeaderContentView: UIView {
         titleLabel.text = item.title
         descriptionLabel.text = item.description
         countLabel.text = "\(item.loadedCount)개"
+        textStackViewLeadingConstraint.constant =
+            item.contentHorizontalInset
+        activityIndicatorTrailingConstraint.constant =
+            -item.contentHorizontalInset
 
         if item.isLoading {
             activityIndicator.startAnimating()
@@ -106,10 +119,7 @@ final class MixedDirectionSectionHeaderContentView: UIView {
         addSubview(activityIndicator)
 
         NSLayoutConstraint.activate([
-            textStackView.leadingAnchor.constraint(
-                equalTo: leadingAnchor,
-                constant: 20
-            ),
+            textStackViewLeadingConstraint,
             textStackView.centerYAnchor.constraint(
                 equalTo: centerYAnchor
             ),
@@ -118,10 +128,7 @@ final class MixedDirectionSectionHeaderContentView: UIView {
                 constant: -12
             ),
 
-            activityIndicator.trailingAnchor.constraint(
-                equalTo: trailingAnchor,
-                constant: -20
-            ),
+            activityIndicatorTrailingConstraint,
             activityIndicator.centerYAnchor.constraint(
                 equalTo: centerYAnchor
             ),

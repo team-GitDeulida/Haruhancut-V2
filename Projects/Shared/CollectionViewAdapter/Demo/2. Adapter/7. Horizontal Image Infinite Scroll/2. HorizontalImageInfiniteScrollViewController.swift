@@ -107,7 +107,8 @@ final class HorizontalImageInfiniteScrollViewController:
                         loadedCount:
                             self.horizontalItems.count,
                         isLoading:
-                            self.isLoadingHorizontalPage
+                            self.isLoadingHorizontalPage,
+                        contentHorizontalInset: 0
                     )
                 ),
                 height: .absolute(72)
@@ -156,7 +157,8 @@ final class HorizontalImageInfiniteScrollViewController:
                         loadedCount:
                             self.verticalItems.count,
                         isLoading:
-                            self.isLoadingVerticalPage
+                            self.isLoadingVerticalPage,
+                        contentHorizontalInset: 20
                     )
                 ),
                 height: .absolute(72)
