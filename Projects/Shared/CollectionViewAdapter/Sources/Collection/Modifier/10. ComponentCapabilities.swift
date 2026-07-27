@@ -83,6 +83,17 @@ private final class ComponentTouchGestureRecognizer:
             .minimumPressDuration > 0
     }
 
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer:
+            UIGestureRecognizer
+    ) -> Bool {
+        otherGestureRecognizer
+            is UIPanGestureRecognizer
+            && otherGestureRecognizer.view
+                is UIScrollView
+    }
+
     @objc
     private func didRecognizeTouch() {
         event.send(())

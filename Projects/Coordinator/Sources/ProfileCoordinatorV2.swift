@@ -6,9 +6,9 @@
 //
 
 import Domain
-import ProfileFeature
+import ProfileFeatureV2
 import UIKit
-import HomeFeatureV2
+import HomeFeatureV3
 import ImageFeature
 import Core
 
@@ -50,7 +50,7 @@ public final class ProfileCoordinatorV2: NSObject, Coordinator {
         
         profile.vm.onImageTapped = { [weak self] post in
             guard let self = self else { return }
-            let builder = HomeFeatureV2.FeedDetailBuilder()
+            let builder = HomeFeatureV3.FeedDetailBuilder()
             var feedDetail = builder.makeFeed(post: post)
             let feedDetailViewController: UIViewController & RefreshableViewController = feedDetail.vc
             profileViewController?.navigationItem.backButtonDisplayMode = .minimal

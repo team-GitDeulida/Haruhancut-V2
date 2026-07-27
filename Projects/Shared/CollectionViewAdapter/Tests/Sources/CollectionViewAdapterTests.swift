@@ -168,6 +168,46 @@ final class CollectionViewAdapterTests: XCTestCase {
     }
 
     @MainActor
+    func testTouchableAllowsCollectionViewPanGesture() {
+        let contentView = TestContentView()
+        contentView.installTouchHandlingIfNeeded()
+
+        guard
+            let tapGestureRecognizer =
+                contentView.gestureRecognizers?
+                    .compactMap({
+                        $0 as?
+                            UITapGestureRecognizer
+                    })
+                    .first
+        else {
+            return XCTFail(
+                "Touchable tap recognizer 생성 실패"
+            )
+        }
+
+        let collectionView =
+            UICollectionView(
+                frame: .zero,
+                collectionViewLayout:
+                    UICollectionViewFlowLayout()
+            )
+        let allowsSimultaneousRecognition =
+            tapGestureRecognizer.delegate?
+                .gestureRecognizer?(
+                    tapGestureRecognizer,
+                    shouldRecognizeSimultaneouslyWith:
+                        collectionView
+                            .panGestureRecognizer
+                )
+            ?? false
+
+        XCTAssertTrue(
+            allowsSimultaneousRecognition
+        )
+    }
+
+    @MainActor
     func testTouchableDoesNotRecognizeAlongsideSemanticLongPress() {
         let contentView = TestContentView()
         contentView.installTouchHandlingIfNeeded()
