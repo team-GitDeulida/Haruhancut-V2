@@ -36,6 +36,19 @@ struct RootListView: View {
                             shape: .blue
                         )
                     }
+
+                    NavigationLink {
+                        CompositionalAccountListViewController(
+                            accounts: BankAccount.sample
+                        )
+                        .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Basic 2: Compositional Layout",
+                            caption: "기본 예시와 같은 화면을 Compositional Layout으로 구현합니다",
+                            shape: .purple
+                        )
+                    }
                 }
                 
                 Section("CollectionView") {
