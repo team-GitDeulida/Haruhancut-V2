@@ -204,6 +204,13 @@ extension FlowLayoutAccountListViewController:
         return cell
     }
 
+    /// 지정한 종류에 맞는 섹션 header 또는 footer를 생성하고 설정합니다.
+    ///
+    /// - Parameters:
+    ///   - collectionView: supplementary view를 요청한 컬렉션 뷰입니다.
+    ///   - kind: 요청된 supplementary view의 종류입니다.
+    ///   - indexPath: supplementary view가 표시될 섹션 위치입니다.
+    /// - Returns: 설정이 완료된 header 또는 footer 뷰입니다.
     func collectionView(
         _ collectionView: UICollectionView,
         viewForSupplementaryElementOfKind kind: String,

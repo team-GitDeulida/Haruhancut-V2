@@ -1,5 +1,5 @@
 //
-//  CompositionalAccountListViewController.swift
+//  DiffableAccountListViewController.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/28/26.
@@ -7,9 +7,19 @@
 
 import UIKit
 
-final class CompositionalAccountListViewController: UIViewController {
+final class DiffableAccountListViewController: UIViewController {
+
+    private enum Section: Hashable {
+        case account
+    }
+
+    private typealias DataSource = UICollectionViewDiffableDataSource<
+        Section,
+        UUID
+    >
 
     private let accounts: [BankAccount]
+    private let accountsByID: [UUID: BankAccount]
 
     private lazy var collectionView: UICollectionView = {
         let collectionView = UICollectionView(
@@ -18,7 +28,6 @@ final class CompositionalAccountListViewController: UIViewController {
         )
 
         collectionView.backgroundColor = .systemBackground
-        collectionView.dataSource = self
         collectionView.delegate = self
 
         collectionView.register(
@@ -45,8 +54,15 @@ final class CompositionalAccountListViewController: UIViewController {
         return collectionView
     }()
 
+    private lazy var dataSource: DataSource = makeDataSource()
+
     init(accounts: [BankAccount]) {
         self.accounts = accounts
+        self.accountsByID = Dictionary(
+            uniqueKeysWithValues: accounts.map { account in
+                (account.id, account)
+            }
+        )
 
         super.init(
             nibName: nil,
@@ -54,6 +70,7 @@ final class CompositionalAccountListViewController: UIViewController {
         )
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -63,10 +80,11 @@ final class CompositionalAccountListViewController: UIViewController {
 
         configureNavigation()
         configureLayout()
+        applySnapshot(animatingDifferences: false)
     }
 
     private func configureNavigation() {
-        title = "기본 UICollectionView"
+        title = "Diffable Data Source"
         navigationController?
             .navigationBar
             .prefersLargeTitles = true
@@ -91,6 +109,91 @@ final class CompositionalAccountListViewController: UIViewController {
                 equalTo: view.bottomAnchor
             )
         ])
+    }
+
+    /// 셀과 supplementary view provider가 연결된 Diffable Data Source를 생성합니다.
+    ///
+    /// item identifier로 계좌의 `UUID`를 사용해 snapshot의 항목과
+    /// 실제 계좌 모델을 안정적으로 연결합니다.
+    private func makeDataSource() -> DataSource {
+        let dataSource = DataSource(
+            collectionView: collectionView
+        ) { [weak self] collectionView, indexPath, accountID in
+            guard
+                let self,
+                let account = self.accountsByID[accountID],
+                let cell = collectionView.dequeueReusableCell(
+                    withReuseIdentifier:
+                        AccountCollectionViewCell.reuseIdentifier,
+                    for: indexPath
+                ) as? AccountCollectionViewCell
+            else {
+                assertionFailure("AccountCollectionViewCell 생성 실패")
+                return nil
+            }
+
+            cell.configure(
+                account: account,
+                onTransfer: { [weak self] in
+                    self?.showTransfer(account: account)
+                }
+            )
+
+            return cell
+        }
+
+        dataSource.supplementaryViewProvider = {
+            collectionView,
+            kind,
+            indexPath in
+            guard let supplementaryView = collectionView
+                .dequeueReusableSupplementaryView(
+                    ofKind: kind,
+                    withReuseIdentifier:
+                        AccountListSupplementaryView.reuseIdentifier,
+                    for: indexPath
+                ) as? AccountListSupplementaryView
+            else {
+                assertionFailure("AccountListSupplementaryView 생성 실패")
+                return nil
+            }
+
+            switch kind {
+            case UICollectionView.elementKindSectionHeader:
+                supplementaryView.configure(kind: .header)
+
+            case UICollectionView.elementKindSectionFooter:
+                supplementaryView.configure(kind: .footer)
+
+            default:
+                assertionFailure("지원하지 않는 supplementary view kind입니다.")
+                return nil
+            }
+
+            return supplementaryView
+        }
+
+        return dataSource
+    }
+
+    /// 현재 계좌 목록을 Diffable snapshot으로 변환해 컬렉션 뷰에 적용합니다.
+    ///
+    /// - Parameter animatingDifferences: snapshot 변경 애니메이션 적용 여부입니다.
+    private func applySnapshot(
+        animatingDifferences: Bool
+    ) {
+        var snapshot = NSDiffableDataSourceSnapshot<Section, UUID>()
+
+        snapshot.appendSections([.account])
+        snapshot.appendItems(
+            accounts.map(\.id),
+            toSection: .account
+        )
+
+        dataSource.apply(
+            snapshot,
+            animatingDifferences: animatingDifferences
+        )
     }
 
     private func showAccountDetail(
@@ -194,100 +297,11 @@ final class CompositionalAccountListViewController: UIViewController {
     }
 }
 
-// MARK: - UICollectionViewDataSource
-/// 계좌 목록 컬렉션 뷰에 표시할 데이터와 보조 뷰 생성을 담당합니다.
-extension CompositionalAccountListViewController:
-    UICollectionViewDataSource {
-
-    /// 지정된 섹션에 표시할 계좌 셀의 개수를 반환합니다.
-    ///
-    /// - Parameters:
-    ///   - collectionView: 아이템 개수를 요청한 컬렉션 뷰입니다.
-    ///   - section: 아이템 개수를 확인할 섹션의 인덱스입니다.
-    /// - Returns: `accounts` 배열에 저장된 계좌 개수입니다.
-    func collectionView(
-        _ collectionView: UICollectionView,
-        numberOfItemsInSection section: Int
-    ) -> Int {
-        accounts.count
-    }
-
-    /// 지정된 위치에 표시할 계좌 셀을 생성하고 데이터를 설정합니다.
-    ///
-    /// - Parameters:
-    ///   - collectionView: 셀을 요청한 컬렉션 뷰입니다.
-    ///   - indexPath: 생성할 셀의 섹션과 아이템 위치입니다.
-    /// - Returns: 계좌 정보와 송금 동작이 설정된 컬렉션 뷰 셀입니다.
-    func collectionView(
-        _ collectionView: UICollectionView,
-        cellForItemAt indexPath: IndexPath
-    ) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier:
-                AccountCollectionViewCell.reuseIdentifier,
-            for: indexPath
-        ) as? AccountCollectionViewCell else {
-            assertionFailure("AccountCollectionViewCell 생성 실패")
-            return UICollectionViewCell()
-        }
-
-        let account = accounts[indexPath.item]
-
-        cell.configure(
-            account: account,
-            onTransfer: { [weak self] in
-                self?.showTransfer(account: account)
-            }
-        )
-
-        return cell
-    }
-
-    /// 지정한 종류에 맞는 섹션 header 또는 footer를 생성하고 설정합니다.
-    ///
-    /// - Parameters:
-    ///   - collectionView: supplementary view를 요청한 컬렉션 뷰입니다.
-    ///   - kind: 요청된 supplementary view의 종류입니다.
-    ///   - indexPath: supplementary view가 표시될 섹션 위치입니다.
-    /// - Returns: 설정이 완료된 header 또는 footer 뷰입니다.
-    func collectionView(
-        _ collectionView: UICollectionView,
-        viewForSupplementaryElementOfKind kind: String,
-        at indexPath: IndexPath
-    ) -> UICollectionReusableView {
-        guard let supplementaryView = collectionView
-            .dequeueReusableSupplementaryView(
-                ofKind: kind,
-                withReuseIdentifier:
-                    AccountListSupplementaryView.reuseIdentifier,
-                for: indexPath
-            ) as? AccountListSupplementaryView
-        else {
-            assertionFailure("AccountListSupplementaryView 생성 실패")
-            return UICollectionReusableView()
-        }
-
-        switch kind {
-        case UICollectionView.elementKindSectionHeader:
-            supplementaryView.configure(kind: .header)
-
-        case UICollectionView.elementKindSectionFooter:
-            supplementaryView.configure(kind: .footer)
-
-        default:
-            assertionFailure("지원하지 않는 supplementary view kind입니다.")
-        }
-
-        return supplementaryView
-    }
-}
-
 // MARK: - UICollectionViewDelegate
-/// 계좌 셀 선택과 같은 컬렉션 뷰의 사용자 상호작용을 처리합니다.
-extension CompositionalAccountListViewController:
-    UICollectionViewDelegate {
+/// Diffable snapshot의 item identifier를 이용해 계좌 셀 선택을 처리합니다.
+extension DiffableAccountListViewController: UICollectionViewDelegate {
 
-    /// 사용자가 계좌 셀을 선택했을 때 상세 정보를 표시합니다.
+    /// 사용자가 선택한 셀의 item identifier로 계좌를 찾아 상세 정보를 표시합니다.
     ///
     /// - Parameters:
     ///   - collectionView: 선택 이벤트를 전달한 컬렉션 뷰입니다.
@@ -296,13 +310,19 @@ extension CompositionalAccountListViewController:
         _ collectionView: UICollectionView,
         didSelectItemAt indexPath: IndexPath
     ) {
-        let account = accounts[indexPath.item]
+        guard
+            let accountID = dataSource.itemIdentifier(for: indexPath),
+            let account = accountsByID[accountID]
+        else {
+            return
+        }
+
         showAccountDetail(account: account)
     }
 }
 
 #Preview {
-    CompositionalAccountListViewController(
+    DiffableAccountListViewController(
         accounts: BankAccount.sample
     )
 }

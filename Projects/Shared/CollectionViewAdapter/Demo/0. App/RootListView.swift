@@ -52,6 +52,19 @@ struct RootListView: View {
                             shape: .purple
                         )
                     }
+
+                    NavigationLink {
+                        DiffableAccountListViewController(
+                            accounts: BankAccount.sample
+                        )
+                        .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Compositional + Diffable",
+                            caption: "Compositional Layout과 Diffable Data Source를 함께 사용합니다",
+                            shape: .indigo
+                        )
+                    }
                 }
                 
                 Section("CollectionView") {
