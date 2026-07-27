@@ -20,6 +20,7 @@ public struct User: Codable, Equatable {
     public var gender: Gender
     public var isPushEnabled: Bool
     public var groupId: String?
+    public var isAdmin: Bool?
     
     // 성별
     public enum Gender: String, Codable {
@@ -34,7 +35,7 @@ public struct User: Codable, Equatable {
         case apple = "apple"
     }
     
-    public init(uid: String, registerDate: Date, loginPlatform: LoginPlatform, nickname: String, profileImageURL: String? = nil, fcmToken: String? = nil, birthdayDate: Date, gender: Gender, isPushEnabled: Bool, groupId: String? = nil) {
+    public init(uid: String, registerDate: Date, loginPlatform: LoginPlatform, nickname: String, profileImageURL: String? = nil, fcmToken: String? = nil, birthdayDate: Date, gender: Gender, isPushEnabled: Bool, groupId: String? = nil, isAdmin: Bool? = nil) {
         self.uid = uid
         self.registerDate = registerDate
         self.loginPlatform = loginPlatform
@@ -45,6 +46,7 @@ public struct User: Codable, Equatable {
         self.gender = gender
         self.isPushEnabled = isPushEnabled
         self.groupId = groupId
+        self.isAdmin = isAdmin
     }
     
     var displayNickname: String {
@@ -93,7 +95,8 @@ extension User: CustomStringConvertible {
         ├─ birthdayDate:     \(birthdayDate.toDateKey())
         ├─ gender:           \(gender.rawValue)
         ├─ isPushEnabled:    \(isPushEnabled)
-        └─ groupId:          \(groupId ?? "nil")
+        ├─ groupId:          \(groupId ?? "nil")
+        └─ isAdmin:          \(isAdmin.map { String($0) } ?? "nil")
         
         """
     }
@@ -113,5 +116,5 @@ public extension SessionContext where Model == User {
     var fcmToken: String? { session?.fcmToken }
     var hasGroup: Bool { groupId != nil }
     var platform: User.LoginPlatform? { session?.loginPlatform }
+    var isAdmin: Bool { session?.isAdmin == true }
 }
-

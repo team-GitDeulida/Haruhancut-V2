@@ -32,6 +32,17 @@
 "member.birthday.settings.lunar" = "Lunar calendar";
 "member.birthday.settings.failure.title" = "Couldn’t save settings";
 "member.birthday.settings.failure.message" = "Please try again in a moment.";
+"admin.navigation.button" = "Admin";
+"admin.title" = "Group Management";
+"admin.empty" = "There are no groups to display.";
+"admin.member.count" = "%d users";
+"admin.post.count" = "%d posts";
+"admin.photo.count" = "%d photos";
+"admin.latest_post" = "Latest post · %@";
+"admin.no_post" = "No posts";
+"admin.load_failure.title" = "Couldn’t load groups";
+"admin.load_failure.message" = "Please try again in a moment.";
+"admin.preview.empty" = "There are no posts for today.";
 "common.back" = "Back";
 "common.cancel" = "Cancel";
 "common.close" = "Close";

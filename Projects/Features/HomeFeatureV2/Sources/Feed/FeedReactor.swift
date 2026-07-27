@@ -14,7 +14,10 @@ final class FeedReactor: Reactor {
     @Dependency private var userSession: UserSession
     @Dependency private var groupSession: GroupSession
     @Dependency private var authUsecase: AuthUsecaseProtocol
-    @Dependency private var groupUsecase: GroupUsecaseProtocol
+    private let loadGroup:
+        () -> Observable<HCGroup>
+    private let groupUsecase:
+        GroupUsecaseProtocol?
 
     enum Action {
         case viewDidLoad
@@ -36,6 +39,17 @@ final class FeedReactor: Reactor {
     }
 
     let initialState = State()
+
+    init(
+        loadGroup:
+            @escaping () -> Observable<HCGroup>,
+        groupUsecase:
+            GroupUsecaseProtocol?
+    ) {
+        self.loadGroup = loadGroup
+        self.groupUsecase =
+            groupUsecase
+    }
 
     func mutate(action: Action) -> Observable<Mutation> {
         switch action {
@@ -79,6 +93,11 @@ private extension FeedReactor {
     }
 
     func deletePost(_ post: Post) -> Observable<Mutation> {
+        guard
+            let groupUsecase
+        else {
+            return .empty()
+        }
         let previousComponents = currentState.components
         let remainingComponents = previousComponents.filter {
             $0.post.postId != post.postId
@@ -124,8 +143,8 @@ private extension FeedReactor {
             }
             .asObservable()
 
-        let loadGroup: Observable<Mutation> = groupUsecase
-            .loadAndFetchGroup()
+        let loadGroup: Observable<Mutation> =
+            loadGroup()
             .map { group -> Mutation in
                 Mutation.setComponents(self.makeComponents(from: group.postsByDate))
             }

@@ -132,6 +132,9 @@ public protocol FirebaseAuthManagerProtocol {
     
     // 그룹 조회
     func fetchGroup(groupId: String) -> Single<HCGroup>
+
+    // 전체 그룹 조회 (관리자 전용 Usecase에서만 사용)
+    func fetchGroups() -> Single<[HCGroup]>
     
     // 그룹 참가
     func joinGroup(inviteCode: String) -> Single<HCGroup>
@@ -558,6 +561,26 @@ extension FirebaseAuthManager {
                     return .error(FirebaseError.decodingFailed)
                 }
             }
+    }
+
+    /// 전체 그룹을 조회합니다.
+    ///
+    /// 호출 전 관리자 권한 확인은 `AdminUsecase`가 담당하고,
+    /// Firebase Database Rules에서도 같은 권한을 검증해야 합니다.
+    public func fetchGroups()
+        -> Single<[HCGroup]>
+    {
+        readValue(
+            path: "groups",
+            type:
+                [String: HCGroupDTO].self
+        )
+        .map {
+            groups in
+            groups.values.compactMap {
+                $0.toModel()
+            }
+        }
     }
     
     /// 그룸 참가

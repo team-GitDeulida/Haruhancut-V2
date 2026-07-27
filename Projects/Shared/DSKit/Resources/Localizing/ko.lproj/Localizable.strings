@@ -32,6 +32,17 @@
 "member.birthday.settings.lunar" = "음력 기준";
 "member.birthday.settings.failure.title" = "설정을 저장하지 못했어요";
 "member.birthday.settings.failure.message" = "잠시 후 다시 시도해 주세요.";
+"admin.navigation.button" = "관리자";
+"admin.title" = "그룹 관리";
+"admin.empty" = "표시할 그룹이 없습니다.";
+"admin.member.count" = "사용자 %d명";
+"admin.post.count" = "게시글 %d개";
+"admin.photo.count" = "사진 %d장";
+"admin.latest_post" = "최신 게시글 · %@";
+"admin.no_post" = "게시글 없음";
+"admin.load_failure.title" = "그룹 목록을 불러오지 못했어요";
+"admin.load_failure.message" = "잠시 후 다시 시도해 주세요.";
+"admin.preview.empty" = "오늘 등록된 게시글이 없습니다.";
 "common.back" = "뒤로가기";
 "common.cancel" = "취소";
 "common.close" = "닫기";

@@ -9,9 +9,14 @@ import HomeFeatureV2Interface
 import UIKit
 import Core
 import Domain
+import RxSwift
 
 public protocol HomeFeatureBuildable {
     func makeHome(routeTrigger: HomeRouteTrigger?) -> HomePresentable
+    func makeHome(
+        mode: HomePresentationMode,
+        routeTrigger: HomeRouteTrigger?
+    ) -> HomePresentable
 }
 
 public final class HomeFeatureBuilder {
@@ -20,9 +25,63 @@ public final class HomeFeatureBuilder {
 
 extension HomeFeatureBuilder: HomeFeatureBuildable {
     public func makeHome(routeTrigger: HomeRouteTrigger? = nil) -> HomePresentable {
-        let feedReactor = FeedReactor()
-        let calendarReactor = CalendarReactor()
-        let vc = HomeViewController(feedReactor: feedReactor, calendarReactor: calendarReactor)
+        makeHome(
+            mode: .currentGroup,
+            routeTrigger: routeTrigger
+        )
+    }
+
+    public func makeHome(
+        mode: HomePresentationMode,
+        routeTrigger: HomeRouteTrigger? = nil
+    ) -> HomePresentable {
+        @Dependency
+        var groupUsecase:
+            GroupUsecaseProtocol
+
+        let loadGroup:
+            () -> Observable<HCGroup>
+        switch mode {
+        case .currentGroup:
+            loadGroup = {
+                groupUsecase
+                    .loadAndFetchGroup()
+            }
+        case let .adminPreview(
+            groupID
+        ):
+            @Dependency
+            var adminUsecase:
+                AdminUsecaseProtocol
+            loadGroup = {
+                adminUsecase
+                    .fetchGroup(
+                        groupId: groupID
+                    )
+                    .asObservable()
+            }
+        }
+
+        let feedReactor =
+            FeedReactor(
+                loadGroup: loadGroup,
+                groupUsecase:
+                    mode.isReadOnly
+                    ? nil
+                    : groupUsecase
+            )
+        let calendarReactor =
+            CalendarReactor(
+                loadGroup: loadGroup
+            )
+        let vc =
+            HomeViewController(
+                feedReactor:
+                    feedReactor,
+                calendarReactor:
+                    calendarReactor,
+                mode: mode
+            )
         vc.routeTrigger = routeTrigger
         return vc
     }
