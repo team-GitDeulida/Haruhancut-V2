@@ -112,22 +112,6 @@ final class MemberViewController:
             )
 
         output.sortedMembers
-            .map {
-                String(
-                    format:
-                        LocalizationKey
-                            .memberFamilyCountValue
-                            .localized,
-                    $0.count
-                )
-            }
-            .drive(
-                customView
-                    .peopleLabel.rx.text
-            )
-            .disposed(by: disposeBag)
-
-        output.sortedMembers
             .drive(with: self) {
                 owner, members in
                 owner.render(
@@ -158,16 +142,12 @@ final class MemberViewController:
             SectionModels {
                 LazySection(
                     identifier:
-                        Constant
-                            .memberSectionIdentifier
+                        Constant.memberSectionIdentifier
                 ) {
                     MemberRowComponent
                         .invite
-                        .onTouch {
-                            [weak self] in
-                            self?
-                                .inviteTappedRelay
-                                .accept(())
+                        .onTouch { [weak self] in
+                            self?.inviteTappedRelay.accept(())
                         }
 
                     For(of: members) {
@@ -175,25 +155,24 @@ final class MemberViewController:
                         MemberRowComponent(
                             user: member
                         )
-                        .onTouch {
-                            [weak self] in
-                            self?
-                                .memberTappedRelay
-                                .accept(
-                                    member
-                                )
+                        .onTouch { [weak self] in
+                            self?.memberTappedRelay.accept(member)
                         }
                     }
                 }
+                .withHeader(
+                    MemberHeaderComponent(
+                        memberCount: members.count
+                    ),
+                    zIndex: 1
+                )
                 .withSectionLayout(
-                    .verticalList(
-                        estimatedRowHeight:
-                            Constant
-                                .rowHeight,
-                        spacing:
-                            Constant
-                                .rowSpacing
-                    )
+                    CollectionSectionLayout
+                        .verticalList(
+                            estimatedRowHeight: Constant.rowHeight,
+                            spacing: Constant.rowSpacing
+                        )
+                        .withHeaderPinToVisibleBounds(true)
                 )
             },
             animatingDifferences: true

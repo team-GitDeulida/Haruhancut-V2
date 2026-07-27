@@ -5,6 +5,22 @@ import XCTest
 final class MemberFeatureV2Tests:
     XCTestCase
 {
+    func testHeaderComponentUsesMemberCount() {
+        let component =
+            MemberHeaderComponent(
+                memberCount: 3
+            )
+
+        XCTAssertEqual(
+            component.item.id,
+            "member-count-header"
+        )
+        XCTAssertEqual(
+            component.item.memberCount,
+            3
+        )
+    }
+
     func testInviteComponentUsesStableIdentifier() {
         let component =
             MemberRowComponent.invite
