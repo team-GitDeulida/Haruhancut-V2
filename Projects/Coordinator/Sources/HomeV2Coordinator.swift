@@ -173,7 +173,7 @@ private extension HomeV2Coordinator {
     }
 
     @objc func didTapMember() {
-        let memberCoordinator = MemberCoordinator(navigationController: navigationController)
+        let memberCoordinator = MemberCoordinatorV2(navigationController: navigationController)
         memberCoordinator.parentCoordinator = self
         childCoordinators.append(memberCoordinator)
         memberCoordinator.start()
