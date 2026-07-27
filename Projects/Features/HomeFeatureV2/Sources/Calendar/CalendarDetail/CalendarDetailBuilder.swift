@@ -29,7 +29,7 @@ extension CalendarDetailBuilder: CalendarDetailBuildable {
         let vc = CalendarDetailViewController(viewModel: vm)
         return (vc, vm)
     }
-    
+
     public func makeComment(post: Domain.Post, onDismiss: (() -> Void)? = nil) -> UIViewController {
         @Dependency var groupUsecase: GroupUsecaseProtocol
         let vm = CommentViewModel(groupUsecase: groupUsecase, post: post)

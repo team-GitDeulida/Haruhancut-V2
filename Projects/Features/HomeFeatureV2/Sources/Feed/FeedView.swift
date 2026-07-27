@@ -8,13 +8,15 @@
 import UIKit
 import DSKit
 import Core
-import TurboListKit
 
 final class FeedView: UIView {
-    private let layoutAdapter: CollectionViewLayoutAdapter
 
     lazy var collectionView: UICollectionView = {
-        let collectionView = UICollectionView(layoutAdapter: layoutAdapter)
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout:
+                UICollectionViewFlowLayout()
+        )
         collectionView.backgroundColor = .background
         collectionView.showsVerticalScrollIndicator = false
         collectionView.alwaysBounceVertical = true
@@ -46,9 +48,8 @@ final class FeedView: UIView {
         return label
     }()
 
-    init(layoutAdapter: CollectionViewLayoutAdapter) {
-        self.layoutAdapter = layoutAdapter
-        super.init(frame: .zero)
+    override init(frame: CGRect) {
+        super.init(frame: frame)
         setupUI()
         setupConstraints()
     }

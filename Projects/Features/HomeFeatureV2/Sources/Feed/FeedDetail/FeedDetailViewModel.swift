@@ -15,10 +15,10 @@ import HomeFeatureV2Interface
 import UIKit
 
 public final class FeedDetailViewModel: FeedDetailViewModelType {
-    
+
     public var onCommentTapped: ((Post) -> Void)?
     public var onImagePreviewTapped: ((String) -> Void)?
-    
+
     @Dependency private var userSession: UserSession
     private let groupUsecase: GroupUsecaseProtocol
     private let disposeBag = DisposeBag()
@@ -29,12 +29,12 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
         let commentButtonTapped: Observable<Void>
         let reload: Observable<Void>
     }
-    
+
     public struct Output {
         let post: Driver<Post>
         let commentCount: Driver<Int>
     }
-    
+
     public init(groupUsecase: GroupUsecaseProtocol, post: Post) {
         self.groupUsecase = groupUsecase
         self.postRelay = BehaviorRelay(value: post)
@@ -45,17 +45,17 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
             .bind(with: self, onNext: { owner, _ in
                 owner.onImagePreviewTapped?(owner.postRelay.value.imageURL)
             }).disposed(by: disposeBag)
-        
+
         input.commentButtonTapped
             .withLatestFrom(postRelay)
             .bind(with: self, onNext: { owner, post in
                 owner.onCommentTapped?(post)
             }).disposed(by: disposeBag)
-        
+
         let commentCount = postRelay
             .map { $0.comments.count }
             .asDriver(onErrorJustReturn: 0)
-        
+
         input.reload
             .withUnretained(self)
             .flatMapLatest { owner, _ in
@@ -72,7 +72,7 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
             .compactMap { $0 }
             .bind(to: postRelay)
             .disposed(by: disposeBag)
-        
+
         return Output(post: postRelay.asDriver(),
                       commentCount: commentCount)
     }

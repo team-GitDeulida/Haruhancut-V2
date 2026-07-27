@@ -7,7 +7,6 @@
 
 import UIKit
 import ReactorKit
-import CarbonListKit
 import DSKit
 import RxCocoa
 import Domain
@@ -26,10 +25,10 @@ final class HomeViewController: UIViewController {
         ])
         return segment
     }()
-    
+
     let feedVC: FeedViewController
     let calendarVC: CalendarViewController
-    
+
     private lazy var pageViewController: UIPageViewController = {
         let vc = UIPageViewController(
             transitionStyle: .scroll,
@@ -39,45 +38,45 @@ final class HomeViewController: UIViewController {
         vc.dataSource = self
         return vc
     }()
-        
+
     private var dataViewControllers: [UIViewController] { [feedVC, calendarVC] }
-    
+
     // 캘린더 영역만 막고 나머지 페이지는 이동하기 위한 로직 4
     private var pageScrollView: UIScrollView? {
         pageViewController.view.subviews.first { $0 is UIScrollView } as? UIScrollView
     }
-    
+
     init(feedReactor: FeedReactor, calendarReactor: CalendarReactor) {
         self.feedVC = FeedViewController(reactor: feedReactor)
         self.calendarVC = CalendarViewController(reactor: calendarReactor)
         super.init(nibName: nil, bundle: nil)
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupNavigation()
         setupPageViewController()
         bind()
-        
+
         // 캘린더 영역만 막고 나머지 페이지는 이동하기 위한 로직 5
         calendarVC.gestureDelegate = self
     }
-    
+
     private func setupNavigation() {
         /// 뷰 배경 색상
         view.backgroundColor = .background
-        
+
         /// 네비게이션 버튼 색상
         self.navigationController?.navigationBar.tintColor = .mainWhite
-        
+
         /// 네비게이션 제목
         segmentedBar.sizeToFit() // 글자 길이에 맞게 label 크기 조정
         self.navigationItem.titleView = segmentedBar
-        
+
         /// 좌측 네비게이션 버튼
         self.navigationItem.leftBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "list.bullet"),
@@ -85,7 +84,7 @@ final class HomeViewController: UIViewController {
             target: nil,
             action: nil)
         self.navigationItem.leftBarButtonItem?.tintColor = .mainWhite
-        
+
         /// 우측 네비게이션 버튼
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "person.fill"),
@@ -93,26 +92,26 @@ final class HomeViewController: UIViewController {
             target: nil,
             action: nil)
         self.navigationItem.rightBarButtonItem?.tintColor = .mainWhite
-        
+
         /// 자식 화면에서 뒤로가기
         let backItem = UIBarButtonItem()
         backItem.title = LocalizationKey.homeNavigationBack.localized
         backItem.tintColor = .mainWhite
         navigationItem.backBarButtonItem = backItem
     }
-    
+
     private func setupPageViewController() {
         addChild(pageViewController)                      // 자식 등록
         view.addSubview(pageViewController.view)          // 뷰 추가
         pageViewController.view.translatesAutoresizingMaskIntoConstraints = false
-        
+
         NSLayoutConstraint.activate([
             pageViewController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             pageViewController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             pageViewController.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             pageViewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-        
+
         pageViewController.didMove(toParent: self)
         pageViewController.setViewControllers(
             [feedVC],
@@ -120,15 +119,15 @@ final class HomeViewController: UIViewController {
             animated: false
         )
     }
-    
+
     func bind() {
         let currentPageDriver = currentPageRelay.asDriver()
-        
+
         // SegmentedControl 변경 값(0, 1)을 currentPageRelay에 갱신
         segmentedBar.segmentedControl.rx.selectedSegmentIndex
             .bind(to: currentPageRelay)
             .disposed(by: disposeBag)
-        
+
         // 스와이프 시 세그먼트 바 자동 움직임
         currentPageDriver
             .distinctUntilChanged()
@@ -161,7 +160,7 @@ final class HomeViewController: UIViewController {
                 owner.routeTrigger?.onCalendarImageTapped?(payload.0, payload.1)
             }
             .disposed(by: disposeBag)
-        
+
         // currentPageRelay의 값(페이지 index)이 변경되면 화면을 전환한다
         currentPageDriver
             .distinctUntilChanged()
@@ -217,11 +216,11 @@ final class HomeViewController: UIViewController {
 //#Preview {
 //    let vc = HomeViewController(reactor: HomeReactor())
 //    UINavigationController(rootViewController: vc)
-//    
+//
 //}
 
 extension HomeViewController: UIPageViewControllerDelegate {
-    
+
     /// 페이지 전환 애니메이션이 완료되었을 때 호출됩니다.
     ///
     /// - Parameters:
@@ -251,14 +250,14 @@ extension HomeViewController: UIPageViewControllerDelegate {
             let vc = pageViewController.viewControllers?.first, // 현재 표시 중인 VC
             let index = dataViewControllers.firstIndex(of: vc)  // 현재 index 찾기
         else { return }
-        
+
         // 현재 페이지 index를 전달한다.
         currentPageRelay.accept(index)
     }
 }
 
 extension HomeViewController: UIPageViewControllerDataSource {
-    
+
     /// 현재 ViewController 기준으로 "이전 페이지"를 요청할 때 호출됩니다.
     ///
     /// - Parameters:
@@ -286,7 +285,7 @@ extension HomeViewController: UIPageViewControllerDataSource {
         // 이전 페이지 반환
         return dataViewControllers[index - 1]
     }
-    
+
     /// 현재 ViewController 기준으로 "다음 페이지"를 요청할 때 호출됩니다.
     ///
     /// - Parameters:
@@ -320,7 +319,7 @@ extension HomeViewController: GestureDelegate {
     func calendarDidStartGesture() {
         pageScrollView?.isScrollEnabled = false
     }
-    
+
     func calendarDidEndGesture() {
         pageScrollView?.isScrollEnabled = true
     }

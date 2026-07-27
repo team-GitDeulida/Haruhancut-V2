@@ -1,11 +1,11 @@
 //
 //  SceneDelegate.swift
-//  HomeFeatureV3Demo
+//  HomeFeatureV2Demo
 //
 //  Created by 김동현 on 7/27/26.
 //
 
-import HomeFeatureV3
+import HomeFeatureV2
 import UIKit
 
 final class SceneDelegate:

@@ -14,28 +14,28 @@ import Core
 import DSKit
 
 final class CalendarDetailViewController: UIViewController, RefreshableViewController {
-    
+
     private let disposeBag = DisposeBag()
     private let viewModel: CalendarDetailViewModel
     private let customView: CalendarDetailView
     private let currentRelay = BehaviorRelay<Int>(value: 0)
     private let reloadRelay = PublishRelay<Void>()
-    
+
     init(viewModel: CalendarDetailViewModel) {
         self.viewModel = viewModel
         self.customView = CalendarDetailView(posts: viewModel.posts,
                                              selectedDate: viewModel.selectedDate.toDateKey())
         super.init(nibName: nil, bundle: nil)
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     override func loadView() {
         self.view = customView
     }
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setDelegate()
@@ -45,12 +45,12 @@ final class CalendarDetailViewController: UIViewController, RefreshableViewContr
     func refresh() {
         reloadRelay.accept(())
     }
-    
+
     private func setDelegate() {
         customView.collectionView.rx.setDelegate(self)
             .disposed(by: disposeBag)
     }
-    
+
     private func bindViewModel() {
         let viewDidAppear = rx
             .methodInvoked(#selector(UIViewController.viewDidAppear(_:)))
@@ -66,27 +66,27 @@ final class CalendarDetailViewController: UIViewController, RefreshableViewContr
                 }
                 return owner.viewModel.posts[index]
             }
-        
+
         let input = CalendarDetailViewModel.Input(
             imageTapped: customView.collectionView.rx.modelSelected(Post.self).asObservable(),
             commentButtonTapped: commentTapped,
             currentIndex: currentRelay.asObservable(),
             reload: reload)
         let output = viewModel.transform(input: input)
-        
+
         customView.closeButton.rx.tap
             .asDriver()
             .drive(with: self, onNext: { owner, _ in
                 owner.dismiss(animated: true)
             }).disposed(by: disposeBag)
-        
+
         output.posts
             .drive(customView.collectionView.rx
                 .items(cellIdentifier: CalendarDetailCell.reuseIdentifier,
                        cellType: CalendarDetailCell.self)) { _, post, cell in
                 cell.setKFImage(url: post.imageURL)
             }.disposed(by: disposeBag)
-        
+
         output.commentCount
             .drive(with: self, onNext: { owner, count in
                 owner.customView.commentButton.setCount(count)

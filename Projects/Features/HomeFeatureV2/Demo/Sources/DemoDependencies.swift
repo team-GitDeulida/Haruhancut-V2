@@ -1,6 +1,6 @@
 //
 //  DemoDependencies.swift
-//  HomeFeatureV3Demo
+//  HomeFeatureV2Demo
 //
 //  Created by 김동현 on 7/27/26.
 //

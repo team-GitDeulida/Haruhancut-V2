@@ -15,28 +15,28 @@ final class FeedReactor: Reactor {
     @Dependency private var groupSession: GroupSession
     @Dependency private var authUsecase: AuthUsecaseProtocol
     @Dependency private var groupUsecase: GroupUsecaseProtocol
-    
+
     enum Action {
         case viewDidLoad
         case refresh
         case deleteConfirmed(Post)
         case viewDidAppear
     }
-    
+
     enum Mutation {
         case setUser(User)
         case setLoading(Bool)
         case setComponents([FeedComponent])
     }
-    
+
     struct State {
         var user: User?
         var isLoading: Bool = false
         var components: [FeedComponent] = []
     }
-    
+
     let initialState = State()
-    
+
     func mutate(action: Action) -> Observable<Mutation> {
         switch action {
         case .viewDidAppear:
@@ -54,7 +54,7 @@ final class FeedReactor: Reactor {
             return deletePost(post)
         }
     }
-    
+
     func reduce(state: State, mutation: Mutation) -> State {
         var state = state
         switch mutation {
@@ -79,18 +79,37 @@ private extension FeedReactor {
     }
 
     func deletePost(_ post: Post) -> Observable<Mutation> {
+        let previousComponents = currentState.components
+        let remainingComponents = previousComponents.filter {
+            $0.post.postId != post.postId
+        }
+
+        let synchronizeDeletion = groupUsecase
+            .deletePostAndReload(post: post)
+            .takeLast(1)
+            .flatMap { [weak self] _ -> Observable<Mutation> in
+                guard let self else { return .empty() }
+                return .just(
+                    .setComponents(
+                        self.makeComponents(
+                            from: self.groupSession.postsByDate
+                        )
+                    )
+                )
+            }
+            .catch { error in
+                Logger.e(
+                    "FeedReactor deletePostAndReload failed: \(error)"
+                )
+                return .just(
+                    .setComponents(previousComponents)
+                )
+            }
+
         return Observable.concat([
             .just(.setLoading(true)),
-            groupUsecase
-                .deletePostAndReload(post: post)
-                .catch { error in
-                    Logger.e("FeedReactor deletePostAndReload failed: \(error)")
-                    return .empty()
-                }
-                .flatMap { [weak self] _ -> Observable<Mutation> in
-                    guard let self else { return .empty() }
-                    return .just(.setComponents(self.makeComponents(from: self.groupSession.postsByDate)))
-                },
+            .just(.setComponents(remainingComponents)),
+            synchronizeDeletion,
             .just(.setLoading(false))
         ])
     }

@@ -11,9 +11,9 @@ import DSKit
 import Domain
 
 final class CommentCell: UITableViewCell {
-    
+
     static let reuseIdentifier = "CommentCell"
-    
+
     private lazy var profileImageView: UIImageView = {
         let iv = UIImageView()
         iv.translatesAutoresizingMaskIntoConstraints = false
@@ -31,7 +31,7 @@ final class CommentCell: UITableViewCell {
         ])
         return iv
     }()
-    
+
     private lazy var nicknameTimeHStack: UIStackView = {
         let stack = UIStackView(arrangedSubviews: [nicknameLabel, timeLabel])
         stack.axis = .horizontal
@@ -40,7 +40,7 @@ final class CommentCell: UITableViewCell {
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
-    
+
     private lazy var vStack: UIStackView = {
         let stack = UIStackView(arrangedSubviews: [nicknameTimeHStack, contentLabel])
         stack.axis = .vertical
@@ -49,7 +49,7 @@ final class CommentCell: UITableViewCell {
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
-    
+
     private lazy var hStack: UIStackView = {
         let stack = UIStackView(arrangedSubviews: [profileImageView, vStack])
         stack.axis = .horizontal
@@ -58,35 +58,35 @@ final class CommentCell: UITableViewCell {
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
-    
+
     private lazy var nicknameLabel: HCLabel = {
         let label = HCLabel(type: .commentAuther(text: LocalizationKey.commonPreviewNickname.localized))
         return label
     }()
-    
+
     private lazy var timeLabel: HCLabel = {
         let label = HCLabel(type: .commentContent(text: LocalizationKey.commonPreviewRelativeTime.localized))
         label.textColor = .gray
         return label
     }()
-    
+
     private lazy var contentLabel: HCLabel = {
         let label = HCLabel(type: .commentContent(text: LocalizationKey.commentPlaceholderPreview.localized))
         return label
     }()
-    
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         configureUI()
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private func configureUI() {
         self.backgroundColor = .clear
-        
+
         contentView.addSubview(hStack)
         NSLayoutConstraint.activate([
             hStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 0),
@@ -95,12 +95,12 @@ final class CommentCell: UITableViewCell {
             hStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
         ])
     }
-    
+
     func configure(comment: Comment) {
         nicknameLabel.text = comment.nickname
         contentLabel.text = comment.text
         timeLabel.text = comment.createdAt.toRelativeString()
-        
+
         if let urlString = comment.profileImageURL,
            let url = URL(string: urlString) {
             profileImageView.contentMode = .scaleAspectFill

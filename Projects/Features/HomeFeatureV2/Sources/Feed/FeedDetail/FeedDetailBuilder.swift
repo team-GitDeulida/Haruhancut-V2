@@ -27,7 +27,7 @@ extension FeedDetailBuilder: FeedDetailBuildable {
         let vc = FeedDetailViewController(viewModel: vm)
         return (vc, vm)
     }
-    
+
     public func makeComment(post: Post, onDismiss: (() -> Void)? = nil) -> UIViewController {
         @Dependency var groupUsecase: GroupUsecaseProtocol
         let vm = CommentViewModel(groupUsecase: groupUsecase, post: post)

@@ -96,13 +96,13 @@ public final class AppCoordinator: Coordinator {
         // 1. AuthCoordinator 제거
         childCoordinators.removeAll { $0 is AuthCoordinator }
         
-        // 2. HomeV3Coordinator 중복 방지
-        if childCoordinators.contains(where: { $0 is HomeV3Coordinator }) {
+        // 2. HomeV2Coordinator 중복 방지
+        if childCoordinators.contains(where: { $0 is HomeV2Coordinator }) {
             return
         }
         
-        // 3. HomeV3Coordinator 시작
-        let homeCoordinator = HomeV3Coordinator(navigationController: navigationController)
+        // 3. HomeV2Coordinator 시작
+        let homeCoordinator = HomeV2Coordinator(navigationController: navigationController)
         homeCoordinator.parentCoordinator = self
         childCoordinators.append(homeCoordinator)
         homeCoordinator.start()

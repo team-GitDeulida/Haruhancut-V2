@@ -1,14 +1,14 @@
 //
 //  DemoHomeRouter.swift
-//  HomeFeatureV3Demo
+//  HomeFeatureV2Demo
 //
 //  Created by 김동현 on 7/27/26.
 //
 
 import Domain
 import Foundation
-import HomeFeatureV3
-import HomeFeatureV3Interface
+import HomeFeatureV2
+import HomeFeatureV2Interface
 import UIKit
 
 final class DemoHomeRouter:
@@ -226,7 +226,7 @@ final class DemoHomeRouter:
             UIAlertController(
                 title: title,
                 message:
-                    "HomeFeatureV3 Demo에서는 홈 화면 흐름만 확인합니다.",
+                    "HomeFeatureV2 Demo에서는 홈 화면 흐름만 확인합니다.",
                 preferredStyle: .alert
             )
         alert.addAction(

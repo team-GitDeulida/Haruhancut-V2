@@ -21,7 +21,7 @@ protocol GestureDelegate: AnyObject {
 }
 
 final class CalendarViewController: UIViewController, View {
-    
+
     weak var gestureDelegate: GestureDelegate?
     var disposeBag = DisposeBag()
     private let customView = CalendarView()
@@ -35,7 +35,7 @@ final class CalendarViewController: UIViewController, View {
     init(reactor: CalendarReactor) {
         super.init(nibName: nil, bundle: nil)
         self.reactor = reactor
-        
+
         // 캘린더 영역만 막고 나머지 페이지는 이동하기 위한 로직 3
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handleGesture))
         customView.calendarView.addGestureRecognizer(pan)
@@ -44,7 +44,7 @@ final class CalendarViewController: UIViewController, View {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     // 캘린더 영역만 막고 나머지 페이지는 이동하기 위한 로직 2
     @objc private func handleGesture(_ gesture: UIPanGestureRecognizer) {
         switch gesture.state {

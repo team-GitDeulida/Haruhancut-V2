@@ -12,11 +12,11 @@ import Kingfisher
 import Core
 
 final class FeedDetailView: UIView {
-    
+
     var currentImageRenderSize: CGSize {
         imageView.bounds.size
     }
-    
+
     lazy var imageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -26,7 +26,7 @@ final class FeedDetailView: UIView {
         iv.backgroundColor = .black
         return iv
     }()
-    
+
     lazy var commentButton: HCCommentButton = {
         let button = HCCommentButton(image: UIImage(systemName: "message")!, count: 0)
         button.uiTestID(UITestID.FeedDetail.commentButton)
@@ -45,7 +45,7 @@ final class FeedDetailView: UIView {
 
     private func setupUI() {
         self.backgroundColor = .background
-        
+
         [imageView, commentButton].forEach {
             self.addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -62,13 +62,13 @@ final class FeedDetailView: UIView {
             commentButton.trailingAnchor.constraint(equalTo: imageView.trailingAnchor)
         ])
     }
-    
+
     func configure(post: Post) {
         let url = URL(string: post.imageURL)
         let width = UIScreen.main.bounds.width - 40
         let targetSize = CGSize(width: width, height: width)
         guard targetSize != .zero else { return }
-        
+
         imageView.kf.setImage(
                 with: url,
                 options: [
