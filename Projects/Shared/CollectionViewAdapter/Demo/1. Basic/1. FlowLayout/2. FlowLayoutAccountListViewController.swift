@@ -1,5 +1,5 @@
 //
-//  AccountListViewController.swift
+//  FlowLayoutAccountListViewController.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/21/26.
@@ -7,7 +7,7 @@
 
 import UIKit
 
-final class AccountListViewController: UIViewController {
+final class FlowLayoutAccountListViewController: UIViewController {
 
     private let accounts: [BankAccount]
 
@@ -17,10 +17,18 @@ final class AccountListViewController: UIViewController {
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 12
         layout.sectionInset = UIEdgeInsets(
-            top: 20,
+            top: 12,
             left: 20,
-            bottom: 20,
+            bottom: 12,
             right: 20
+        )
+        layout.headerReferenceSize = CGSize(
+            width: 0,
+            height: AccountListSupplementaryView.headerHeight
+        )
+        layout.footerReferenceSize = CGSize(
+            width: 0,
+            height: AccountListSupplementaryView.footerHeight
         )
 
         let collectionView = UICollectionView(
@@ -37,6 +45,20 @@ final class AccountListViewController: UIViewController {
             AccountCollectionViewCell.self,
             forCellWithReuseIdentifier:
                 AccountCollectionViewCell.reuseIdentifier
+        )
+        collectionView.register(
+            AccountListSupplementaryView.self,
+            forSupplementaryViewOfKind:
+                UICollectionView.elementKindSectionHeader,
+            withReuseIdentifier:
+                AccountListSupplementaryView.reuseIdentifier
+        )
+        collectionView.register(
+            AccountListSupplementaryView.self,
+            forSupplementaryViewOfKind:
+                UICollectionView.elementKindSectionFooter,
+            withReuseIdentifier:
+                AccountListSupplementaryView.reuseIdentifier
         )
 
         collectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -64,7 +86,7 @@ final class AccountListViewController: UIViewController {
     }
 
     private func configureNavigation() {
-        title = "기본 UICollectionView"
+        title = "FlowLayout"
         navigationController?
             .navigationBar
             .prefersLargeTitles = true
@@ -132,7 +154,7 @@ final class AccountListViewController: UIViewController {
 
 // MARK: - UICollectionViewDataSource
 /// 계좌 목록 컬렉션 뷰에 표시할 데이터와 셀 생성을 담당합니다.
-extension AccountListViewController:
+extension FlowLayoutAccountListViewController:
     UICollectionViewDataSource {
 
     /// 지정된 섹션에 표시할 계좌 셀의 개수를 반환합니다.
@@ -181,11 +203,42 @@ extension AccountListViewController:
 
         return cell
     }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        viewForSupplementaryElementOfKind kind: String,
+        at indexPath: IndexPath
+    ) -> UICollectionReusableView {
+        guard let supplementaryView = collectionView
+            .dequeueReusableSupplementaryView(
+                ofKind: kind,
+                withReuseIdentifier:
+                    AccountListSupplementaryView.reuseIdentifier,
+                for: indexPath
+            ) as? AccountListSupplementaryView
+        else {
+            assertionFailure("AccountListSupplementaryView 생성 실패")
+            return UICollectionReusableView()
+        }
+
+        switch kind {
+        case UICollectionView.elementKindSectionHeader:
+            supplementaryView.configure(kind: .header)
+
+        case UICollectionView.elementKindSectionFooter:
+            supplementaryView.configure(kind: .footer)
+
+        default:
+            assertionFailure("지원하지 않는 supplementary view kind입니다.")
+        }
+
+        return supplementaryView
+    }
 }
 
 // MARK: - UICollectionViewDelegate
 /// 계좌 셀 선택과 같은 컬렉션 뷰의 사용자 상호작용을 처리합니다.
-extension AccountListViewController:
+extension FlowLayoutAccountListViewController:
     UICollectionViewDelegate {
 
     /// 사용자가 계좌 셀을 선택했을 때 호출됩니다.
@@ -206,7 +259,7 @@ extension AccountListViewController:
 
 // MARK: - UICollectionViewDelegateFlowLayout
 /// 계좌 목록 컬렉션 뷰에서 사용하는 셀의 크기를 설정합니다.
-extension AccountListViewController:
+extension FlowLayoutAccountListViewController:
     UICollectionViewDelegateFlowLayout {
 
     /// 지정된 위치에 표시할 계좌 셀의 크기를 반환합니다.
@@ -242,5 +295,5 @@ extension AccountListViewController:
 }
 
 #Preview {
-    AccountListViewController(accounts: BankAccount.sample)
+    FlowLayoutAccountListViewController(accounts: BankAccount.sample)
 }

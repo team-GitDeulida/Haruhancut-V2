@@ -28,11 +28,14 @@ struct RootListView: View {
             List {
                 Section("UIKit Examples") {
                     NavigationLink {
-                        AccountListViewController(accounts: BankAccount.sample).toSwiftUI()
+                        FlowLayoutAccountListViewController(
+                            accounts: BankAccount.sample
+                        )
+                        .toSwiftUI()
                     } label: {
                         CustomLabel(
-                            title: "Basic CollectionView",
-                            caption: "기초적인 CollectionView 사용법입니다",
+                            title: "FlowLayout",
+                            caption: "UICollectionViewFlowLayout 기반 예시입니다",
                             shape: .blue
                         )
                     }
@@ -44,7 +47,7 @@ struct RootListView: View {
                         .toSwiftUI()
                     } label: {
                         CustomLabel(
-                            title: "Basic 2: Compositional Layout",
+                            title: "Compositional Layout",
                             caption: "기본 예시와 같은 화면을 Compositional Layout으로 구현합니다",
                             shape: .purple
                         )

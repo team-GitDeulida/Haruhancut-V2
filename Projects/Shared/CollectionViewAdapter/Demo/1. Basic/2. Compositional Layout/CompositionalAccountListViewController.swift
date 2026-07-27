@@ -26,6 +26,20 @@ final class CompositionalAccountListViewController: UIViewController {
             forCellWithReuseIdentifier:
                 AccountCollectionViewCell.reuseIdentifier
         )
+        collectionView.register(
+            AccountListSupplementaryView.self,
+            forSupplementaryViewOfKind:
+                UICollectionView.elementKindSectionHeader,
+            withReuseIdentifier:
+                AccountListSupplementaryView.reuseIdentifier
+        )
+        collectionView.register(
+            AccountListSupplementaryView.self,
+            forSupplementaryViewOfKind:
+                UICollectionView.elementKindSectionFooter,
+            withReuseIdentifier:
+                AccountListSupplementaryView.reuseIdentifier
+        )
 
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         return collectionView
@@ -125,6 +139,12 @@ final class CompositionalAccountListViewController: UIViewController {
         let item = NSCollectionLayoutItem(
             layoutSize: itemSize
         )
+        item.contentInsets = NSDirectionalEdgeInsets(
+            top: 0,
+            leading: 20,
+            bottom: 0,
+            trailing: 20
+        )
         let group = NSCollectionLayoutGroup.vertical(
             layoutSize: itemSize,
             subitems: [item]
@@ -135,14 +155,41 @@ final class CompositionalAccountListViewController: UIViewController {
 
         section.interGroupSpacing = 12
         section.contentInsets = NSDirectionalEdgeInsets(
-            top: 20,
-            leading: 20,
-            bottom: 20,
-            trailing: 20
+            top: 12,
+            leading: 0,
+            bottom: 12,
+            trailing: 0
         )
+        section.boundarySupplementaryItems = [
+            Self.makeSupplementaryItem(
+                kind: UICollectionView.elementKindSectionHeader,
+                height: AccountListSupplementaryView.headerHeight,
+                alignment: .top
+            ),
+            Self.makeSupplementaryItem(
+                kind: UICollectionView.elementKindSectionFooter,
+                height: AccountListSupplementaryView.footerHeight,
+                alignment: .bottom
+            )
+        ]
 
         return UICollectionViewCompositionalLayout(
             section: section
+        )
+    }
+
+    private static func makeSupplementaryItem(
+        kind: String,
+        height: CGFloat,
+        alignment: NSRectAlignment
+    ) -> NSCollectionLayoutBoundarySupplementaryItem {
+        NSCollectionLayoutBoundarySupplementaryItem(
+            layoutSize: NSCollectionLayoutSize(
+                widthDimension: .fractionalWidth(1),
+                heightDimension: .absolute(height)
+            ),
+            elementKind: kind,
+            alignment: alignment
         )
     }
 }
@@ -181,6 +228,37 @@ extension CompositionalAccountListViewController:
         )
 
         return cell
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        viewForSupplementaryElementOfKind kind: String,
+        at indexPath: IndexPath
+    ) -> UICollectionReusableView {
+        guard let supplementaryView = collectionView
+            .dequeueReusableSupplementaryView(
+                ofKind: kind,
+                withReuseIdentifier:
+                    AccountListSupplementaryView.reuseIdentifier,
+                for: indexPath
+            ) as? AccountListSupplementaryView
+        else {
+            assertionFailure("AccountListSupplementaryView 생성 실패")
+            return UICollectionReusableView()
+        }
+
+        switch kind {
+        case UICollectionView.elementKindSectionHeader:
+            supplementaryView.configure(kind: .header)
+
+        case UICollectionView.elementKindSectionFooter:
+            supplementaryView.configure(kind: .footer)
+
+        default:
+            assertionFailure("지원하지 않는 supplementary view kind입니다.")
+        }
+
+        return supplementaryView
     }
 }
 
