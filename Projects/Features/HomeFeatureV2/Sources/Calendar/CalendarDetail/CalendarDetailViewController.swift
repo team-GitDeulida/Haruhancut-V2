@@ -66,10 +66,10 @@ final class CalendarDetailViewController: UIViewController, RefreshableViewContr
     }
 
     private func bindViewModel() {
-        let viewDidAppear = rx
-            .methodInvoked(#selector(UIViewController.viewDidAppear(_:)))
-            .map { _ in }
-        let reload = Observable.merge(viewDidAppear, reloadRelay.asObservable())
+        let reload = Observable.merge(
+            Observable<Void>.just(()),
+            reloadRelay.asObservable()
+        )
 
         let commentTapped:
             Observable<Post>
