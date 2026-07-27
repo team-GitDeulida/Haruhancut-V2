@@ -35,6 +35,13 @@
 "admin.load_failure.title" = "グループ一覧を読み込めませんでした";
 "admin.load_failure.message" = "しばらくしてからもう一度お試しください。";
 "admin.preview.empty" = "今日の投稿はありません。";
+"admin.sort" = "並べ替え";
+"admin.sort.latest_post" = "最新の投稿順";
+"admin.sort.group_created_at" = "作成日の新しい順";
+"admin.sort.group_name" = "グループ名順";
+"admin.sort.member_count" = "メンバー数が多い順";
+"admin.sort.post_count" = "投稿数が多い順";
+"admin.sort.photo_count" = "写真数が多い順";
 "common.back" = "戻る";
 "common.cancel" = "キャンセル";
 "common.close" = "閉じる";

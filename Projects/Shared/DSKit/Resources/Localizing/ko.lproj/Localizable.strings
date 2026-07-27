@@ -43,6 +43,13 @@
 "admin.load_failure.title" = "그룹 목록을 불러오지 못했어요";
 "admin.load_failure.message" = "잠시 후 다시 시도해 주세요.";
 "admin.preview.empty" = "오늘 등록된 게시글이 없습니다.";
+"admin.sort" = "정렬";
+"admin.sort.latest_post" = "최신 게시글순";
+"admin.sort.group_created_at" = "최근 생성순";
+"admin.sort.group_name" = "그룹명순";
+"admin.sort.member_count" = "인원 많은순";
+"admin.sort.post_count" = "게시글 많은순";
+"admin.sort.photo_count" = "사진 많은순";
 "common.back" = "뒤로가기";
 "common.cancel" = "취소";
 "common.close" = "닫기";

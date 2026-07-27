@@ -8,6 +8,131 @@ import XCTest
 final class AdminFeatureTests:
     XCTestCase
 {
+    func testGroupSortOptionsOrderGroupsBySelectedMetric() {
+        let alpha =
+            AdminGroupSummary(
+                groupId: "alpha",
+                groupName: "Alpha",
+                memberCount: 3,
+                postCount: 1,
+                photoCount: 1,
+                groupCreatedAt:
+                    Date(
+                        timeIntervalSince1970:
+                            200
+                    ),
+                latestPostDate:
+                    Date(
+                        timeIntervalSince1970:
+                            100
+                    )
+            )
+        let beta =
+            AdminGroupSummary(
+                groupId: "beta",
+                groupName: "Beta",
+                memberCount: 1,
+                postCount: 4,
+                photoCount: 3,
+                groupCreatedAt:
+                    Date(
+                        timeIntervalSince1970:
+                            300
+                    ),
+                latestPostDate:
+                    Date(
+                        timeIntervalSince1970:
+                            200
+                    )
+            )
+        let charlie =
+            AdminGroupSummary(
+                groupId: "charlie",
+                groupName: "Charlie",
+                memberCount: 2,
+                postCount: 2,
+                photoCount: 5,
+                groupCreatedAt:
+                    Date(
+                        timeIntervalSince1970:
+                            100
+                    ),
+                latestPostDate: nil
+            )
+        let groups = [
+            charlie,
+            alpha,
+            beta,
+        ]
+
+        XCTAssertEqual(
+            AdminGroupSortOption
+                .latestPost
+                .sort(groups)
+                .map(\.groupId),
+            [
+                "beta",
+                "alpha",
+                "charlie",
+            ]
+        )
+        XCTAssertEqual(
+            AdminGroupSortOption
+                .groupCreatedAt
+                .sort(groups)
+                .map(\.groupId),
+            [
+                "beta",
+                "alpha",
+                "charlie",
+            ]
+        )
+        XCTAssertEqual(
+            AdminGroupSortOption
+                .groupName
+                .sort(groups)
+                .map(\.groupId),
+            [
+                "alpha",
+                "beta",
+                "charlie",
+            ]
+        )
+        XCTAssertEqual(
+            AdminGroupSortOption
+                .memberCount
+                .sort(groups)
+                .map(\.groupId),
+            [
+                "alpha",
+                "charlie",
+                "beta",
+            ]
+        )
+        XCTAssertEqual(
+            AdminGroupSortOption
+                .postCount
+                .sort(groups)
+                .map(\.groupId),
+            [
+                "beta",
+                "charlie",
+                "alpha",
+            ]
+        )
+        XCTAssertEqual(
+            AdminGroupSortOption
+                .photoCount
+                .sort(groups)
+                .map(\.groupId),
+            [
+                "charlie",
+                "beta",
+                "alpha",
+            ]
+        )
+    }
+
     func testGroupSummaryCountsPostsAndPhotos() {
         let olderPost =
             makePost(
@@ -65,6 +190,10 @@ final class AdminFeatureTests:
         XCTAssertEqual(
             summary.photoCount,
             1
+        )
+        XCTAssertEqual(
+            summary.groupCreatedAt,
+            group.createdAt
         )
         XCTAssertEqual(
             summary.latestPostDate,

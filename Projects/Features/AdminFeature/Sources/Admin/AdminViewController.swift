@@ -28,6 +28,12 @@ final class AdminViewController:
         PublishRelay<
             AdminGroupSummary
         >()
+    private let sortOptionRelay =
+        BehaviorRelay<
+            AdminGroupSortOption
+        >(
+            value: .latestPost
+        )
     private let refreshControl =
         UIRefreshControl()
     private var currentGroups:
@@ -95,6 +101,27 @@ final class AdminViewController:
             .navigationBar
             .tintColor =
             .mainWhite
+
+        let sortButton =
+            UIBarButtonItem(
+                image:
+                    UIImage(
+                        systemName:
+                            "arrow.up.arrow.down"
+                    ),
+                menu:
+                    makeSortMenu()
+            )
+        sortButton.tintColor =
+            .mainWhite
+        sortButton
+            .accessibilityLabel =
+            LocalizationKey
+                .adminSort
+                .localized
+        navigationItem
+            .rightBarButtonItem =
+            sortButton
     }
 
     private func configureRefreshControl() {
@@ -123,6 +150,9 @@ final class AdminViewController:
                                 .asObservable(),
                         groupTapped:
                             groupTappedRelay
+                                .asObservable(),
+                        sortOption:
+                            sortOptionRelay
                                 .asObservable()
                     )
             )
@@ -334,8 +364,135 @@ final class AdminViewController:
         )
     }
 
+    private func makeSortMenu()
+        -> UIMenu
+    {
+        let selectedOption =
+            sortOptionRelay.value
+        let actions =
+            AdminGroupSortOption
+                .allCases
+                .map {
+                    [weak self] option in
+                    UIAction(
+                        title:
+                            option
+                                .localizedTitle,
+                        image:
+                            option.image,
+                        state:
+                            selectedOption
+                                == option
+                            ? .on
+                            : .off
+                    ) {
+                        _ in
+                        self?
+                            .selectSortOption(
+                                option
+                            )
+                    }
+                }
+
+        return UIMenu(
+            title:
+                LocalizationKey
+                    .adminSort
+                    .localized,
+            options:
+                .singleSelection,
+            children:
+                actions
+        )
+    }
+
+    private func selectSortOption(
+        _ option:
+            AdminGroupSortOption
+    ) {
+        guard sortOptionRelay.value
+                != option
+        else {
+            return
+        }
+
+        sortOptionRelay.accept(
+            option
+        )
+        navigationItem
+            .rightBarButtonItem?
+            .menu =
+            makeSortMenu()
+    }
+
     @objc
     private func didRequestReload() {
         reloadRelay.accept(())
+    }
+}
+
+private extension AdminGroupSortOption {
+    var localizedTitle: String {
+        switch self {
+        case .latestPost:
+            return LocalizationKey
+                .adminSortLatestPost
+                .localized
+        case .groupCreatedAt:
+            return LocalizationKey
+                .adminSortGroupCreatedAt
+                .localized
+        case .groupName:
+            return LocalizationKey
+                .adminSortGroupName
+                .localized
+        case .memberCount:
+            return LocalizationKey
+                .adminSortMemberCount
+                .localized
+        case .postCount:
+            return LocalizationKey
+                .adminSortPostCount
+                .localized
+        case .photoCount:
+            return LocalizationKey
+                .adminSortPhotoCount
+                .localized
+        }
+    }
+
+    var image: UIImage? {
+        switch self {
+        case .latestPost:
+            return UIImage(
+                systemName:
+                    "clock"
+            )
+        case .groupCreatedAt:
+            return UIImage(
+                systemName:
+                    "calendar.badge.plus"
+            )
+        case .groupName:
+            return UIImage(
+                systemName:
+                    "textformat"
+            )
+        case .memberCount:
+            return UIImage(
+                systemName:
+                    "person.2"
+            )
+        case .postCount:
+            return UIImage(
+                systemName:
+                    "doc.text"
+            )
+        case .photoCount:
+            return UIImage(
+                systemName:
+                    "photo"
+            )
+        }
     }
 }

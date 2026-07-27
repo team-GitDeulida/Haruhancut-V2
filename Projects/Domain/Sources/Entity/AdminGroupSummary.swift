@@ -14,6 +14,7 @@ public struct AdminGroupSummary:
     public let memberCount: Int
     public let postCount: Int
     public let photoCount: Int
+    public let groupCreatedAt: Date
     public let latestPostDate: Date?
 
     public init(
@@ -22,6 +23,7 @@ public struct AdminGroupSummary:
         memberCount: Int,
         postCount: Int,
         photoCount: Int,
+        groupCreatedAt: Date = .distantPast,
         latestPostDate: Date?
     ) {
         self.groupId = groupId
@@ -29,6 +31,7 @@ public struct AdminGroupSummary:
         self.memberCount = memberCount
         self.postCount = postCount
         self.photoCount = photoCount
+        self.groupCreatedAt = groupCreatedAt
         self.latestPostDate = latestPostDate
     }
 
@@ -47,6 +50,7 @@ public struct AdminGroupSummary:
             photoCount: posts.filter {
                 !$0.imageURL.isEmpty
             }.count,
+            groupCreatedAt: group.createdAt,
             latestPostDate:
                 posts.map(\.createdAt).max()
         )

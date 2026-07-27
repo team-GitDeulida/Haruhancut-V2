@@ -43,6 +43,13 @@
 "admin.load_failure.title" = "Couldn’t load groups";
 "admin.load_failure.message" = "Please try again in a moment.";
 "admin.preview.empty" = "There are no posts for today.";
+"admin.sort" = "Sort";
+"admin.sort.latest_post" = "Latest post";
+"admin.sort.group_created_at" = "Recently created";
+"admin.sort.group_name" = "Group name";
+"admin.sort.member_count" = "Most members";
+"admin.sort.post_count" = "Most posts";
+"admin.sort.photo_count" = "Most photos";
 "common.back" = "Back";
 "common.cancel" = "Cancel";
 "common.close" = "Close";

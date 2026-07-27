@@ -15,6 +15,11 @@ final class DemoAdminUsecase:
                 memberCount: 5,
                 postCount: 128,
                 photoCount: 128,
+                groupCreatedAt:
+                    Date()
+                        .addingTimeInterval(
+                            -31_536_000
+                        ),
                 latestPostDate:
                     Date()
                         .addingTimeInterval(
@@ -29,6 +34,11 @@ final class DemoAdminUsecase:
                 memberCount: 8,
                 postCount: 74,
                 photoCount: 74,
+                groupCreatedAt:
+                    Date()
+                        .addingTimeInterval(
+                            -15_768_000
+                        ),
                 latestPostDate:
                     Date()
                         .addingTimeInterval(
@@ -43,6 +53,11 @@ final class DemoAdminUsecase:
                 memberCount: 2,
                 postCount: 0,
                 photoCount: 0,
+                groupCreatedAt:
+                    Date()
+                        .addingTimeInterval(
+                            -86_400
+                        ),
                 latestPostDate: nil
             ),
         ]
@@ -79,7 +94,9 @@ final class DemoAdminUsecase:
                     summary.groupId,
                 groupName:
                     summary.groupName,
-                createdAt: .now,
+                createdAt:
+                    summary
+                        .groupCreatedAt,
                 hostUserId: "demo-admin",
                 inviteCode: "DEMO",
                 members: [:],

@@ -39,28 +39,13 @@ extension HomeFeatureBuilder: HomeFeatureBuildable {
         var groupUsecase:
             GroupUsecaseProtocol
 
-        let loadGroup:
-            () -> Observable<HCGroup>
-        switch mode {
-        case .currentGroup:
-            loadGroup = {
-                groupUsecase
-                    .loadAndFetchGroup()
-            }
-        case let .adminPreview(
-            groupID
-        ):
-            @Dependency
-            var adminUsecase:
-                AdminUsecaseProtocol
-            loadGroup = {
-                adminUsecase
-                    .fetchGroup(
-                        groupId: groupID
-                    )
-                    .asObservable()
-            }
-        }
+        let loadGroup =
+            HomeGroupLoaderFactory
+                .make(
+                    mode: mode,
+                    groupUsecase:
+                        groupUsecase
+                )
 
         let feedReactor =
             FeedReactor(

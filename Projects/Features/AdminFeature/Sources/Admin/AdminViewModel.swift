@@ -28,6 +28,8 @@ final class AdminViewModel:
             Observable<Void>
         let groupTapped:
             Observable<AdminGroupSummary>
+        let sortOption:
+            Observable<AdminGroupSortOption>
     }
 
     struct Output {
@@ -75,6 +77,19 @@ final class AdminViewModel:
                 .compactMap(\.element)
                 .startWith([])
 
+        let sortedGroups =
+            Observable.combineLatest(
+                groups,
+                input.sortOption
+                    .distinctUntilChanged()
+            ) {
+                groups,
+                sortOption in
+                sortOption.sort(
+                    groups
+                )
+            }
+
         let isLoading =
             Observable.merge(
                 input.reload
@@ -88,7 +103,7 @@ final class AdminViewModel:
         let screenState =
             Observable
                 .combineLatest(
-                    groups,
+                    sortedGroups,
                     isLoading
                 ) {
                     AdminScreenState(

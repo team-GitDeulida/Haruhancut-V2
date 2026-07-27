@@ -21,10 +21,18 @@ final class FeedDetailViewController: UIViewController, RefreshableViewControlle
     private let viewModel: FeedDetailViewModel
     private let customView: FeedDetailView
     private let reloadRelay = PublishRelay<Void>()
+    private let isReadOnly:
+        Bool
 
-    init(viewModel: FeedDetailViewModel) {
+    init(
+        viewModel: FeedDetailViewModel,
+        isReadOnly:
+            Bool = false
+    ) {
         self.viewModel = viewModel
         self.customView = FeedDetailView()
+        self.isReadOnly =
+            isReadOnly
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -38,6 +46,12 @@ final class FeedDetailViewController: UIViewController, RefreshableViewControlle
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        customView.commentButton
+            .isHidden =
+            isReadOnly
+        customView.commentButton
+            .isEnabled =
+            !isReadOnly
         bindViewModel()
     }
 
@@ -51,9 +65,19 @@ final class FeedDetailViewController: UIViewController, RefreshableViewControlle
             .map { _ in }
         let reload = Observable.merge(viewDidAppear, reloadRelay.asObservable())
 
+        let commentButtonTapped:
+            Observable<Void> =
+            isReadOnly
+            ? .never()
+            : customView
+                .commentButton
+                .rx
+                .tap
+                .asObservable()
         let input = FeedDetailViewModel.Input(
             imageTapped: customView.imageView.rx.tap.asObservable(),
-            commentButtonTapped: customView.commentButton.rx.tap.asObservable(),
+            commentButtonTapped:
+                commentButtonTapped,
             reload: reload)
         let output = viewModel.transform(input: input)
 

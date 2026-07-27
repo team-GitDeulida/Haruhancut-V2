@@ -122,6 +122,19 @@ let project = Project(
             resources: [],
             dependencies: [
                 .target(name: "HomeFeatureV2"),
+                .project(
+                    target: "Core",
+                    path: "../../Core"
+                ),
+                .project(
+                    target: "Domain",
+                    path: "../../Domain"
+                ),
+                .project(
+                    target: "ThirdPartyLibs",
+                    path:
+                        "../../Shared/ThirdPartyLibs"
+                ),
             ]
         ),
     ],

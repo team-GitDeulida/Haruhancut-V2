@@ -18,7 +18,8 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
     public var onImagePreviewTapped: ((String) -> Void)?
 
     private let disposeBag = DisposeBag()
-    private let groupUsecase: GroupUsecaseProtocol
+    private let loadGroup:
+        () -> Observable<HCGroup>
     private let postsRelay: BehaviorRelay<[Post]>
 
     let selectedDate: Date
@@ -38,7 +39,21 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
     }
 
     public init(groupUsecase: GroupUsecaseProtocol, posts: [Post], selectedDate: Date) {
-        self.groupUsecase = groupUsecase
+        self.loadGroup = {
+            groupUsecase
+                .loadAndFetchGroup()
+        }
+        self.postsRelay = BehaviorRelay<[Post]>(value: posts)
+        self.selectedDate = selectedDate
+    }
+
+    init(
+        loadGroup:
+            @escaping () -> Observable<HCGroup>,
+        posts: [Post],
+        selectedDate: Date
+    ) {
+        self.loadGroup = loadGroup
         self.postsRelay = BehaviorRelay<[Post]>(value: posts)
         self.selectedDate = selectedDate
     }
@@ -64,7 +79,7 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
         input.reload
             .withUnretained(self)
             .flatMap { owner, _ -> Observable<HCGroup> in
-                owner.groupUsecase.loadAndFetchGroup()
+                owner.loadGroup()
                     .catch { _ in .empty() }
             }
             .withUnretained(self)
