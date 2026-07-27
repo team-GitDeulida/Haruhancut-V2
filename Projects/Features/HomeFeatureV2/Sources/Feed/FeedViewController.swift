@@ -9,56 +9,42 @@ import UIKit
 import RxSwift
 import RxCocoa
 import RxRelay
-//import CarbonListKit
-import TurboListKit
 import ReactorKit
 import DSKit
 import Domain
+import CollectionViewAdapter
 
 final class FeedViewController: UIViewController, View {
 
     var disposeBag = DisposeBag()
-    private let layoutAdapter = CollectionViewLayoutAdapter()
-    private lazy var customView = FeedView(layoutAdapter: layoutAdapter)
-    
+    private let customView = FeedView()
+
     private lazy var collectionViewAdapter = CollectionViewAdapter(
-        configuration: CollectionViewAdapterConfiguration(
-            refreshControl: .enabled(
-                tintColor: .clear,
-                text: "새로고침 중...",
-                textColor: .mainWhite
-            ),
-            refreshControlAppearance: .init(
-                indicator: .image(UIImage(systemName: "arrow.clockwise")!)
-                    .size(22)
-                    .tintColor(.systemOrange)
-                    .spin(duration: 0.8)
-            )
-        ),
-        collectionView: customView.collectionView,
-        layoutAdapter: layoutAdapter
+        collectionView: customView.collectionView
     )
-   
+    private let refreshControl = UIRefreshControl()
+
     private let imageTappedRelay = PublishRelay<Post>()
     private let longPressedRelay = PublishRelay<Post>()
     private var currentComponents: [FeedComponent] = []
     private var didSkipInitialAppear = false
-    
+
     init(reactor: FeedReactor) {
         super.init(nibName: nil, bundle: nil)
         self.reactor = reactor
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     override func loadView() {
         view = customView
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupRefreshControl()
         setupLongPress()
         reactor?.action.onNext(.viewDidLoad)
     }
@@ -73,7 +59,7 @@ final class FeedViewController: UIViewController, View {
 
         reactor?.action.onNext(.viewDidAppear)
     }
-    
+
     var cameraButtonTapped: Driver<Void> {
         customView.cameraBtn.rx.tap.asDriver()
     }
@@ -85,7 +71,7 @@ final class FeedViewController: UIViewController, View {
     var longPressed: Driver<Post> {
         longPressedRelay.asDriver(onErrorDriveWith: .empty())
     }
-    
+
     func bind(reactor: FeedReactor) {
         reactor.state
             .map(\.isLoading)
@@ -107,37 +93,37 @@ final class FeedViewController: UIViewController, View {
     }
 
     private func render(components: [FeedComponent]) {
+        let shouldAnimate = !currentComponents.isEmpty
         currentComponents = components
-        collectionViewAdapter.apply(
-            List {
-                Section(id: "section-1") {
-                    for component in components {
-                        Cell(id: component.post.postId, component: component)
-                            .didSelect { [weak self] context in
-                                guard
-                                    let feedComponent = context.anyComponent.as(FeedComponent.self)
-                                else { return }
-                                self?.imageTappedRelay.accept(feedComponent.post)
-                            }
+
+        collectionViewAdapter.bind(
+            SectionModels {
+                LazySection(identifier: "feed") {
+                    For(of: components) { component in
+                        component.onTouch { [weak self] in
+                            self?.imageTappedRelay.accept(
+                                component.post
+                            )
+                        }
                     }
                 }
                 .withSectionLayout(
-                    DefaultCompositionalLayoutSectionFactory.verticalGrid(
-                        numberOfItemsInRow: 2,
-                        itemSpacing: 20,
-                        lineSpacing: 20
+                    .grid(
+                        columns: 2,
+                        estimatedRowHeight: 240,
+                        interItemSpacing: 20,
+                        lineSpacing: 20,
+                        contentInsets:
+                            NSDirectionalEdgeInsets(
+                                top: 20,
+                                leading: 16,
+                                bottom: 0,
+                                trailing: 16
+                            )
                     )
-                    .withSectionContentInsets(.init(top: 20, leading: 16, bottom: 0, trailing: 16))
                 )
-            }
-            .onRefresh { [weak self] _ in
-                print("REAL REFRESH")
-                Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .seconds(0.5))
-                    self?.reactor?.action.onNext(.refresh)
-                }
             },
-            updateStrategy: .animatedBatchUpdates
+            animatingDifferences: shouldAnimate
         )
 
         let hasContent = !components.isEmpty
@@ -145,8 +131,12 @@ final class FeedViewController: UIViewController, View {
         customView.bubbleView.text = hasContent
             ? LocalizationKey.homeFeedBubbleDoneToday.localized
             : LocalizationKey.homeFeedBubbleAddPhoto.localized
-        customView.cameraBtn.isEnabled = !hasContent
-        customView.cameraBtn.alpha = hasContent ? 0.3 : 1.0
+
+        let canAddPhoto =
+            !hasContent ||
+            ProcessInfo.processInfo.arguments.contains("-UITest")
+        customView.cameraBtn.isEnabled = canAddPhoto
+        customView.cameraBtn.alpha = canAddPhoto ? 1.0 : 0.3
     }
 
     private func setupLongPress() {
@@ -168,10 +158,37 @@ final class FeedViewController: UIViewController, View {
         longPressedRelay.accept(post)
     }
 
-    private func updateRefreshingState(isLoading: Bool) {
-        guard !isLoading, customView.collectionView.refreshControl?.isRefreshing == true else { return }
+    private func setupRefreshControl() {
+        refreshControl.tintColor = .mainWhite
+        refreshControl.attributedTitle = NSAttributedString(
+            string: "새로고침 중...",
+            attributes: [
+                .foregroundColor: UIColor.mainWhite,
+            ]
+        )
+        refreshControl.addTarget(
+            self,
+            action: #selector(didRequestRefresh),
+            for: .valueChanged
+        )
+        customView.collectionView.refreshControl =
+            refreshControl
+    }
 
-        customView.collectionView.refreshControl?.endRefreshing()
+    @objc
+    private func didRequestRefresh() {
+        reactor?.action.onNext(.refresh)
+    }
+
+    private func updateRefreshingState(isLoading: Bool) {
+        guard
+            !isLoading,
+            refreshControl.isRefreshing
+        else {
+            return
+        }
+
+        refreshControl.endRefreshing()
         let topOffset = -customView.collectionView.adjustedContentInset.top
         customView.collectionView.setContentOffset(.init(x: 0, y: topOffset), animated: false)
     }
@@ -180,5 +197,5 @@ final class FeedViewController: UIViewController, View {
 //#Preview {
 //    let vc = FeedViewController(reactor: HomeReactor())
 //    UINavigationController(rootViewController: vc)
-//    
+//
 //}

@@ -6,7 +6,7 @@
 //
 
 import Domain
-import ProfileFeature
+import ProfileFeatureV2
 import UIKit
 import HomeFeatureV2
 import ImageFeature
@@ -98,6 +98,36 @@ public final class ProfileCoordinatorV2: NSObject, Coordinator {
             
             profileViewController?.navigationItem.backButtonDisplayMode = .default
             self.navigationController.pushViewController(nicknameEdit.vc, animated: true)
+        }
+
+        profile.vm.onBirthdayEditButtonTapped = {
+            [weak self] in
+            guard let self else {
+                return
+            }
+            var birthdayEdit =
+                builder
+                    .makeBirthdayEdit()
+
+            birthdayEdit.vm
+                .onPopButtonTapped = {
+                    [weak self] in
+                    self?
+                        .navigationController
+                        .popViewController(
+                            animated: true
+                        )
+                }
+
+            profileViewController?
+                .navigationItem
+                .backButtonDisplayMode =
+                .default
+            navigationController
+                .pushViewController(
+                    birthdayEdit.vc,
+                    animated: true
+                )
         }
         
         self.navigationController.pushViewController(profile.vc, animated: true)

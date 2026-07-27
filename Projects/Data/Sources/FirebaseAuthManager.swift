@@ -138,6 +138,12 @@ public protocol FirebaseAuthManagerProtocol {
     
     // 그룹 게시글 업데이트
     func updateGroup(path: String, post: PostDTO) -> Single<Void>
+
+    // 그룹 생일 표시 설정 업데이트
+    func updateBirthdaySettings(
+        groupId: String,
+        settings: GroupBirthdaySettings
+    ) -> Single<Void>
     
     
     // MARK: - 댓글관련
@@ -513,7 +519,9 @@ extension FirebaseAuthManager {
             hostUserId: currentUserId,
             inviteCode: inviteCode,
             members: [currentUserId: joinedAt],
-            postsByDate: [:]
+            postsByDate: [:],
+            birthdaySettings:
+                .defaultValue
         )
         
         return setValue(path: "groups/\(newGroupRef.key ?? "")", value: groupData.toDTO())
@@ -596,6 +604,18 @@ extension FirebaseAuthManager {
     /// - Returns: 업데이트 결과
     public func updateGroup(path: String, post: PostDTO) -> Single<Void> {
         return updateValue(path: path, value: post)
+    }
+
+    /// 그룹의 생일 표시 설정만 갱신합니다.
+    public func updateBirthdaySettings(
+        groupId: String,
+        settings: GroupBirthdaySettings
+    ) -> Single<Void> {
+        setValue(
+            path:
+                "groups/\(groupId)/birthdaySettings",
+            value: settings
+        )
     }
 }
 

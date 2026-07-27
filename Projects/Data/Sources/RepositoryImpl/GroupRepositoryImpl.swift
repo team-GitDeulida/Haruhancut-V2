@@ -40,6 +40,17 @@ public final class GroupRepositoryImpl: GroupRepositoryProtocol {
     public func updateGroup(path: String, post: Post) -> Single<Void> {
         return firebaseAuthManager.updateGroup(path: path, post: post.toDTO())
     }
+
+    public func updateBirthdaySettings(
+        groupId: String,
+        settings: GroupBirthdaySettings
+    ) -> Single<Void> {
+        firebaseAuthManager
+            .updateBirthdaySettings(
+                groupId: groupId,
+                settings: settings
+            )
+    }
     
     public func updateUserGroupId(groupId: String) -> Single<Void> {
         return firebaseAuthManager.updateUserGroupId(groupId: groupId)

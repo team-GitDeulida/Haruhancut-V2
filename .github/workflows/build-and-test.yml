@@ -41,6 +41,11 @@ permissions:
   issues: write
   pull-requests: write
 
+env:
+  XCODE_VERSION: "26.3"
+  SIMULATOR_NAME: "iPhone 16"
+  SIMULATOR_OS: "26.2"
+
 # Matrix Build + Test (병렬, VM 독립)
 jobs:
   test:
@@ -62,9 +67,9 @@ jobs:
           ${{ secrets.SHARED_XCCONFIG }}
           EOF
 
-      - name: Select Xcode 16.4
+      - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
           xcodebuild -version
 
       # SwiftPM Cache
@@ -91,14 +96,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: DerivedData
-          key: deriveddata-${{ runner.os }}-xcode16.4-${{ matrix.module }}-${{ hashFiles('Tuist.swift', 'Workspace.swift', 'Tuist/Package.swift', 'Projects/**/Project.swift') }}
+          key: deriveddata-${{ runner.os }}-xcode${{ env.XCODE_VERSION }}-${{ matrix.module }}-${{ hashFiles('Tuist.swift', 'Workspace.swift', 'Tuist/Package.swift', 'Projects/**/Project.swift') }}
           restore-keys: |
-            deriveddata-${{ runner.os }}-xcode16.4-${{ matrix.module }}-
+            deriveddata-${{ runner.os }}-xcode${{ env.XCODE_VERSION }}-${{ matrix.module }}-
 
-      - name: Install Tuist
-        run: |
-          brew tap tuist/tuist
-          brew install tuist@4.115.0
+      - name: Set up Mise and Tuist
+        uses: jdx/mise-action@v4
+        with:
+          cache: true
 
       - name: Generate Project
         run: |
@@ -108,16 +113,14 @@ jobs:
       # Simulator UUID Resolve
       - name: Resolve Simulator UUID
         run: |
-          SIM_NAME="iPhone 16"
-          SIM_OS="18.5"
           UDID=$(xcrun simctl list devices available | \
-            grep "iOS ${SIM_OS}" -A 20 | \
-            grep "^ *${SIM_NAME} (" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+            grep "iOS ${SIMULATOR_OS}" -A 20 | \
+            grep "^ *${SIMULATOR_NAME} (" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
           if [ -z "$UDID" ]; then
-            echo "Simulator not found"
+            echo "${SIMULATOR_NAME} (iOS ${SIMULATOR_OS}) simulator not found"
             exit 1
           fi
-          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
 
       # 1. Build For Testing (VM 내부)
       - name: Build For Testing
