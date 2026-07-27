@@ -7,11 +7,12 @@
 
 import UIKit
 import DSKit
-import Domain
 import Kingfisher
 import Core
 
 final class FeedDetailView: UIView {
+
+    private var currentImageURL: String?
 
     var currentImageRenderSize: CGSize {
         imageView.bounds.size
@@ -63,18 +64,33 @@ final class FeedDetailView: UIView {
         ])
     }
 
-    func configure(post: Post) {
-        let url = URL(string: post.imageURL)
-        let width = UIScreen.main.bounds.width - 40
-        let targetSize = CGSize(width: width, height: width)
-        guard targetSize != .zero else { return }
+    func configure(imageURL: String) {
+        guard currentImageURL != imageURL else { return }
+
+        guard let url = URL(string: imageURL) else {
+            currentImageURL = nil
+            imageView.kf.cancelDownloadTask()
+            imageView.image = nil
+            return
+        }
+
+        imageView.kf.cancelDownloadTask()
+        currentImageURL = imageURL
 
         imageView.kf.setImage(
-                with: url,
-                options: [
-                    .backgroundDecode,
-                    .scaleFactor(UIScreen.main.scale)
-                ]
-            )
+            with: url,
+            options: [
+                .backgroundDecode,
+                .scaleFactor(UIScreen.main.scale),
+                .keepCurrentImageWhileLoading
+            ]
+        ) { [weak self] result in
+            guard case .failure = result,
+                  self?.currentImageURL == imageURL
+            else {
+                return
+            }
+            self?.currentImageURL = nil
+        }
     }
 }

@@ -31,7 +31,7 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
     }
 
     public struct Output {
-        let post: Driver<Post>
+        let imageURL: Driver<String>
         let commentCount: Driver<Int>
     }
 
@@ -64,8 +64,14 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
                 owner.onCommentTapped?(post)
             }).disposed(by: disposeBag)
 
+        let imageURL = postRelay
+            .map(\.imageURL)
+            .distinctUntilChanged()
+            .asDriver(onErrorJustReturn: postRelay.value.imageURL)
+
         let commentCount = postRelay
             .map { $0.comments.count }
+            .distinctUntilChanged()
             .asDriver(onErrorJustReturn: 0)
 
         input.reload
@@ -85,7 +91,7 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
             .bind(to: postRelay)
             .disposed(by: disposeBag)
 
-        return Output(post: postRelay.asDriver(),
+        return Output(imageURL: imageURL,
                       commentCount: commentCount)
     }
 }

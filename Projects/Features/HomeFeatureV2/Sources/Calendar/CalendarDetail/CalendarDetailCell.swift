@@ -11,6 +11,7 @@ import Kingfisher
 final class CalendarDetailCell: UICollectionViewCell {
 
     static let reuseIdentifier = "CalendarDetailCell"
+    private var currentImageURL: String?
 
     private let imageView: UIImageView = {
         let iv = UIImageView()
@@ -35,6 +36,7 @@ final class CalendarDetailCell: UICollectionViewCell {
         super.prepareForReuse()
         imageView.kf.cancelDownloadTask()
         imageView.image = nil
+        currentImageURL = nil
     }
 
     private func makeUI() {
@@ -53,14 +55,31 @@ final class CalendarDetailCell: UICollectionViewCell {
     }
 
     func setKFImage(url: String) {
-        if let url = URL(string: url) {
-            imageView.kf.setImage(
-                with: url,
-                options: [
-                    .backgroundDecode,
-                    .scaleFactor(UIScreen.main.scale)
-                ]
-            )
+        guard currentImageURL != url else { return }
+
+        guard let imageURL = URL(string: url) else {
+            currentImageURL = nil
+            imageView.kf.cancelDownloadTask()
+            imageView.image = nil
+            return
+        }
+
+        imageView.kf.cancelDownloadTask()
+        currentImageURL = url
+        imageView.kf.setImage(
+            with: imageURL,
+            options: [
+                .backgroundDecode,
+                .scaleFactor(UIScreen.main.scale),
+                .keepCurrentImageWhileLoading
+            ]
+        ) { [weak self] result in
+            guard case .failure = result,
+                  self?.currentImageURL == url
+            else {
+                return
+            }
+            self?.currentImageURL = nil
         }
     }
 }

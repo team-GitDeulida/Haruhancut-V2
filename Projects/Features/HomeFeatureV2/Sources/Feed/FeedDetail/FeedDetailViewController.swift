@@ -60,10 +60,10 @@ final class FeedDetailViewController: UIViewController, RefreshableViewControlle
     }
 
     private func bindViewModel() {
-        let viewDidAppear = rx
-            .methodInvoked(#selector(UIViewController.viewDidAppear(_:)))
-            .map { _ in }
-        let reload = Observable.merge(viewDidAppear, reloadRelay.asObservable())
+        let reload = Observable.merge(
+            Observable<Void>.just(()),
+            reloadRelay.asObservable()
+        )
 
         let commentButtonTapped:
             Observable<Void> =
@@ -81,9 +81,9 @@ final class FeedDetailViewController: UIViewController, RefreshableViewControlle
             reload: reload)
         let output = viewModel.transform(input: input)
 
-        output.post
-            .drive(with: self, onNext: { owner, post in
-                owner.customView.configure(post: post)
+        output.imageURL
+            .drive(with: self, onNext: { owner, imageURL in
+                owner.customView.configure(imageURL: imageURL)
             })
             .disposed(by: disposeBag)
 

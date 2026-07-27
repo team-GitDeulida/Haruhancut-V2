@@ -74,6 +74,7 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
                 guard posts.indices.contains(index) else { return 0 }
                 return posts[index].comments.count
             }
+            .distinctUntilChanged()
             .asDriver(onErrorJustReturn: 0)
 
         input.reload
@@ -89,7 +90,22 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
             .bind(to: postsRelay)
             .disposed(by: disposeBag)
 
-        return Output(posts: postsRelay.asDriver(),
+        let displayPosts = postsRelay
+            .distinctUntilChanged { previous, current in
+                guard previous.count == current.count else {
+                    return false
+                }
+
+                return zip(previous, current).allSatisfy {
+                    previousPost,
+                    currentPost in
+                    previousPost.postId == currentPost.postId
+                    && previousPost.imageURL == currentPost.imageURL
+                }
+            }
+            .asDriver(onErrorJustReturn: postsRelay.value)
+
+        return Output(posts: displayPosts,
                       commentCount: commentCount)
     }
 }
