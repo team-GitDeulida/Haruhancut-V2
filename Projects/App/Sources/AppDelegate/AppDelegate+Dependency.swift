@@ -39,6 +39,11 @@ extension AppDelegate {
         let groupRepository = GroupRepositoryImpl(firebaseAuthManager: firebaseAuthManager,
                                                   firebaseStorageManager: firebaseStorageManager,
                                                   userSession: userSession)
+        let adminRepository =
+            AdminRepositoryImpl(
+                firebaseAuthManager:
+                    firebaseAuthManager
+            )
         
         
         // usecase
@@ -52,5 +57,17 @@ extension AppDelegate {
                                             userSession: userSession,
                                             groupSession: groupSession)
         DIContainer.shared.register(GroupUsecaseProtocol.self, dependency: groupUseCase)
+
+        let adminUseCase =
+            AdminUsecaseImpl(
+                repository:
+                    adminRepository,
+                userSession:
+                    userSession
+            )
+        DIContainer.shared.register(
+            AdminUsecaseProtocol.self,
+            dependency: adminUseCase
+        )
     }
 }

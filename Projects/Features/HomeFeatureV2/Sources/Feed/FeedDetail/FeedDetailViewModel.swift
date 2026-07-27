@@ -19,8 +19,8 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
     public var onCommentTapped: ((Post) -> Void)?
     public var onImagePreviewTapped: ((String) -> Void)?
 
-    @Dependency private var userSession: UserSession
-    private let groupUsecase: GroupUsecaseProtocol
+    private let loadGroup:
+        () -> Observable<HCGroup>
     private let disposeBag = DisposeBag()
     private let postRelay: BehaviorRelay<Post>
 
@@ -36,7 +36,19 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
     }
 
     public init(groupUsecase: GroupUsecaseProtocol, post: Post) {
-        self.groupUsecase = groupUsecase
+        self.loadGroup = {
+            groupUsecase
+                .loadAndFetchGroup()
+        }
+        self.postRelay = BehaviorRelay(value: post)
+    }
+
+    init(
+        loadGroup:
+            @escaping () -> Observable<HCGroup>,
+        post: Post
+    ) {
+        self.loadGroup = loadGroup
         self.postRelay = BehaviorRelay(value: post)
     }
 
@@ -59,7 +71,7 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
         input.reload
             .withUnretained(self)
             .flatMapLatest { owner, _ in
-                owner.groupUsecase.loadAndFetchGroup()
+                owner.loadGroup()
                     .catch { _ in .empty() }
             }
             .withUnretained(self)

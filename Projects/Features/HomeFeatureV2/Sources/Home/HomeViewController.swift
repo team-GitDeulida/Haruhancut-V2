@@ -17,6 +17,8 @@ final class HomeViewController: UIViewController {
     var disposeBag = DisposeBag()
     var currentPageRelay = BehaviorRelay<Int>(value: 0)
     weak var routeTrigger: HomeRouteTrigger?
+    private let mode:
+        HomePresentationMode
 
     private let segmentedBar: CustomSegmentedBarView = {
         let segment = CustomSegmentedBarView(items: [
@@ -46,8 +48,21 @@ final class HomeViewController: UIViewController {
         pageViewController.view.subviews.first { $0 is UIScrollView } as? UIScrollView
     }
 
-    init(feedReactor: FeedReactor, calendarReactor: CalendarReactor) {
-        self.feedVC = FeedViewController(reactor: feedReactor)
+    init(
+        feedReactor: FeedReactor,
+        calendarReactor:
+            CalendarReactor,
+        mode:
+            HomePresentationMode =
+            .currentGroup
+    ) {
+        self.mode = mode
+        self.feedVC =
+            FeedViewController(
+                reactor: feedReactor,
+                isReadOnly:
+                    mode.isReadOnly
+            )
         self.calendarVC = CalendarViewController(reactor: calendarReactor)
         super.init(nibName: nil, bundle: nil)
     }
@@ -76,6 +91,17 @@ final class HomeViewController: UIViewController {
         /// 네비게이션 제목
         segmentedBar.sizeToFit() // 글자 길이에 맞게 label 크기 조정
         self.navigationItem.titleView = segmentedBar
+
+        guard !mode.isReadOnly
+        else {
+            navigationItem
+                .leftBarButtonItem =
+                nil
+            navigationItem
+                .rightBarButtonItems =
+                []
+            return
+        }
 
         /// 좌측 네비게이션 버튼
         self.navigationItem.leftBarButtonItem = UIBarButtonItem(

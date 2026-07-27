@@ -18,6 +18,8 @@ final class FeedViewController: UIViewController, View {
 
     var disposeBag = DisposeBag()
     private let customView = FeedView()
+    private let isReadOnly:
+        Bool
 
     private lazy var collectionViewAdapter = CollectionViewAdapter(
         collectionView: customView.collectionView
@@ -29,7 +31,13 @@ final class FeedViewController: UIViewController, View {
     private var currentComponents: [FeedComponent] = []
     private var didSkipInitialAppear = false
 
-    init(reactor: FeedReactor) {
+    init(
+        reactor: FeedReactor,
+        isReadOnly:
+            Bool = false
+    ) {
+        self.isReadOnly =
+            isReadOnly
         super.init(nibName: nil, bundle: nil)
         self.reactor = reactor
     }
@@ -45,7 +53,15 @@ final class FeedViewController: UIViewController, View {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupRefreshControl()
-        setupLongPress()
+        if !isReadOnly {
+            setupLongPress()
+        }
+        customView.cameraBtn
+            .isHidden =
+            isReadOnly
+        customView.bubbleView
+            .isHidden =
+            isReadOnly
         reactor?.action.onNext(.viewDidLoad)
     }
 
@@ -127,6 +143,14 @@ final class FeedViewController: UIViewController, View {
         )
 
         let hasContent = !components.isEmpty
+        customView.emptyLabel.text =
+            isReadOnly
+            ? LocalizationKey
+                .adminPreviewEmpty
+                .localized
+            : LocalizationKey
+                .homeDescription
+                .localized
         customView.emptyLabel.isHidden = hasContent
         customView.bubbleView.text = hasContent
             ? LocalizationKey.homeFeedBubbleDoneToday.localized
@@ -135,8 +159,10 @@ final class FeedViewController: UIViewController, View {
         let canAddPhoto =
             !hasContent ||
             ProcessInfo.processInfo.arguments.contains("-UITest")
-        customView.cameraBtn.isEnabled = canAddPhoto
-        customView.cameraBtn.alpha = canAddPhoto ? 1.0 : 0.3
+        customView.cameraBtn.isEnabled =
+            !isReadOnly && canAddPhoto
+        customView.cameraBtn.alpha =
+            canAddPhoto ? 1.0 : 0.3
     }
 
     private func setupLongPress() {

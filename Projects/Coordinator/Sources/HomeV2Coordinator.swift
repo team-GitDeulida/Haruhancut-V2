@@ -11,10 +11,14 @@ import HomeFeatureV2Interface
 import ImageFeature
 import Domain
 import Core
+import DSKit
 
 public final class HomeV2Coordinator: NSObject, Coordinator, HomeRouteTrigger {
 
     private let navigationController: UINavigationController
+    @Dependency
+    private var userSession:
+        UserSession
     private var homeViewController: UIViewController?
     public var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
@@ -168,8 +172,50 @@ private extension HomeV2Coordinator {
         homeVC.navigationItem.leftBarButtonItem?.target = self
         homeVC.navigationItem.leftBarButtonItem?.action = #selector(didTapMember)
 
-        homeVC.navigationItem.rightBarButtonItem?.target = self
-        homeVC.navigationItem.rightBarButtonItem?.action = #selector(didTapProfile)
+        guard
+            let profileButton =
+                homeVC.navigationItem
+                    .rightBarButtonItem
+        else {
+            return
+        }
+        profileButton.target = self
+        profileButton.action =
+            #selector(didTapProfile)
+
+        if userSession.isAdmin {
+            let adminButton =
+                UIBarButtonItem(
+                    image:
+                        UIImage(
+                            systemName:
+                                "shield.lefthalf.filled"
+                        ),
+                    style: .plain,
+                    target: self,
+                    action:
+                        #selector(
+                            didTapAdmin
+                        )
+                )
+            adminButton.tintColor =
+                .mainWhite
+            adminButton
+                .accessibilityLabel =
+                LocalizationKey
+                    .adminNavigationButton
+                    .localized
+            homeVC.navigationItem
+                .rightBarButtonItems = [
+                    profileButton,
+                    adminButton,
+                ]
+        } else {
+            homeVC.navigationItem
+                .rightBarButtonItems = [
+                    profileButton,
+                ]
+        }
     }
 
     @objc func didTapMember() {
@@ -184,6 +230,21 @@ private extension HomeV2Coordinator {
         profileCoordinator.parentCoordinator = self
         childCoordinators.append(profileCoordinator)
         profileCoordinator.start()
+    }
+
+    @objc
+    func didTapAdmin() {
+        let adminCoordinator =
+            AdminCoordinator(
+                navigationController:
+                    navigationController
+            )
+        adminCoordinator
+            .parentCoordinator = self
+        childCoordinators.append(
+            adminCoordinator
+        )
+        adminCoordinator.start()
     }
 
     func homePresentImagePicker() {

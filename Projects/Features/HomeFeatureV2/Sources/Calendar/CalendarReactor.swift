@@ -11,7 +11,8 @@ import Core
 import Domain
 
 final class CalendarReactor: Reactor {
-    @Dependency private var groupUsecase: GroupUsecaseProtocol
+    private let loadGroup:
+        () -> Observable<HCGroup>
 
     enum Action {
         case viewDidAppear
@@ -26,6 +27,14 @@ final class CalendarReactor: Reactor {
     }
 
     let initialState = State()
+
+    init(
+        loadGroup:
+            @escaping () -> Observable<HCGroup>
+    ) {
+        self.loadGroup =
+            loadGroup
+    }
 
     func mutate(action: Action) -> Observable<Mutation> {
         switch action {
@@ -46,8 +55,7 @@ final class CalendarReactor: Reactor {
 
 private extension CalendarReactor {
     func loadCalendar() -> Observable<Mutation> {
-        groupUsecase
-            .loadAndFetchGroup()
+        loadGroup()
             .map { Mutation.setPostsByDate($0.postsByDate) }
             .catch { error in
                 Logger.e("CalendarReactor loadAndFetchGroup failed: \(error)")

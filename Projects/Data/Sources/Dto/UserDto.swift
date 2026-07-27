@@ -21,8 +21,9 @@ public struct UserDTO: Codable { /// Json -> Swift 객체(서버 응답용)
     public let gender: String?
     public let isPushEnabled: Bool?
     public let groupId: String?
+    public let isAdmin: Bool?
     
-    public init(uid: String?, registerDate: String?, loginPlatform: String?, nickname: String?, profileImageURL: String?, fcmToken: String?, birthdayDate: String?, gender: String?, isPushEnabled: Bool?, groupId: String?) {
+    public init(uid: String?, registerDate: String?, loginPlatform: String?, nickname: String?, profileImageURL: String?, fcmToken: String?, birthdayDate: String?, gender: String?, isPushEnabled: Bool?, groupId: String?, isAdmin: Bool? = nil) {
         self.uid = uid
         self.registerDate = registerDate
         self.loginPlatform = loginPlatform
@@ -33,6 +34,7 @@ public struct UserDTO: Codable { /// Json -> Swift 객체(서버 응답용)
         self.gender = gender
         self.isPushEnabled = isPushEnabled
         self.groupId = groupId
+        self.isAdmin = isAdmin
     }
 }
 
@@ -66,7 +68,8 @@ extension UserDTO {
             birthdayDate: birthdayDate,
             gender: gender,
             isPushEnabled: isPushEnabled,
-            groupId: groupId
+            groupId: groupId,
+            isAdmin: isAdmin
         )
     }
 }
@@ -86,6 +89,8 @@ extension User {
             birthdayDate: formatter.string(from: birthdayDate),
             gender: gender.rawValue,
             isPushEnabled: isPushEnabled,
-            groupId: groupId)
+            groupId: groupId,
+            isAdmin: isAdmin
+        )
     }
 }

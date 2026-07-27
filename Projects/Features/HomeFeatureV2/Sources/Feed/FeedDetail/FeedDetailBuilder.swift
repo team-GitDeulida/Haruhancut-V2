@@ -13,6 +13,11 @@ import Core
 
 public protocol FeedDetailBuildable {
     func makeFeed(post: Post) -> FeedDetailPresentable
+    func makeFeed(
+        post: Post,
+        mode:
+            HomePresentationMode
+    ) -> FeedDetailPresentable
     func makeComment(post: Post, onDismiss: (() -> Void)?) -> UIViewController
 }
 
@@ -22,9 +27,36 @@ public final class FeedDetailBuilder {
 
 extension FeedDetailBuilder: FeedDetailBuildable {
     public func makeFeed(post: Post) -> FeedDetailPresentable {
+        makeFeed(
+            post: post,
+            mode: .currentGroup
+        )
+    }
+
+    public func makeFeed(
+        post: Post,
+        mode:
+            HomePresentationMode
+    ) -> FeedDetailPresentable {
         @Dependency var groupUsecase: GroupUsecaseProtocol
-        let vm = FeedDetailViewModel(groupUsecase: groupUsecase, post: post)
-        let vc = FeedDetailViewController(viewModel: vm)
+        let loadGroup =
+            HomeGroupLoaderFactory
+                .make(
+                    mode: mode,
+                    groupUsecase:
+                        groupUsecase
+                )
+        let vm =
+            FeedDetailViewModel(
+                loadGroup: loadGroup,
+                post: post
+            )
+        let vc =
+            FeedDetailViewController(
+                viewModel: vm,
+                isReadOnly:
+                    mode.isReadOnly
+            )
         return (vc, vm)
     }
 

@@ -20,11 +20,19 @@ final class CalendarDetailViewController: UIViewController, RefreshableViewContr
     private let customView: CalendarDetailView
     private let currentRelay = BehaviorRelay<Int>(value: 0)
     private let reloadRelay = PublishRelay<Void>()
+    private let isReadOnly:
+        Bool
 
-    init(viewModel: CalendarDetailViewModel) {
+    init(
+        viewModel: CalendarDetailViewModel,
+        isReadOnly:
+            Bool = false
+    ) {
         self.viewModel = viewModel
         self.customView = CalendarDetailView(posts: viewModel.posts,
                                              selectedDate: viewModel.selectedDate.toDateKey())
+        self.isReadOnly =
+            isReadOnly
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -38,6 +46,12 @@ final class CalendarDetailViewController: UIViewController, RefreshableViewContr
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        customView.commentButton
+            .isHidden =
+            isReadOnly
+        customView.commentButton
+            .isEnabled =
+            !isReadOnly
         setDelegate()
         bindViewModel()
     }
@@ -57,15 +71,33 @@ final class CalendarDetailViewController: UIViewController, RefreshableViewContr
             .map { _ in }
         let reload = Observable.merge(viewDidAppear, reloadRelay.asObservable())
 
-        let commentTapped = customView.commentButton.rx.tap
-            .withUnretained(self)
-            .compactMap { owner,  _ -> Post? in
-                let index = owner.customView.currentIndex
-                guard owner.viewModel.posts.indices.contains(index) else {
-                    return nil
+        let commentTapped:
+            Observable<Post>
+        if isReadOnly {
+            commentTapped = .never()
+        } else {
+            commentTapped =
+                customView.commentButton.rx.tap
+                    .withUnretained(self)
+                    .compactMap {
+                        owner,
+                        _ -> Post? in
+                        let index =
+                            owner.customView
+                                .currentIndex
+                        guard
+                            owner.viewModel
+                                .posts
+                                .indices
+                                .contains(index)
+                        else {
+                            return nil
+                        }
+                        return owner
+                            .viewModel
+                            .posts[index]
+                    }
                 }
-                return owner.viewModel.posts[index]
-            }
 
         let input = CalendarDetailViewModel.Input(
             imageTapped: customView.collectionView.rx.modelSelected(Post.self).asObservable(),

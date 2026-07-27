@@ -13,6 +13,12 @@ import HomeFeatureV2Interface
 
 public protocol CalendarDetailBuildable {
     func makeCalendarDetail(posts: [Post], selectedDate: Date) -> CalendarDetailPresentable
+    func makeCalendarDetail(
+        posts: [Post],
+        selectedDate: Date,
+        mode:
+            HomePresentationMode
+    ) -> CalendarDetailPresentable
     func makeComment(post: Post, onDismiss: (() -> Void)?) -> UIViewController
 }
 
@@ -22,11 +28,41 @@ public final class CalendarDetailBuilder {
 
 extension CalendarDetailBuilder: CalendarDetailBuildable {
     public func makeCalendarDetail(posts: [Post], selectedDate: Date) -> CalendarDetailPresentable {
+        makeCalendarDetail(
+            posts: posts,
+            selectedDate:
+                selectedDate,
+            mode: .currentGroup
+        )
+    }
+
+    public func makeCalendarDetail(
+        posts: [Post],
+        selectedDate: Date,
+        mode:
+            HomePresentationMode
+    ) -> CalendarDetailPresentable {
         @Dependency var groupUsecase: GroupUsecaseProtocol
-        let vm = CalendarDetailViewModel(groupUsecase: groupUsecase,
-                                         posts: posts,
-                                         selectedDate: selectedDate)
-        let vc = CalendarDetailViewController(viewModel: vm)
+        let loadGroup =
+            HomeGroupLoaderFactory
+                .make(
+                    mode: mode,
+                    groupUsecase:
+                        groupUsecase
+                )
+        let vm =
+            CalendarDetailViewModel(
+                loadGroup: loadGroup,
+                posts: posts,
+                selectedDate:
+                    selectedDate
+            )
+        let vc =
+            CalendarDetailViewController(
+                viewModel: vm,
+                isReadOnly:
+                    mode.isReadOnly
+            )
         return (vc, vm)
     }
 

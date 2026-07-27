@@ -17,12 +17,15 @@ let project = Project(
                 .project(target: "AuthFeature", path: "../Features/AuthFeature"),
                 .project(target: "HomeFeatureV2", path: "../Features/HomeFeatureV2"),
                 .project(target: "HomeFeatureV2Interface", path: "../Features/HomeFeatureV2"),
+                .project(target: "AdminFeature", path: "../Features/AdminFeature"),
+                .project(target: "AdminFeatureInterface", path: "../Features/AdminFeature"),
                 .project(target: "OnboardingFeature", path: "../Features/OnboardingFeature"),
                 .project(target: "ProfileFeature", path: "../Features/ProfileFeature"),
                 .project(target: "ProfileFeatureV2", path: "../Features/ProfileFeatureV2"),
                 .project(target: "MemberFeature", path: "../Features/MemberFeature"),
                 .project(target: "MemberFeatureV2", path: "../Features/MemberFeatureV2"),
                 .project(target: "ImageFeature", path: "../Features/ImageFeature"),
+                .project(target: "DSKit", path: "../Shared/DSKit"),
                 .project(target: "Core", path: "../Core"),
                 .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs")
             ]

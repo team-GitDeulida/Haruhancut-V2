@@ -14,6 +14,7 @@ public enum DomainError: Error {
     case missingDomainSession
     case userNotFound
     case groupMemberPermissionRequired
+    case adminPermissionRequired
 }
 
 public protocol GroupUsecaseProtocol {
