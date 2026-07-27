@@ -37,7 +37,8 @@ let project = Project(
             sources: ["Demo/**"],
             resources: [],
             dependencies: [
-                .target(name: "CollectionViewAdapter")
+                .target(name: "CollectionViewAdapter"),
+                .external(name: "DifferenceKit")
             ],
             settings: .settings(
                 configurations: [

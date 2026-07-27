@@ -65,6 +65,19 @@ struct RootListView: View {
                             shape: .indigo
                         )
                     }
+
+                    NavigationLink {
+                        DifferenceKitAccountListViewController(
+                            accounts: BankAccount.sample
+                        )
+                        .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "DifferenceKit",
+                            caption: "커스텀 diffing으로 변경된 계좌 항목만 갱신합니다",
+                            shape: .teal
+                        )
+                    }
                 }
                 
                 Section("CollectionView") {
