@@ -51,6 +51,55 @@ final class ProfileFeatureV2Tests:
         )
     }
 
+    func testBirthdayIsNormalizedToStartOfDay() {
+        var calendar =
+            Calendar(
+                identifier: .gregorian
+            )
+        calendar.timeZone =
+            TimeZone(
+                secondsFromGMT: 0
+            )!
+        let birthday =
+            calendar.date(
+                from:
+                    DateComponents(
+                        year: 2000,
+                        month: 11,
+                        day: 11,
+                        hour: 18,
+                        minute: 30
+                    )
+            )!
+
+        let normalized =
+            BirthdayEditViewModel
+                .normalizedBirthday(
+                    birthday,
+                    calendar: calendar
+                )
+
+        XCTAssertEqual(
+            calendar.dateComponents(
+                [
+                    .year,
+                    .month,
+                    .day,
+                    .hour,
+                    .minute,
+                ],
+                from: normalized
+            ),
+            DateComponents(
+                year: 2000,
+                month: 11,
+                day: 11,
+                hour: 0,
+                minute: 0
+            )
+        )
+    }
+
     private func makePost(
         id: String
     ) -> Post {

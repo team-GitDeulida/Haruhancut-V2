@@ -7,6 +7,8 @@ public protocol ProfileFeatureBuildable {
     func makeSetting() -> SettingPresentable
     func makeNicknameEdit()
         -> NicknameEditPresentable
+    func makeBirthdayEdit()
+        -> BirthdayEditPresentable
 }
 
 public final class ProfileFeatureBuilder {
@@ -76,6 +78,30 @@ extension ProfileFeatureBuilder:
             )
         let viewController =
             NicknameEditViewController(
+                viewModel: viewModel
+            )
+        return (
+            viewController,
+            viewModel
+        )
+    }
+
+    public func makeBirthdayEdit()
+        -> BirthdayEditPresentable
+    {
+        @Dependency
+        var userSession: UserSession
+        @Dependency
+        var authUsecase:
+            AuthUsecaseProtocol
+
+        let viewModel =
+            BirthdayEditViewModel(
+                userSession: userSession,
+                authUsecase: authUsecase
+            )
+        let viewController =
+            BirthdayEditViewController(
                 viewModel: viewModel
             )
         return (

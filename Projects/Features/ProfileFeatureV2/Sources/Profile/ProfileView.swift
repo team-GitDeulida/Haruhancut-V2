@@ -24,7 +24,9 @@ final class ProfileView: UIView {
         )
         button.tintColor = .mainWhite
         button.accessibilityLabel =
-            "닉네임 수정"
+            LocalizationKey
+                .profileEditButton
+                .localized
         return button
     }()
 

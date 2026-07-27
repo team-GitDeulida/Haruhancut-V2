@@ -35,6 +35,10 @@ final class ProfileViewController:
         PublishRelay<Void>()
     private let imageTappedRelay =
         PublishRelay<Post>()
+    private let nicknameEditTappedRelay =
+        PublishRelay<Void>()
+    private let birthdayEditTappedRelay =
+        PublishRelay<Void>()
     private var imageURLsByPostID:
         [String: URL] = [:]
     private var activeImagePrefetches:
@@ -162,6 +166,14 @@ final class ProfileViewController:
             )
             .map { _ in }
 
+        customView.editButton.rx.tap
+            .bind(with: self) {
+                owner, _ in
+                owner
+                    .showProfileEditMenu()
+            }
+            .disposed(by: disposeBag)
+
         let input =
             ProfileViewModel.Input(
                 profileImageTapped:
@@ -169,8 +181,10 @@ final class ProfileViewController:
                 profileImageEditTapped:
                     profileImageEditTapped,
                 nicknameEditTapped:
-                    customView.editButton
-                        .rx.tap
+                    nicknameEditTappedRelay
+                        .asObservable(),
+                birthdayEditTapped:
+                    birthdayEditTappedRelay
                         .asObservable(),
                 settingTapped:
                     settingButton.rx.tap
@@ -190,11 +204,12 @@ final class ProfileViewController:
             )
 
         output.user
-            .map(\.nickname)
-            .drive(
-                customView
-                    .nicknameLabel.rx.text
-            )
+            .drive(with: self) {
+                owner, user in
+                owner.customView
+                    .nicknameLabel.text =
+                    user.nickname
+            }
             .disposed(by: disposeBag)
 
         output.user
@@ -231,6 +246,71 @@ final class ProfileViewController:
                 )
             }
             .disposed(by: disposeBag)
+    }
+
+    private func showProfileEditMenu() {
+        let alert =
+            UIAlertController(
+                title:
+                    LocalizationKey
+                        .profileEditTitle
+                        .localized,
+                message: nil,
+                preferredStyle:
+                    .actionSheet
+            )
+        alert.addAction(
+            UIAlertAction(
+                title:
+                    LocalizationKey
+                        .profileEditNickname
+                        .localized,
+                style: .default
+            ) {
+                [weak self] _ in
+                self?
+                    .nicknameEditTappedRelay
+                    .accept(())
+            }
+        )
+        alert.addAction(
+            UIAlertAction(
+                title:
+                    LocalizationKey
+                        .profileEditBirthday
+                        .localized,
+                style: .default
+            ) {
+                [weak self] _ in
+                self?
+                    .birthdayEditTappedRelay
+                    .accept(())
+            }
+        )
+        alert.addAction(
+            UIAlertAction(
+                title:
+                    LocalizationKey
+                        .commonCancel
+                        .localized,
+                style: .cancel
+            )
+        )
+
+        if let popover =
+            alert
+                .popoverPresentationController
+        {
+            popover.sourceView =
+                customView.editButton
+            popover.sourceRect =
+                customView.editButton
+                    .bounds
+        }
+        present(
+            alert,
+            animated: true
+        )
     }
 
     private func render(

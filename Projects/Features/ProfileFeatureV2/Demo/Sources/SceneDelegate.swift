@@ -103,6 +103,29 @@ final class SceneDelegate:
             }
 
         profile.vm
+            .onBirthdayEditButtonTapped = {
+                [weak navigationController]
+                in
+                var birthdayEdit =
+                    builder
+                        .makeBirthdayEdit()
+                birthdayEdit.vm
+                    .onPopButtonTapped = {
+                        [weak navigationController]
+                        in
+                        navigationController?
+                            .popViewController(
+                                animated: true
+                            )
+                    }
+                navigationController?
+                    .pushViewController(
+                        birthdayEdit.vc,
+                        animated: true
+                    )
+            }
+
+        profile.vm
             .onSettingButtonTapped = {
                 [weak navigationController]
                 in

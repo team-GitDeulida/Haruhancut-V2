@@ -14,6 +14,8 @@ final class ProfileViewModel:
         ((@escaping (UIImage) -> Void) -> Void)?
     var onNicknameEditButtonTapped:
         (() -> Void)?
+    var onBirthdayEditButtonTapped:
+        (() -> Void)?
     var onSettingButtonTapped:
         (() -> Void)?
     var onImageTapped:
@@ -25,6 +27,8 @@ final class ProfileViewModel:
         let profileImageEditTapped:
             Observable<Void>
         let nicknameEditTapped:
+            Observable<Void>
+        let birthdayEditTapped:
             Observable<Void>
         let settingTapped:
             Observable<Void>
@@ -178,6 +182,14 @@ final class ProfileViewModel:
                 owner, _ in
                 owner
                     .onNicknameEditButtonTapped?()
+            }
+            .disposed(by: disposeBag)
+
+        input.birthdayEditTapped
+            .bind(with: self) {
+                owner, _ in
+                owner
+                    .onBirthdayEditButtonTapped?()
             }
             .disposed(by: disposeBag)
 

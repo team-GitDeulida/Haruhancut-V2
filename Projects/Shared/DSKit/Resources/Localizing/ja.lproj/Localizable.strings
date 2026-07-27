@@ -76,6 +76,15 @@
 "profile.nickname_edit.subtitle" = "ニックネームはいつでも変更できます！";
 "profile.nickname_edit.placeholder" = "ニックネーム";
 "profile.nickname_edit.complete" = "完了";
+"profile.edit.button" = "プロフィール情報を編集";
+"profile.edit.title" = "プロフィール情報を編集";
+"profile.edit.nickname" = "ニックネームを変更";
+"profile.edit.birthday" = "生年月日を変更";
+"profile.birthday_edit.title" = "生年月日を変更してください。";
+"profile.birthday_edit.subtitle" = "家族に表示される誕生日に使用されます。";
+"profile.birthday_edit.complete" = "完了";
+"profile.birthday_edit.failure.title" = "生年月日を保存できませんでした";
+"profile.birthday_edit.failure.message" = "しばらくしてからもう一度お試しください。";
 "profile.setting.section.app" = "アプリ設定";
 "profile.setting.section.info" = "情報";
 "profile.setting.section.account" = "アカウント管理";

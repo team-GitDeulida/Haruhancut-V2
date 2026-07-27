@@ -84,6 +84,15 @@
 "profile.nickname_edit.subtitle" = "You can change your nickname anytime!";
 "profile.nickname_edit.placeholder" = "Nickname";
 "profile.nickname_edit.complete" = "Done";
+"profile.edit.button" = "Edit profile information";
+"profile.edit.title" = "Edit Profile";
+"profile.edit.nickname" = "Change nickname";
+"profile.edit.birthday" = "Change date of birth";
+"profile.birthday_edit.title" = "Change your date of birth.";
+"profile.birthday_edit.subtitle" = "This date is used for the birthday shown to your family.";
+"profile.birthday_edit.complete" = "Done";
+"profile.birthday_edit.failure.title" = "Couldn’t save your date of birth";
+"profile.birthday_edit.failure.message" = "Please try again in a moment.";
 "profile.setting.section.app" = "App Settings";
 "profile.setting.section.info" = "Info";
 "profile.setting.section.account" = "Account";

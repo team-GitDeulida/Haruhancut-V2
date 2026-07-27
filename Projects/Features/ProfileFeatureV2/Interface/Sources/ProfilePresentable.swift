@@ -13,6 +13,8 @@ public protocol ProfileRouteTrigger {
         (() -> Void)? { get set }
     var onNicknameEditButtonTapped:
         (() -> Void)? { get set }
+    var onBirthdayEditButtonTapped:
+        (() -> Void)? { get set }
     var onImageTapped:
         ((Post) -> Void)? { get set }
 }

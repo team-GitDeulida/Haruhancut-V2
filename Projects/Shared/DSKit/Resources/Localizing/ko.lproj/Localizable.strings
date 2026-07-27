@@ -84,6 +84,15 @@
 "profile.nickname_edit.subtitle" = "닉네임은 언제든지 변경할 수 있어요!";
 "profile.nickname_edit.placeholder" = "닉네임";
 "profile.nickname_edit.complete" = "완료";
+"profile.edit.button" = "프로필 정보 수정";
+"profile.edit.title" = "프로필 정보 수정";
+"profile.edit.nickname" = "닉네임 변경";
+"profile.edit.birthday" = "생년월일 변경";
+"profile.birthday_edit.title" = "생년월일을 변경해 주세요.";
+"profile.birthday_edit.subtitle" = "가족에게 표시되는 생일에 사용돼요.";
+"profile.birthday_edit.complete" = "완료";
+"profile.birthday_edit.failure.title" = "생년월일을 저장하지 못했어요";
+"profile.birthday_edit.failure.message" = "잠시 후 다시 시도해 주세요.";
 "profile.setting.section.app" = "앱 설정";
 "profile.setting.section.info" = "정보";
 "profile.setting.section.account" = "계정 관리";
