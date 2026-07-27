@@ -1,0 +1,38 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+tag-prefix: 'v'
+
+categories:
+  - title: '✨ 새로운 기능이 추가되었어요'
+    semver-increment: minor
+    when:
+      labels:
+        - '✨ feature'
+  - title: '🐞 자잘한 버그를 수정했어요'
+    semver-increment: patch
+    when:
+      labels:
+        - '🔧 fix'
+        - '🔥 hotfix'
+  - title: '🛠 코드를 개선했어요'
+    semver-increment: patch
+    when:
+      labels:
+        - '⚙️ chore'
+        - '🔨 refactor'
+        - '✅ test'
+        - '📃 docs'
+  - title: '기타 변경'
+    semver-increment: patch
+
+change-template: '- $TITLE by @$AUTHOR in #$NUMBER'
+change-title-escapes: '\<*_&'
+sort-by: merged_at
+sort-direction: descending
+
+template: |
+  ## 이번 버전의 변경사항은 아래와 같아요
+
+  $CHANGES
+
+no-changes-template: '변경사항이 없어요.'
