@@ -1,0 +1,4 @@
+interface:
+  display_name: "하루한컷 앱스토어 출시 준비"
+  short_description: "PR 이력으로 앱스토어 메타데이터를 갱신합니다"
+  default_prompt: "Use $haruhancut-app-store-release to prepare this release from its PR history."
