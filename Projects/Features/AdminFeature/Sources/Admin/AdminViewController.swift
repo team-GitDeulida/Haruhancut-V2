@@ -177,9 +177,9 @@ final class AdminViewController:
     private func apply(
         _ state: AdminScreenState
     ) {
+        render(state.groups)
         currentGroups =
             state.groups
-        render(state.groups)
 
         let showsFullScreenLoading =
             state.isLoading

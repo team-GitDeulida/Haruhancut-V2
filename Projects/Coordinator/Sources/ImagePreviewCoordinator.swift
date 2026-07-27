@@ -9,7 +9,7 @@ import UIKit
 import DSKit
 
 public final class ImagePreviewCoordinator: Coordinator {
-    public var parentCoordinator: Coordinator?
+    public weak var parentCoordinator: Coordinator?
     public var childCoordinators: [Coordinator] = []
     
     private weak var presentingViewController: UIViewController?

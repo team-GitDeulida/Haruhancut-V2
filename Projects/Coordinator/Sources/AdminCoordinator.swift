@@ -6,10 +6,11 @@ import UIKit
 
 /// 관리자 그룹 목록과 선택한 그룹의 읽기 전용 Home 이동을 담당합니다.
 public final class AdminCoordinator:
+    NSObject,
     Coordinator,
     HomeRouteTrigger
 {
-    public var parentCoordinator:
+    public weak var parentCoordinator:
         Coordinator?
     public var childCoordinators:
         [Coordinator] = []
@@ -26,6 +27,10 @@ public final class AdminCoordinator:
 
     private let navigationController:
         UINavigationController
+    private weak var previousNavigationDelegate:
+        UINavigationControllerDelegate?
+    private weak var adminViewController:
+        UIViewController?
     private var selectedGroupID:
         String?
 
@@ -35,6 +40,7 @@ public final class AdminCoordinator:
     ) {
         self.navigationController =
             navigationController
+        super.init()
         configureRoutes()
     }
 
@@ -43,6 +49,15 @@ public final class AdminCoordinator:
             AdminFeatureBuilder()
         var admin =
             builder.makeAdmin()
+        let viewController =
+            admin.vc
+        adminViewController =
+            viewController
+        previousNavigationDelegate =
+            navigationController
+                .delegate
+        navigationController.delegate =
+            self
 
         admin.vm.onGroupTapped = {
             [weak self] group in
@@ -54,7 +69,7 @@ public final class AdminCoordinator:
 
         navigationController
             .pushViewController(
-                admin.vc,
+                viewController,
                 animated: true
             )
     }
@@ -211,5 +226,45 @@ public final class AdminCoordinator:
             coordinator
         )
         coordinator.start()
+    }
+}
+
+extension AdminCoordinator:
+    UINavigationControllerDelegate
+{
+    public func navigationController(
+        _ navigationController:
+            UINavigationController,
+        didShow viewController:
+            UIViewController,
+        animated: Bool
+    ) {
+        guard
+            let adminViewController,
+            !navigationController
+                .viewControllers
+                .contains(
+                    where: {
+                        $0 ===
+                            adminViewController
+                    }
+                )
+        else {
+            return
+        }
+
+        self.adminViewController =
+            nil
+        if navigationController
+            .delegate === self
+        {
+            navigationController
+                .delegate =
+                previousNavigationDelegate
+        }
+        parentCoordinator?
+            .childDidFinish(
+                self
+            )
     }
 }

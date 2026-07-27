@@ -116,6 +116,12 @@ final class AdminView:
                         leadingAnchor,
                     constant: 30
                 ),
+            emptyLabel.trailingAnchor
+                .constraint(
+                    lessThanOrEqualTo:
+                        trailingAnchor,
+                    constant: -30
+                ),
 
             activityIndicator
                 .centerXAnchor

@@ -332,6 +332,12 @@ final class AdminFeatureTests:
                     )
                     expectation
                         .fulfill()
+                },
+                onFailure: {
+                    error in
+                    XCTFail(
+                        "예상하지 못한 오류: \(error)"
+                    )
                 }
             )
 
@@ -407,6 +413,12 @@ final class AdminFeatureTests:
                     )
                     expectation
                         .fulfill()
+                },
+                onFailure: {
+                    error in
+                    XCTFail(
+                        "예상하지 못한 오류: \(error)"
+                    )
                 }
             )
 
