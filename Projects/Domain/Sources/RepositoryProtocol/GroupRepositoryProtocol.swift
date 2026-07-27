@@ -14,6 +14,10 @@ public protocol GroupRepositoryProtocol {
     func createGroup(groupName: String) -> Single<(groupId: String, inviteCode: String)>
     func joinGroup(inviteCode: String) -> Single<HCGroup>
     func updateGroup(path: String, post: Post) -> Single<Void>
+    func updateBirthdaySettings(
+        groupId: String,
+        settings: GroupBirthdaySettings
+    ) -> Single<Void>
     func updateUserGroupId(groupId: String) -> Single<Void>
     func fetchGroup(groupId: String) -> Single<HCGroup>
     

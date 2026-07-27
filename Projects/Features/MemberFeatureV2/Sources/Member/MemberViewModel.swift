@@ -4,6 +4,16 @@ import MemberFeatureV2Interface
 import RxCocoa
 import RxSwift
 
+struct MemberScreenState:
+    Equatable
+{
+    let members: [User]
+    let birthdaySettings:
+        GroupBirthdaySettings
+    let canEditBirthdaySettings:
+        Bool
+}
+
 final class MemberViewModel:
     MemberViewModelType
 {
@@ -18,26 +28,36 @@ final class MemberViewModel:
         GroupSession
     private let authUsecase:
         AuthUsecaseProtocol
+    private let groupUsecase:
+        GroupUsecaseProtocol
 
     struct Input {
         let inviteCellTapped:
             Observable<Void>
         let memberCellTapped:
             Observable<User>
+        let birthdaySettingsChanged:
+            Observable<
+                GroupBirthdaySettings
+            >
     }
 
     struct Output {
-        let sortedMembers:
-            Driver<[User]>
+        let screenState:
+            Driver<MemberScreenState>
         let inviteCode:
             Driver<String>
+        let birthdaySettingsUpdateFailed:
+            Signal<Void>
     }
 
     init(
         userSession: UserSession,
         groupSession: GroupSession,
         authUsecase:
-            AuthUsecaseProtocol
+            AuthUsecaseProtocol,
+        groupUsecase:
+            GroupUsecaseProtocol
     ) {
         self.userSession =
             userSession
@@ -45,6 +65,8 @@ final class MemberViewModel:
             groupSession
         self.authUsecase =
             authUsecase
+        self.groupUsecase =
+            groupUsecase
     }
 
     func transform(
@@ -102,8 +124,51 @@ final class MemberViewModel:
                             + others
                     )
                 }
+                .share(replay: 1)
+
+        let groupState =
+            observeGroupSession()
+                .share(replay: 1)
+
+        let screenState =
+            Observable
+                .combineLatest(
+                    sortedMembers,
+                    groupState
+                ) {
+                    [weak self]
+                    members,
+                    group
+                        -> MemberScreenState in
+                    MemberScreenState(
+                        members: members,
+                        birthdaySettings:
+                            group?
+                                .resolvedBirthdaySettings
+                                ?? .defaultValue,
+                        canEditBirthdaySettings:
+                            self?
+                                .userSession
+                                .userId
+                                .map {
+                                    userId in
+                                    group?
+                                        .members[
+                                            userId
+                                        ] != nil
+                                }
+                                ?? false
+                    )
+                }
                 .asDriver(
-                    onErrorJustReturn: []
+                    onErrorJustReturn:
+                        MemberScreenState(
+                            members: [],
+                            birthdaySettings:
+                                .defaultValue,
+                            canEditBirthdaySettings:
+                                false
+                        )
                 )
 
         let inviteCode =
@@ -133,11 +198,70 @@ final class MemberViewModel:
             }
             .disposed(by: disposeBag)
 
+        let birthdaySettingsUpdate =
+            input
+                .birthdaySettingsChanged
+                .withUnretained(self)
+                .flatMapLatest {
+                    owner, settings in
+                    owner.groupUsecase
+                        .updateBirthdaySettings(
+                            settings
+                        )
+                        .asObservable()
+                        .materialize()
+                }
+                .share()
+
+        let birthdaySettingsUpdateFailed =
+            birthdaySettingsUpdate
+                .compactMap {
+                    event -> Void? in
+                    guard
+                        event.error
+                            != nil
+                    else {
+                        return nil
+                    }
+                    return ()
+                }
+                .asSignal(
+                    onErrorJustReturn: ()
+                )
+
         return Output(
-            sortedMembers:
-                sortedMembers,
+            screenState:
+                screenState,
             inviteCode:
-                inviteCode
+                inviteCode,
+            birthdaySettingsUpdateFailed:
+                birthdaySettingsUpdateFailed
         )
+    }
+
+    private func observeGroupSession()
+        -> Observable<SessionGroup?>
+    {
+        Observable.create {
+            [weak groupSession] observer in
+            guard let groupSession else {
+                observer.onNext(nil)
+                observer.onCompleted()
+                return Disposables
+                    .create()
+            }
+            let observerID =
+                groupSession.bind {
+                    group in
+                    observer.onNext(group)
+                }
+            return Disposables
+                .create {
+                    groupSession
+                        .removeObserver(
+                            observerID
+                        )
+                }
+        }
     }
 }

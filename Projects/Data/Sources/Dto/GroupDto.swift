@@ -16,8 +16,21 @@ public struct HCGroupDTO: Codable {
     public let inviteCode: String?
     public let members: [String: String]?
     public var postsByDate: [String: [String: PostDTO]]? // postId가 key인 딕셔너리
+    public let birthdaySettings:
+        GroupBirthdaySettings?
     
-    public init(groupId: String?, groupName: String?, createdAt: String?, hostUserId: String?, inviteCode: String?, members: [String : String]?, postsByDate: [String : [String : PostDTO]]? = nil) {
+    public init(
+        groupId: String?,
+        groupName: String?,
+        createdAt: String?,
+        hostUserId: String?,
+        inviteCode: String?,
+        members: [String: String]?,
+        postsByDate:
+            [String: [String: PostDTO]]? = nil,
+        birthdaySettings:
+            GroupBirthdaySettings? = nil
+    ) {
         self.groupId = groupId
         self.groupName = groupName
         self.createdAt = createdAt
@@ -25,6 +38,8 @@ public struct HCGroupDTO: Codable {
         self.inviteCode = inviteCode
         self.members = members
         self.postsByDate = postsByDate
+        self.birthdaySettings =
+            birthdaySettings
     }
 }
 
@@ -67,7 +82,9 @@ extension HCGroupDTO {
             hostUserId: hostUserId,
             inviteCode: inviteCode,
             members: memberDict,
-            postsByDate: postsByDate
+            postsByDate: postsByDate,
+            birthdaySettings:
+                birthdaySettings
         )
     }
 }
@@ -86,7 +103,9 @@ extension HCGroup {
             hostUserId: hostUserId,
             inviteCode: inviteCode,
             members: members,
-            postsByDate: postsDTO
+            postsByDate: postsDTO,
+            birthdaySettings:
+                birthdaySettings
         )
     }
 }

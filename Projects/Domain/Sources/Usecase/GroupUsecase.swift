@@ -13,10 +13,14 @@ public enum DomainError: Error {
     case missingGroupId
     case missingDomainSession
     case userNotFound
+    case groupMemberPermissionRequired
 }
 
 public protocol GroupUsecaseProtocol {
     func updateGroup(path: String, post: Post) -> Single<Void>
+    func updateBirthdaySettings(
+        _ settings: GroupBirthdaySettings
+    ) -> Single<Void>
     
     
     // Other
@@ -31,6 +35,18 @@ public protocol GroupUsecaseProtocol {
     func deleteComment(post: Post, commentId: String) -> Single<Void>
     func uploadImageAndUploadPost(image: UIImage) -> Observable<Void>
     func deletePostAndReload(post: Post) -> Observable<Void>
+}
+
+public extension GroupUsecaseProtocol {
+    /// 생일 설정을 사용하지 않는 Demo 구현을 위한 기본 동작입니다.
+    func updateBirthdaySettings(
+        _ settings: GroupBirthdaySettings
+    ) -> Single<Void> {
+        .error(
+            DomainError
+                .missingDomainSession
+        )
+    }
 }
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
@@ -50,6 +66,43 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     // Group
     public func updateGroup(path: String, post: Post) -> Single<Void> {
         return groupRepository.updateGroup(path: path, post: post)
+    }
+
+    public func updateBirthdaySettings(
+        _ settings: GroupBirthdaySettings
+    ) -> Single<Void> {
+        guard
+            let group =
+                groupSession.session,
+            let userId =
+                userSession.userId
+        else {
+            return .error(
+                DomainError
+                    .missingDomainSession
+            )
+        }
+        guard
+            group.members[userId] != nil
+        else {
+            return .error(
+                DomainError
+                    .groupMemberPermissionRequired
+            )
+        }
+
+        return groupRepository
+            .updateBirthdaySettings(
+                groupId: group.groupId,
+                settings: settings
+            )
+            .do(onSuccess: {
+                [weak self] in
+                self?.groupSession.update(
+                    \.birthdaySettings,
+                    settings
+                )
+            })
     }
     
     /// Fetches the group associated with the current user's session.

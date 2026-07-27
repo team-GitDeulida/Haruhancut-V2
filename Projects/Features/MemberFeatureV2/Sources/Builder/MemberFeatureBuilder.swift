@@ -26,11 +26,16 @@ extension MemberFeatureBuilder:
         @Dependency
         var authUsecase:
             AuthUsecaseProtocol
+        @Dependency
+        var groupUsecase:
+            GroupUsecaseProtocol
 
         let viewModel = MemberViewModel(
             userSession: userSession,
             groupSession: groupSession,
-            authUsecase: authUsecase
+            authUsecase: authUsecase,
+            groupUsecase:
+                groupUsecase
         )
         let viewController =
             MemberViewController(

@@ -35,6 +35,28 @@ final class MemberViewController:
         PublishRelay<Void>()
     private let memberTappedRelay =
         PublishRelay<User>()
+    private let birthdaySettingsRelay =
+        PublishRelay<
+            GroupBirthdaySettings
+        >()
+    private let birthdayCalculator =
+        BirthdayOccurrenceCalculator()
+    private lazy var birthdayDateFormatter:
+        DateFormatter = {
+            let formatter =
+                DateFormatter()
+            formatter.locale =
+                .autoupdatingCurrent
+            formatter.timeZone =
+                .autoupdatingCurrent
+            formatter
+                .setLocalizedDateFormatFromTemplate(
+                    "MMMd"
+                )
+            return formatter
+        }()
+    private var screenState:
+        MemberScreenState?
     private var imageURLsByMemberID:
         [String: URL] = [:]
     private var activeImagePrefetches:
@@ -104,6 +126,9 @@ final class MemberViewController:
                         .asObservable(),
                 memberCellTapped:
                     memberTappedRelay
+                        .asObservable(),
+                birthdaySettingsChanged:
+                    birthdaySettingsRelay
                         .asObservable()
             )
         let output =
@@ -111,11 +136,13 @@ final class MemberViewController:
                 input: input
             )
 
-        output.sortedMembers
+        output.screenState
             .drive(with: self) {
-                owner, members in
+                owner, state in
+                owner.screenState =
+                    state
                 owner.render(
-                    members
+                    state
                 )
             }
             .disposed(by: disposeBag)
@@ -129,13 +156,22 @@ final class MemberViewController:
                 )
             }
             .disposed(by: disposeBag)
+
+        output
+            .birthdaySettingsUpdateFailed
+            .emit(with: self) {
+                owner, _ in
+                owner
+                    .showBirthdaySettingsFailure()
+            }
+            .disposed(by: disposeBag)
     }
 
     private func render(
-        _ members: [User]
+        _ state: MemberScreenState
     ) {
         updateImageURLLookup(
-            members
+            state.members
         )
 
         adapter.bind(
@@ -150,10 +186,17 @@ final class MemberViewController:
                             self?.inviteTappedRelay.accept(())
                         }
 
-                    For(of: members) {
+                    For(of: state.members) {
                         member in
                         MemberRowComponent(
-                            user: member
+                            user: member,
+                            birthdayText:
+                                self.birthdayText(
+                                    for: member,
+                                    settings:
+                                        state
+                                            .birthdaySettings
+                                )
                         )
                         .onTouch { [weak self] in
                             self?.memberTappedRelay.accept(member)
@@ -162,8 +205,19 @@ final class MemberViewController:
                 }
                 .withHeader(
                     MemberHeaderComponent(
-                        memberCount: members.count
-                    ),
+                        memberCount:
+                            state
+                                .members
+                                .count,
+                        showsBirthdaySettingsButton:
+                            state
+                                .canEditBirthdaySettings
+                    )
+                    .onButtonTap {
+                        [weak self] in
+                        self?
+                            .showBirthdaySettings()
+                    },
                     zIndex: 1
                 )
                 .withSectionLayout(
@@ -176,6 +230,235 @@ final class MemberViewController:
                 )
             },
             animatingDifferences: true
+        )
+    }
+
+    private func birthdayText(
+        for member: User,
+        settings:
+            GroupBirthdaySettings
+    ) -> String? {
+        guard
+            settings.isEnabled,
+            let occurrence =
+                birthdayCalculator
+                    .nextOccurrence(
+                        from:
+                            member
+                                .birthdayDate,
+                        mode:
+                            settings
+                                .calendarMode
+                    )
+        else {
+            return nil
+        }
+
+        switch occurrence
+            .daysRemaining
+        {
+        case 0:
+            return LocalizationKey
+                .memberBirthdayToday
+                .localized
+        case 1:
+            return LocalizationKey
+                .memberBirthdayTomorrow
+                .localized
+        default:
+            let dateText =
+                birthdayDateFormatter
+                    .string(
+                        from:
+                            occurrence
+                                .nextDate
+                    )
+            let key:
+                LocalizationKey =
+                settings.calendarMode
+                    == .lunar
+                ? .memberBirthdayLunarDateCountdown
+                : .memberBirthdayDateCountdown
+            return String(
+                format: key.localized,
+                dateText,
+                occurrence
+                    .daysRemaining
+            )
+        }
+    }
+
+    private func showBirthdaySettings() {
+        guard
+            let state = screenState,
+            state
+                .canEditBirthdaySettings
+        else {
+            return
+        }
+
+        let settings =
+            state.birthdaySettings
+        let alert =
+            UIAlertController(
+                title:
+                    LocalizationKey
+                        .memberBirthdaySettingsTitle
+                        .localized,
+                message:
+                    LocalizationKey
+                        .memberBirthdaySettingsMessage
+                        .localized,
+                preferredStyle:
+                    .actionSheet
+            )
+
+        let visibilityAction =
+            UIAlertAction(
+                title:
+                    (
+                        settings.isEnabled
+                        ? LocalizationKey
+                            .memberBirthdaySettingsHide
+                        : LocalizationKey
+                            .memberBirthdaySettingsShow
+                    ).localized,
+                style: .default
+            ) {
+                [weak self] _ in
+                self?
+                    .birthdaySettingsRelay
+                    .accept(
+                        GroupBirthdaySettings(
+                            isEnabled:
+                                !settings
+                                .isEnabled,
+                            calendarMode:
+                                settings
+                                .calendarMode
+                        )
+                    )
+            }
+        alert.addAction(
+            visibilityAction
+        )
+
+        addCalendarAction(
+            mode: .solar,
+            title:
+                LocalizationKey
+                    .memberBirthdaySettingsSolar
+                    .localized,
+            settings: settings,
+            to: alert
+        )
+        addCalendarAction(
+            mode: .lunar,
+            title:
+                LocalizationKey
+                    .memberBirthdaySettingsLunar
+                    .localized,
+            settings: settings,
+            to: alert
+        )
+        alert.addAction(
+            UIAlertAction(
+                title:
+                    LocalizationKey
+                        .commonCancel
+                        .localized,
+                style: .cancel
+            )
+        )
+
+        if let popover =
+            alert
+                .popoverPresentationController
+        {
+            popover.sourceView = view
+            popover.sourceRect = CGRect(
+                x: view.bounds.maxX - 38,
+                y:
+                    view
+                        .safeAreaInsets
+                        .top + 35,
+                width: 1,
+                height: 1
+            )
+        }
+        present(
+            alert,
+            animated: true
+        )
+    }
+
+    private func addCalendarAction(
+        mode: BirthdayCalendarMode,
+        title: String,
+        settings:
+            GroupBirthdaySettings,
+        to alert:
+            UIAlertController
+    ) {
+        let action =
+            UIAlertAction(
+                title:
+                    settings
+                        .calendarMode
+                        == mode
+                    ? "✓ \(title)"
+                    : title,
+                style: .default
+            ) {
+                [weak self] _ in
+                guard
+                    settings
+                        .calendarMode
+                        != mode
+                else {
+                    return
+                }
+                self?
+                    .birthdaySettingsRelay
+                    .accept(
+                        GroupBirthdaySettings(
+                            isEnabled:
+                                settings
+                                .isEnabled,
+                            calendarMode:
+                                mode
+                        )
+                    )
+            }
+        alert.addAction(action)
+    }
+
+    private func showBirthdaySettingsFailure() {
+        let alert =
+            UIAlertController(
+                title:
+                    LocalizationKey
+                        .memberBirthdaySettingsFailureTitle
+                        .localized,
+                message:
+                    LocalizationKey
+                        .memberBirthdaySettingsFailureMessage
+                        .localized,
+                preferredStyle:
+                    .alert
+            )
+        alert.addAction(
+            UIAlertAction(
+                title:
+                    LocalizationKey
+                        .commonClose
+                        .localized,
+                style: .default
+            )
+        )
+        present(
+            alert,
+            animated: true
         )
     }
 

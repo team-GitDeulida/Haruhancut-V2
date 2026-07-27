@@ -51,13 +51,19 @@ struct MemberRowComponent: Component {
         )
     }
 
-    init(user: User) {
+    init(
+        user: User,
+        birthdayText:
+            String? = nil
+    ) {
         item = Item(
             id: .member(user.uid),
             content: .member(
                 nickname: user.nickname,
                 profileImageURL:
-                    user.profileImageURL
+                    user.profileImageURL,
+                birthdayText:
+                    birthdayText
             )
         )
     }
@@ -96,7 +102,8 @@ final class MemberRowContentView:
             case invite
             case member(
                 nickname: String,
-                profileImageURL: String?
+                profileImageURL: String?,
+                birthdayText: String?
             )
         }
 
@@ -134,6 +141,7 @@ final class MemberRowContentView:
 
     private let nameLabel: UILabel = {
         let label = UILabel()
+        label.numberOfLines = 1
         label.font =
             .hcFont(
                 .bold,
@@ -143,13 +151,44 @@ final class MemberRowContentView:
         return label
     }()
 
+    private let birthdayLabel:
+        UILabel = {
+            let label = UILabel()
+            label.numberOfLines = 1
+            label.font =
+                .hcFont(
+                    .medium,
+                    size: 13
+                )
+            label.textColor =
+                .gray
+            return label
+        }()
+
+    private lazy var textStack:
+        UIStackView = {
+            let stackView =
+                UIStackView(
+                    arrangedSubviews: [
+                        nameLabel,
+                        birthdayLabel,
+                    ]
+                )
+            stackView.axis =
+                .vertical
+            stackView.alignment =
+                .leading
+            stackView.spacing = 4
+            return stackView
+        }()
+
     private lazy var contentStack:
         UIStackView = {
             let stackView =
                 UIStackView(
                     arrangedSubviews: [
                         circleView,
-                        nameLabel,
+                        textStack,
                     ]
                 )
             stackView.axis = .horizontal
@@ -262,6 +301,8 @@ final class MemberRowContentView:
         circleView.backgroundColor =
             .gray300
         nameLabel.text = nil
+        birthdayLabel.text = nil
+        birthdayLabel.isHidden = true
 
         guard let item else {
             accessibilityLabel = nil
@@ -286,11 +327,20 @@ final class MemberRowContentView:
 
         case let .member(
             nickname,
-            profileImageURL
+            profileImageURL,
+            birthdayText
         ):
             nameLabel.text = nickname
-            accessibilityLabel =
-                "\(nickname) 프로필"
+            birthdayLabel.text =
+                birthdayText
+            birthdayLabel.isHidden =
+                birthdayText == nil
+            accessibilityLabel = [
+                "\(nickname) 프로필",
+                birthdayText,
+            ]
+            .compactMap { $0 }
+            .joined(separator: ", ")
 
             guard
                 let profileImageURL,

@@ -8,6 +8,43 @@
 import Foundation
 import Core
 
+/// 그룹 멤버의 생일을 반복 계산할 달력 기준입니다.
+public enum BirthdayCalendarMode:
+    String,
+    Codable,
+    Equatable,
+    CaseIterable
+{
+    case solar
+    case lunar
+}
+
+/// 그룹 전체에 적용되는 생일 표시 설정입니다.
+public struct GroupBirthdaySettings:
+    Codable,
+    Equatable
+{
+    public var isEnabled: Bool
+    public var calendarMode:
+        BirthdayCalendarMode
+
+    public init(
+        isEnabled: Bool,
+        calendarMode:
+            BirthdayCalendarMode
+    ) {
+        self.isEnabled = isEnabled
+        self.calendarMode = calendarMode
+    }
+
+    /// 설정이 없는 기존 그룹에 적용할 기본값입니다.
+    public static let defaultValue =
+        GroupBirthdaySettings(
+            isEnabled: true,
+            calendarMode: .solar
+        )
+}
+
 public struct HCGroup: Encodable, Decodable, CustomStringConvertible {
     public let groupId: String
     public let groupName: String
@@ -16,6 +53,15 @@ public struct HCGroup: Encodable, Decodable, CustomStringConvertible {
     public let inviteCode: String
     public var members: [String: String] // [uid: joinedAt]
     public var postsByDate: [String: [Post]]
+    public var birthdaySettings:
+        GroupBirthdaySettings?
+
+    public var resolvedBirthdaySettings:
+        GroupBirthdaySettings
+    {
+        birthdaySettings ?? .defaultValue
+    }
+
     public var description: String {
         """
         SessionGroup(
@@ -27,7 +73,17 @@ public struct HCGroup: Encodable, Decodable, CustomStringConvertible {
         """
     }
     
-    public init(groupId: String, groupName: String, createdAt: Date, hostUserId: String, inviteCode: String, members: [String : String], postsByDate: [String : [Post]]) {
+    public init(
+        groupId: String,
+        groupName: String,
+        createdAt: Date,
+        hostUserId: String,
+        inviteCode: String,
+        members: [String: String],
+        postsByDate: [String: [Post]],
+        birthdaySettings:
+            GroupBirthdaySettings? = nil
+    ) {
         self.groupId = groupId
         self.groupName = groupName
         self.createdAt = createdAt
@@ -35,6 +91,8 @@ public struct HCGroup: Encodable, Decodable, CustomStringConvertible {
         self.inviteCode = inviteCode
         self.members = members
         self.postsByDate = postsByDate
+        self.birthdaySettings =
+            birthdaySettings
     }
 }
 
@@ -49,6 +107,14 @@ public struct SessionGroup: Codable, Equatable, CustomStringConvertible {
     public var inviteCode: String
     public var members: [String: String]
     public var postsByDate: [String: [Post]]
+    public var birthdaySettings:
+        GroupBirthdaySettings?
+
+    public var resolvedBirthdaySettings:
+        GroupBirthdaySettings
+    {
+        birthdaySettings ?? .defaultValue
+    }
 
     public init(
         groupId: String,
@@ -57,7 +123,9 @@ public struct SessionGroup: Codable, Equatable, CustomStringConvertible {
         hostUserId: String,
         inviteCode: String,
         members: [String: String],
-        postsByDate: [String: [Post]]
+        postsByDate: [String: [Post]],
+        birthdaySettings:
+            GroupBirthdaySettings? = nil
     ) {
         self.groupId = groupId
         self.groupName = groupName
@@ -66,6 +134,8 @@ public struct SessionGroup: Codable, Equatable, CustomStringConvertible {
         self.inviteCode = inviteCode
         self.members = members
         self.postsByDate = postsByDate
+        self.birthdaySettings =
+            birthdaySettings
     }
 
     public var description: String {
@@ -91,7 +161,9 @@ extension HCGroup {
             hostUserId: hostUserId,
             inviteCode: inviteCode,
             members: members,
-            postsByDate: postsByDate
+            postsByDate: postsByDate,
+            birthdaySettings:
+                birthdaySettings
         )
     }
 }
@@ -105,7 +177,9 @@ extension SessionGroup {
             hostUserId: hostUserId,
             inviteCode: inviteCode,
             members: members,
-            postsByDate: postsByDate
+            postsByDate: postsByDate,
+            birthdaySettings:
+                birthdaySettings
         )
     }
 }
@@ -124,6 +198,14 @@ public extension SessionContext where Model == SessionGroup {
 
     var postsByDate: [String: [Post]] {
         session?.postsByDate ?? [:]
+    }
+
+    var birthdaySettings:
+        GroupBirthdaySettings
+    {
+        session?
+            .resolvedBirthdaySettings
+            ?? .defaultValue
     }
 
     var hasGroup: Bool {

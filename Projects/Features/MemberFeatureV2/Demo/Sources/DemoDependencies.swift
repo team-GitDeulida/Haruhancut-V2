@@ -53,6 +53,120 @@ enum DemoDependencies {
                         userSession
                 )
         )
+        DIContainer.shared.register(
+            GroupUsecaseProtocol.self,
+            dependency:
+                DemoGroupUsecase(
+                    groupSession:
+                        groupSession
+                )
+        )
+    }
+}
+
+private final class DemoGroupUsecase:
+    GroupUsecaseProtocol
+{
+    private let groupSession:
+        GroupSession
+
+    init(groupSession: GroupSession) {
+        self.groupSession =
+            groupSession
+    }
+
+    func updateBirthdaySettings(
+        _ settings:
+            GroupBirthdaySettings
+    ) -> Single<Void> {
+        guard
+            var group =
+                groupSession.session
+        else {
+            return .error(
+                DomainError
+                    .missingDomainSession
+            )
+        }
+        group.birthdaySettings =
+            settings
+        groupSession.update(group)
+        return .just(())
+    }
+
+    func updateGroup(
+        path: String,
+        post: Post
+    ) -> Single<Void> {
+        .just(())
+    }
+
+    func observeValueStream<
+        T: Decodable
+    >(
+        path: String,
+        type: T.Type
+    ) -> Observable<T> {
+        .empty()
+    }
+
+    func deleteValue(
+        path: String
+    ) -> Single<Void> {
+        .just(())
+    }
+
+    func joinAndUpdateGroup(
+        inviteCode: String
+    ) -> Single<Void> {
+        .just(())
+    }
+
+    func createAndUpdateGroup(
+        groupName: String
+    ) -> Single<Void> {
+        .just(())
+    }
+
+    func loadAndFetchGroup()
+        -> Observable<HCGroup>
+    {
+        guard
+            let group =
+                groupSession.entity
+        else {
+            return .error(
+                DomainError
+                    .missingDomainSession
+            )
+        }
+        return .just(group)
+    }
+
+    func addComment(
+        post: Post,
+        text: String
+    ) -> Single<Void> {
+        .just(())
+    }
+
+    func deleteComment(
+        post: Post,
+        commentId: String
+    ) -> Single<Void> {
+        .just(())
+    }
+
+    func uploadImageAndUploadPost(
+        image: UIImage
+    ) -> Observable<Void> {
+        .just(())
+    }
+
+    func deletePostAndReload(
+        post: Post
+    ) -> Observable<Void> {
+        .just(())
     }
 }
 
@@ -312,9 +426,8 @@ private enum DemoContent {
                         ? nil
                         : "https://picsum.photos/id/\(60 + index)/240/240",
                     birthdayDate:
-                        Date(
-                            timeIntervalSince1970:
-                                946_684_800
+                        birthdayDate(
+                            for: index
                         ),
                     gender: .other,
                     isPushEnabled:
@@ -354,5 +467,30 @@ private enum DemoContent {
                 ),
             postsByDate: [:]
         )
+    }
+
+    private static func birthdayDate(
+        for index: Int
+    ) -> Date {
+        Calendar(
+            identifier: .gregorian
+        ).date(
+            from:
+                DateComponents(
+                    year:
+                        1985
+                        + index,
+                    month:
+                        (
+                            index * 2
+                            % 12
+                        ) + 1,
+                    day:
+                        (
+                            index * 3
+                            % 24
+                        ) + 1
+                )
+        ) ?? .now
     }
 }

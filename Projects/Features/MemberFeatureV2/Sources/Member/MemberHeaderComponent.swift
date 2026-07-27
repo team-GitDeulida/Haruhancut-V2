@@ -8,10 +8,16 @@ struct MemberHeaderComponent: Component {
 
     let item: Item
 
-    init(memberCount: Int) {
+    init(
+        memberCount: Int,
+        showsBirthdaySettingsButton:
+            Bool = false
+    ) {
         item = Item(
             id: "member-count-header",
-            memberCount: memberCount
+            memberCount: memberCount,
+            showsBirthdaySettingsButton:
+                showsBirthdaySettingsButton
         )
     }
 
@@ -34,7 +40,8 @@ struct MemberHeaderComponent: Component {
 }
 
 final class MemberHeaderContentView:
-    UIView
+    UIView,
+    ContainsButton
 {
     struct Item:
         Identifiable,
@@ -42,6 +49,8 @@ final class MemberHeaderContentView:
     {
         let id: String
         let memberCount: Int
+        let showsBirthdaySettingsButton:
+            Bool
     }
 
     private enum Layout {
@@ -62,6 +71,9 @@ final class MemberHeaderContentView:
         }
     }
 
+    let buttonTapEvent =
+        ComponentEvent<Void>()
+
     private let titleLabel: UILabel = {
         let label = HCLabel(
             type: .main(
@@ -76,6 +88,8 @@ final class MemberHeaderContentView:
                 .bold,
                 size: 22.scaled
             )
+        label.accessibilityTraits =
+            .header
         return label
     }()
 
@@ -108,10 +122,41 @@ final class MemberHeaderContentView:
             return stackView
         }()
 
+    private let settingsButton:
+        UIButton = {
+            let button =
+                UIButton(
+                    type: .system
+                )
+            button.setImage(
+                UIImage(
+                    systemName:
+                        "ellipsis.circle"
+                ),
+                for: .normal
+            )
+            button.tintColor =
+                .mainWhite
+            button.accessibilityLabel =
+                LocalizationKey
+                    .memberBirthdaySettingsButton
+                    .localized
+            button.isHidden = true
+            return button
+        }()
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         configureView()
         configureLayout()
+        settingsButton.addTarget(
+            self,
+            action:
+                #selector(
+                    didTapSettings
+                ),
+            for: .touchUpInside
+        )
     }
 
     @available(*, unavailable)
@@ -123,12 +168,14 @@ final class MemberHeaderContentView:
 
     private func configureView() {
         backgroundColor = .background
-        isAccessibilityElement = true
-        accessibilityTraits = .header
-        titleStack
-            .translatesAutoresizingMaskIntoConstraints =
-            false
-        addSubview(titleStack)
+        [
+            titleStack,
+            settingsButton,
+        ].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints =
+                false
+            addSubview($0)
+        }
     }
 
     private func configureLayout() {
@@ -146,7 +193,9 @@ final class MemberHeaderContentView:
             titleStack.trailingAnchor
                 .constraint(
                     lessThanOrEqualTo:
-                        trailingAnchor
+                        settingsButton
+                            .leadingAnchor,
+                    constant: -12
                 ),
             titleStack.bottomAnchor
                 .constraint(
@@ -154,13 +203,34 @@ final class MemberHeaderContentView:
                     constant:
                         -Layout.bottomInset
                 ),
+            settingsButton.trailingAnchor
+                .constraint(
+                    equalTo:
+                        trailingAnchor
+                ),
+            settingsButton.centerYAnchor
+                .constraint(
+                    equalTo:
+                        titleStack
+                            .centerYAnchor
+                ),
+            settingsButton.widthAnchor
+                .constraint(
+                    equalToConstant: 36
+                ),
+            settingsButton.heightAnchor
+                .constraint(
+                    equalTo:
+                        settingsButton
+                            .widthAnchor
+                ),
         ])
     }
 
     private func applyItem() {
         guard let item else {
             countLabel.text = nil
-            accessibilityLabel = nil
+            settingsButton.isHidden = true
             return
         }
 
@@ -171,7 +241,13 @@ final class MemberHeaderContentView:
                     .localized,
             item.memberCount
         )
-        accessibilityLabel =
-            "\(titleLabel.text ?? "") \(countLabel.text ?? "")"
+        settingsButton.isHidden =
+            !item
+                .showsBirthdaySettingsButton
+    }
+
+    @objc
+    private func didTapSettings() {
+        buttonTapEvent.send(())
     }
 }
