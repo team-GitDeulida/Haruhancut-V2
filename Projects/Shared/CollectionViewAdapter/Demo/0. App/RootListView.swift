@@ -48,7 +48,7 @@ struct RootListView: View {
                     } label: {
                         CustomLabel(
                             title: "Compositional Layout",
-                            caption: "기본 예시와 같은 화면을 Compositional Layout으로 구현합니다",
+                            caption: "UICollectionViewCompositionalLayout 기반 예시입니다",
                             shape: .purple
                         )
                     }
