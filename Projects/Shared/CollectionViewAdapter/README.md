@@ -70,6 +70,7 @@ Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
   - [Horizontal + Vertical](#horizontal--vertical)
   - [Component를 SwiftUI에서 바로 사용하기](#component를-swiftui에서-바로-사용하기)
 - [핵심 개념](#핵심-개념)
+  - [Component 상호작용 capability](#component-상호작용-capability)
 - [트러블슈팅](#트러블슈팅)
 - [Demo 실행하기](#demo-실행하기)
 - [디렉터리 구조](#디렉터리-구조)
@@ -424,6 +425,100 @@ public protocol Component:
 - `Item.Equatable`은 같은 ID의 화면 상태 변경을 찾는 데 사용합니다.
 - `estimatedHeight`는 Compositional Layout의 초기 추정값입니다.
 - 실제 높이는 Content의 Auto Layout fitting 결과로 결정합니다.
+
+### Component 상호작용 capability
+
+Content가 상호작용 protocol을 채택하면 해당 기능의 Component modifier가
+노출됩니다. 모든 protocol을 기본으로 채택하지 말고, Content가 실제로
+지원하는 기능만 선택하세요.
+
+| Content protocol | Component modifier | 사용 시점 |
+| --- | --- | --- |
+| `Touchable` | `.onTouch` | Content 전체를 한 번 터치했을 때 동작을 실행합니다. |
+| `Pressable` | `.pressedEffect` | Content를 누르는 동안 축소 효과를 표시합니다. |
+| `LongPressable` | `.onLongPress` | Content를 일정 시간 이상 길게 눌렀을 때 동작을 실행합니다. |
+| `ContainsButton` | `.onButtonTap` | Content 내부 `UIButton`의 독립적인 동작을 연결합니다. |
+| `ContainsSwitch` | `.onToggle` | Content 내부 `UISwitch`의 변경된 `Bool` 값을 전달합니다. |
+
+`Touchable`과 `LongPressable`은 `UIView`에 기본 이벤트 구현을 제공합니다.
+`Pressable`은 별도의 이벤트 없이 `.pressedEffect(scale:)`를 적용한
+Component에만 눌림 효과를 설치합니다.
+
+`ContainsButton`과 `ContainsSwitch`는 Content가 이벤트를 직접 소유하고,
+내부 `UIControl`의 action에서 새 값을 보내야 합니다.
+
+```swift
+final class AccountRowContentView:
+    UIControl,
+    Touchable,
+    Pressable,
+    LongPressable,
+    ContainsButton,
+    ContainsSwitch
+{
+    let buttonTapEvent = ComponentEvent<Void>()
+    let switchToggleEvent = ComponentEvent<Bool>()
+
+    private let actionButton = UIButton(type: .system)
+    private let toggle = UISwitch()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+
+        actionButton.addTarget(
+            self,
+            action: #selector(didTapButton),
+            for: .touchUpInside
+        )
+        toggle.addTarget(
+            self,
+            action: #selector(didChangeToggle),
+            for: .valueChanged
+        )
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+
+    @objc
+    private func didTapButton() {
+        buttonTapEvent.send(())
+    }
+
+    @objc
+    private func didChangeToggle() {
+        switchToggleEvent.send(toggle.isOn)
+    }
+}
+```
+
+Component를 구성하는 지점에서는 필요한 modifier를 이어서 적용합니다.
+각 modifier의 observation은 현재 `ComponentContext.cancellationBag`에
+연결되므로 Cell이 재사용되거나 다시 render될 때 이전 연결이 정리됩니다.
+
+```swift
+AccountRowComponent(item: account)
+    .onTouch {
+        openAccount(account.id)
+    }
+    .pressedEffect(scale: 0.97)
+    .onLongPress(minimumDuration: 0.7) {
+        showAccountMenu(account.id)
+    }
+    .onButtonTap {
+        transfer(from: account.id)
+    }
+    .onToggle { isOn in
+        updateNotification(account.id, isOn: isOn)
+    }
+```
+
+Content 전체에 설치되는 `Touchable`, `Pressable`, `LongPressable`은 하위
+`UIControl`에서 시작한 터치를 가로채지 않습니다. 내부 버튼과 스위치는
+각자의 UIKit 동작을 유지하고 `.onButtonTap`, `.onToggle`로 별도로
+처리할 수 있습니다.
 
 ### ComponentContext
 
