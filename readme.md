@@ -180,29 +180,31 @@ dependencies: [
 
 > **문제**
 >
-> UIKit으로 여러 Collection View 화면을 만들면서
-> Cell과 Header/Footer 등록, Data Source 타입 분기, Section별 Layout 구성,
-> Diffable Snapshot 갱신과 이벤트 연결이 화면마다 반복됐습니다.
-> 화면이 복잡해질수록 ViewController가 구체적인 Cell 타입과 상태 갱신까지 맡아
-> Section을 추가하거나 다른 화면에서 재사용할 때 수정 범위가 커졌습니다.
+> UIKit으로 Collection View 화면을 만들 때마다 Cell과 Header/Footer 등록,
+> Data Source 타입 분기, Section별 Layout 구성이 반복됐습니다.
+> Diffable Snapshot 갱신과 이벤트 연결까지 ViewController가 맡으면서
+> 화면이 복잡해질수록 구체적인 Cell 타입과 상태 갱신 로직이 ViewController에 모였습니다.
+> Section을 추가하거나 같은 UI를 다른 화면에서 재사용할 때 수정 범위도 커졌습니다.
 >
 > **해결**
 >
-> 반복되는 책임을 `CollectionViewAdapter` 공용 모듈로 분리했습니다.
-> `Component`는 `Identifiable & Equatable` Item과 `UIView`의 생성·렌더링 규칙을 연결하고,
-> `SectionModels`는 Header/Footer와 세로 목록, Grid, 가로 Carousel을 선언합니다.
-> Adapter는 generic container 등록, Compositional Layout, stable identity 기반 Snapshot,
-> 재사용 생명주기와 Prefetch/Pagination을 일관된 흐름으로 처리합니다.
-> `Touchable`, `Pressable`, `LongPressable`, `ContainsButton`, `ContainsSwitch`처럼
-> Content가 채택한 capability에 필요한 상호작용만 modifier로 합성하며,
-> Component가 SwiftUI `View`를 함께 채택하면 같은 UI를 SwiftUI에서도 바로 재사용할 수 있습니다.
+> 반복되는 Collection View 구성 책임을 `CollectionViewAdapter` 공용 모듈로 옮겼습니다.
+>
+> - `Component`는 `Identifiable & Equatable` Item과 `UIView`의 생성·렌더링 규칙을 연결합니다.
+> - `SectionModels`는 Header/Footer와 세로 목록, Grid, 가로 Carousel을 선언합니다.
+> - `CollectionViewAdapter`는 generic container 등록, Compositional Layout,
+>   stable identity 기반 Snapshot, 재사용 생명주기, Prefetch/Pagination을 관리합니다.
+>
+> Content는 `Touchable`, `Pressable`, `LongPressable`, `ContainsButton`,
+> `ContainsSwitch` 중 필요한 capability만 채택하고, 각 상호작용은 modifier로 연결합니다.
+> Component가 SwiftUI `View`도 채택하면 같은 UI를 SwiftUI에서 바로 재사용할 수 있습니다.
 >
 > **성과**
 >
-> 🔸 화면마다 반복되던 Cell 등록과 Data Source 타입 분기 제거<br>
-> 🔸 세로 목록, Grid, 가로 Carousel을 같은 Section DSL로 일관되게 구성<br>
-> 🔸 Snapshot 갱신, 재사용, 이벤트, Prefetch와 Pagination 연결을 Adapter에서 통합 관리<br>
-> 🔸 UIKit과 SwiftUI에서 함께 재사용할 수 있는 Component 기반 UI 구조 확보
+> 🔸 ViewController에서 반복되던 Cell 등록과 Data Source 타입 분기 제거<br>
+> 🔸 세로 목록, Grid, 가로 Carousel을 같은 Section DSL로 선언<br>
+> 🔸 Snapshot 갱신, 재사용, 이벤트, Prefetch, Pagination을 Adapter에서 관리<br>
+> 🔸 같은 Component를 UIKit과 SwiftUI에서 재사용
 
 #### CollectionViewAdapter 사용 예제
 
