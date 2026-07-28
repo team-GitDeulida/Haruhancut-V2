@@ -173,3 +173,63 @@ dependencies: [
     .project(target: "HaruhancutWidget", path: "../Widget/HaruhancutWidget")
 ]
 ```
+
+---
+
+### **4. Component + Section DSL 기반 Collection View 화면 구성 표준화**
+
+> **문제**
+>
+> UIKit으로 여러 Collection View 화면을 만들면서
+> Cell과 Header/Footer 등록, Data Source 타입 분기, Section별 Layout 구성,
+> Diffable Snapshot 갱신과 이벤트 연결이 화면마다 반복됐습니다.
+> 화면이 복잡해질수록 ViewController가 구체적인 Cell 타입과 상태 갱신까지 맡아
+> Section을 추가하거나 다른 화면에서 재사용할 때 수정 범위가 커졌습니다.
+>
+> **해결**
+>
+> 반복되는 책임을 `CollectionViewAdapter` 공용 모듈로 분리했습니다.
+> `Component`는 `Identifiable & Equatable` Item과 `UIView`의 생성·렌더링 규칙을 연결하고,
+> `SectionModels`는 Header/Footer와 세로 목록, Grid, 가로 Carousel을 선언합니다.
+> Adapter는 generic container 등록, Compositional Layout, stable identity 기반 Snapshot,
+> 재사용 생명주기와 Prefetch/Pagination을 일관된 흐름으로 처리합니다.
+> `Touchable`, `Pressable`, `LongPressable`, `ContainsButton`, `ContainsSwitch`처럼
+> Content가 채택한 capability에 필요한 상호작용만 modifier로 합성하며,
+> Component가 SwiftUI `View`를 함께 채택하면 같은 UI를 SwiftUI에서도 바로 재사용할 수 있습니다.
+>
+> **성과**
+>
+> 🔸 화면마다 반복되던 Cell 등록과 Data Source 타입 분기 제거<br>
+> 🔸 세로 목록, Grid, 가로 Carousel을 같은 Section DSL로 일관되게 구성<br>
+> 🔸 Snapshot 갱신, 재사용, 이벤트, Prefetch와 Pagination 연결을 Adapter에서 통합 관리<br>
+> 🔸 UIKit과 SwiftUI에서 함께 재사용할 수 있는 Component 기반 UI 구조 확보
+
+```swift
+let sections = SectionModels {
+    LazySection(identifier: "featured") {
+        For(of: featured) { item in
+            PhotoCardComponent(item: item)
+        }
+    }
+    .withSectionLayout(
+        .horizontalCarousel(
+            itemWidth: 0.72,
+            estimatedHeight: 178,
+            spacing: 12
+        )
+    )
+
+    LazySection(identifier: "accounts") {
+        For(of: accounts) { account in
+            AccountRowComponent(item: account)
+        }
+    }
+    .withSectionLayout(
+        .verticalList(spacing: 10)
+    )
+}
+
+adapter.bind(sections)
+```
+
+[CollectionViewAdapter의 구조와 예제 자세히 보기](Projects/Shared/CollectionViewAdapter/README.md)

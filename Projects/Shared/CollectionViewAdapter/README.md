@@ -349,10 +349,7 @@ View hierarchy에 바로 배치할 수 있습니다. 모듈이 기본 `body`를 
 import CollectionViewAdapter
 import SwiftUI
 
-struct AccountRowComponent:
-    Component,
-    View
-{
+struct AccountRowComponent: Component, View {
     let item: Account
 
     func createContent() -> AccountContentView {
@@ -401,11 +398,8 @@ SwiftUI에서는 `VStack`, `ForEach` 같은 View 구성 안에 직접 넣습니�
 `Component`는 Item, Content 생성, render 규칙을 하나로 묶습니다.
 
 ```swift
-public protocol Component:
-    CompositionalLayoutSizeable
-{
-    associatedtype Item:
-        Identifiable & Equatable
+public protocol Component: CompositionalLayoutSizeable {
+    associatedtype Item: Identifiable & Equatable
     associatedtype Content: UIView
 
     var item: Item { get }
