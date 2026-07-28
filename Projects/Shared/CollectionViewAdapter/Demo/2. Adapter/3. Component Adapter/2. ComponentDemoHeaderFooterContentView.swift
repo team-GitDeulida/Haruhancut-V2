@@ -8,7 +8,7 @@ enum ComponentDemoTextStyle: Equatable {
 
 enum ComponentDemoTextAppearance: Equatable {
     case connected
-    case standalone
+    case plain
 }
 
 /// Section의 header와 footer에서 공통으로 사용하는 UIView입니다.
@@ -71,8 +71,6 @@ final class ComponentDemoTextContentView: UIView {
         }
 
         label.text = item.text
-        surfaceView.layer.cornerRadius =
-            ComponentDemoStyle.cardCornerRadius
         surfaceView.layer.masksToBounds = true
         surfaceLeadingConstraint.constant =
             item.horizontalInset
@@ -107,16 +105,17 @@ final class ComponentDemoTextContentView: UIView {
 
         switch item.appearance {
         case .connected:
+            surfaceView.backgroundColor =
+                ComponentDemoStyle.surface
+            surfaceView.layer.cornerRadius =
+                ComponentDemoStyle.cardCornerRadius
             surfaceView.layer.maskedCorners =
                 connectedCorners(for: item.style)
 
-        case .standalone:
-            surfaceView.layer.maskedCorners = [
-                .layerMinXMinYCorner,
-                .layerMaxXMinYCorner,
-                .layerMinXMaxYCorner,
-                .layerMaxXMaxYCorner
-            ]
+        case .plain:
+            surfaceView.backgroundColor = .clear
+            surfaceView.layer.cornerRadius = 0
+            surfaceView.layer.maskedCorners = []
         }
     }
 
