@@ -78,27 +78,16 @@ struct ReadmeSwiftUIComponentView: View {
     }
 
     private var introduction: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Image(systemName: "swift")
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(.pink)
-                .frame(width: 58, height: 58)
-                .background(
-                    Color.pink.opacity(0.12),
-                    in: RoundedRectangle(cornerRadius: 18)
-                )
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Component + View")
+                .font(.title2.bold())
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Component + View")
-                    .font(.title2.bold())
-
-                Text(
-                    "View를 함께 채택하면 UIKit Component를 SwiftUI 화면에 바로 배치할 수 있습니다."
-                )
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            }
+            Text(
+                "View를 함께 채택하면 UIKit Component를 SwiftUI 화면에 바로 배치할 수 있습니다."
+            )
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 20)
     }

@@ -42,7 +42,7 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
         case .mixedSections:
             "rectangle.3.group.fill"
         case .swiftUIComponent:
-            "swift"
+            "square.stack.3d.up.fill"
         }
     }
 
