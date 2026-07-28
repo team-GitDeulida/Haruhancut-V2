@@ -5,6 +5,7 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
     case vertical
     case grid
     case mixedSections = "mixed-sections"
+    case swiftUIComponent = "swiftui-component"
 
     var title: String {
         switch self {
@@ -14,6 +15,8 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
             "Grid"
         case .mixedSections:
             "Horizontal + Vertical"
+        case .swiftUIComponent:
+            "Component + View"
         }
     }
 
@@ -25,6 +28,8 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
             "카드를 2열 Grid로 배치합니다"
         case .mixedSections:
             "첫 Section은 가로, 두 번째는 세로로 구성합니다"
+        case .swiftUIComponent:
+            "View를 채택한 Component를 SwiftUI에서 바로 사용합니다"
         }
     }
 
@@ -36,6 +41,8 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
             "square.grid.2x2.fill"
         case .mixedSections:
             "rectangle.3.group.fill"
+        case .swiftUIComponent:
+            "swift"
         }
     }
 
@@ -47,6 +54,8 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
             .orange
         case .mixedSections:
             .purple
+        case .swiftUIComponent:
+            .pink
         }
     }
 
@@ -67,6 +76,10 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
         case .mixedSections:
             ReadmeMixedSectionsViewController()
                 .toSwiftUI()
+                .readmeCaptureNavigation(title: title)
+
+        case .swiftUIComponent:
+            ReadmeSwiftUIComponentView()
                 .readmeCaptureNavigation(title: title)
         }
     }

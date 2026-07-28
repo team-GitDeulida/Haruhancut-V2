@@ -68,6 +68,7 @@ Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
   - [Vertical](#vertical)
   - [Grid](#grid)
   - [Horizontal + Vertical](#horizontal--vertical)
+  - [Component를 SwiftUI에서 바로 사용하기](#component를-swiftui에서-바로-사용하기)
 - [핵심 개념](#핵심-개념)
 - [트러블슈팅](#트러블슈팅)
 - [Demo 실행하기](#demo-실행하기)
@@ -171,10 +172,10 @@ Section ID와 Item ID를 함께 묶습니다.
 
 ## ReadmeCapture
 
-Demo 앱의 `ReadmeCapture` Section은 레이아웃 차이가 바로 보이는 세 가지
-예제로 구성됩니다. 각 화면은 `LazySection`과 `CollectionViewAdapter`를
-기반으로 Component 종류, Section 수와 Section layout을 요구사항에 맞게
-조합합니다.
+Demo 앱의 `ReadmeCapture` Section은 주요 사용 방식을 비교하는 네 가지
+예제로 구성됩니다. 앞의 세 화면은 `LazySection`과
+`CollectionViewAdapter`로 서로 다른 Section layout을 구성하고, 마지막
+화면은 `View`를 채택한 Component를 SwiftUI에서 직접 사용합니다.
 
 ### Vertical
 
@@ -331,6 +332,66 @@ adapter.bind(sections)
 Section마다 독립적인 `CollectionSectionLayout`을 가지므로 가로 Section의
 orthogonal scrolling과 화면 전체의 세로 스크롤을 한 Adapter에서 함께
 처리할 수 있습니다.
+
+### Component를 SwiftUI에서 바로 사용하기
+
+`Component`가 SwiftUI `View`도 함께 채택하면 Component 자체를 SwiftUI
+View hierarchy에 바로 배치할 수 있습니다. 모듈이 기본 `body`를 제공하므로
+별도의 `ComponentView` wrapper를 호출할 필요가 없습니다.
+
+<table>
+<tr><th>Source</th><th>Result</th></tr>
+<tr>
+<td width="65%">
+
+```swift
+import CollectionViewAdapter
+import SwiftUI
+
+struct AccountRowComponent:
+    Component,
+    View
+{
+    let item: Account
+
+    func createContent() -> AccountContentView {
+        AccountContentView()
+    }
+
+    func render(
+        context: ComponentContext,
+        content: AccountContentView
+    ) {
+        content.configure(with: item)
+    }
+}
+
+struct AccountStack: View {
+    let accounts: [Account]
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ForEach(accounts) { account in
+                AccountRowComponent(item: account)
+                    .frame(height: 84)
+            }
+        }
+    }
+}
+```
+
+</td>
+<td width="35%" align="center">
+
+<img width="280" alt="Component used directly as a SwiftUI View" src="docs/images/readme/swiftui-component.png">
+
+</td>
+</tr>
+</table>
+
+Collection View에서 사용할 때는 같은 Component를 `LazySection`에 넣고,
+SwiftUI에서는 `VStack`, `ForEach` 같은 View 구성 안에 직접 넣습니다.
+두 환경 모두 같은 `createContent`와 `render` 계약을 사용합니다.
 
 ## 핵심 개념
 
@@ -536,6 +597,7 @@ Demo 앱의 **ReadmeCapture** Section에서 README와 같은 순서로 다음
 1. Vertical
 2. Grid
 3. Horizontal + Vertical
+4. Component + View
 
 캡처 화면을 직접 실행하려면 scheme arguments에 예제 slug를 전달합니다.
 
@@ -543,6 +605,7 @@ Demo 앱의 **ReadmeCapture** Section에서 README와 같은 순서로 다음
 --readme-capture vertical
 --readme-capture grid
 --readme-capture mixed-sections
+--readme-capture swiftui-component
 ```
 
 ## 디렉터리 구조
