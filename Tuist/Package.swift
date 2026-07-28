@@ -143,6 +143,11 @@ let package = Package(
         .package(
             url: "https://github.com/ReactorKit/ReactorKit.git", 
             from: "3.2.0"
+        ),
+
+        .package(
+            url: "https://github.com/ra1028/DifferenceKit.git",
+            from: "1.3.0"
         )
     ]
 

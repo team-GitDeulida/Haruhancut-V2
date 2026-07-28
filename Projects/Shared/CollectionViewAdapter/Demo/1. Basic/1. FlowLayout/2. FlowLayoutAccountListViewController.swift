@@ -1,5 +1,5 @@
 //
-//  AccountListViewController.swift
+//  FlowLayoutAccountListViewController.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/21/26.
@@ -7,9 +7,9 @@
 
 import UIKit
 
-final class AccountListViewController: UIViewController {
+final class FlowLayoutAccountListViewController: UIViewController {
 
-    private let accounts: [BankAccount]
+    private let sections: [BankAccountSection]
 
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -17,10 +17,18 @@ final class AccountListViewController: UIViewController {
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 12
         layout.sectionInset = UIEdgeInsets(
-            top: 20,
+            top: 12,
             left: 20,
-            bottom: 20,
+            bottom: 4,
             right: 20
+        )
+        layout.headerReferenceSize = CGSize(
+            width: 0,
+            height: AccountListSupplementaryView.headerHeight
+        )
+        layout.footerReferenceSize = CGSize(
+            width: 0,
+            height: AccountListSupplementaryView.footerHeight
         )
 
         let collectionView = UICollectionView(
@@ -38,13 +46,27 @@ final class AccountListViewController: UIViewController {
             forCellWithReuseIdentifier:
                 AccountCollectionViewCell.reuseIdentifier
         )
+        collectionView.register(
+            AccountListSupplementaryView.self,
+            forSupplementaryViewOfKind:
+                UICollectionView.elementKindSectionHeader,
+            withReuseIdentifier:
+                AccountListSupplementaryView.reuseIdentifier
+        )
+        collectionView.register(
+            AccountListSupplementaryView.self,
+            forSupplementaryViewOfKind:
+                UICollectionView.elementKindSectionFooter,
+            withReuseIdentifier:
+                AccountListSupplementaryView.reuseIdentifier
+        )
 
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         return collectionView
     }()
 
-    init(accounts: [BankAccount]) {
-        self.accounts = accounts
+    init(sections: [BankAccountSection]) {
+        self.sections = sections
 
         super.init(
             nibName: nil,
@@ -64,7 +86,7 @@ final class AccountListViewController: UIViewController {
     }
 
     private func configureNavigation() {
-        title = "기본 UICollectionView"
+        title = "FlowLayout"
         navigationController?
             .navigationBar
             .prefersLargeTitles = true
@@ -132,20 +154,30 @@ final class AccountListViewController: UIViewController {
 
 // MARK: - UICollectionViewDataSource
 /// 계좌 목록 컬렉션 뷰에 표시할 데이터와 셀 생성을 담당합니다.
-extension AccountListViewController:
+extension FlowLayoutAccountListViewController:
     UICollectionViewDataSource {
+
+    /// 계좌 목록에 표시할 섹션 개수를 반환합니다.
+    ///
+    /// - Parameter collectionView: 섹션 개수를 요청한 컬렉션 뷰입니다.
+    /// - Returns: 현재 계좌 목록에 저장된 섹션 개수입니다.
+    func numberOfSections(
+        in collectionView: UICollectionView
+    ) -> Int {
+        sections.count
+    }
 
     /// 지정된 섹션에 표시할 계좌 셀의 개수를 반환합니다.
     ///
     /// - Parameters:
     ///   - collectionView: 아이템 개수를 요청한 컬렉션 뷰입니다.
     ///   - section: 아이템 개수를 확인할 섹션의 인덱스입니다.
-    /// - Returns: `accounts` 배열에 저장된 계좌 개수입니다.
+    /// - Returns: 해당 섹션에 저장된 계좌 개수입니다.
     func collectionView(
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        accounts.count
+        sections[section].accounts.count
     }
 
     /// 지정된 위치에 표시할 계좌 셀을 생성하고 데이터를 설정합니다.
@@ -170,7 +202,8 @@ extension AccountListViewController:
             return UICollectionViewCell()
         }
 
-        let account = accounts[indexPath.item]
+        let account = sections[indexPath.section]
+            .accounts[indexPath.item]
 
         cell.configure(
             account: account,
@@ -181,11 +214,54 @@ extension AccountListViewController:
 
         return cell
     }
+
+    /// 지정한 종류에 맞는 섹션 header 또는 footer를 생성하고 설정합니다.
+    ///
+    /// - Parameters:
+    ///   - collectionView: supplementary view를 요청한 컬렉션 뷰입니다.
+    ///   - kind: 요청된 supplementary view의 종류입니다.
+    ///   - indexPath: supplementary view가 표시될 섹션 위치입니다.
+    /// - Returns: 설정이 완료된 header 또는 footer 뷰입니다.
+    func collectionView(
+        _ collectionView: UICollectionView,
+        viewForSupplementaryElementOfKind kind: String,
+        at indexPath: IndexPath
+    ) -> UICollectionReusableView {
+        guard let supplementaryView = collectionView
+            .dequeueReusableSupplementaryView(
+                ofKind: kind,
+                withReuseIdentifier:
+                    AccountListSupplementaryView.reuseIdentifier,
+                for: indexPath
+            ) as? AccountListSupplementaryView
+        else {
+            assertionFailure("AccountListSupplementaryView 생성 실패")
+            return UICollectionReusableView()
+        }
+
+        switch kind {
+        case UICollectionView.elementKindSectionHeader:
+            let section = sections[indexPath.section]
+            supplementaryView.configure(
+                kind: .header,
+                title: section.title,
+                description: section.description
+            )
+
+        case UICollectionView.elementKindSectionFooter:
+            supplementaryView.configure(kind: .footer)
+
+        default:
+            assertionFailure("지원하지 않는 supplementary view kind입니다.")
+        }
+
+        return supplementaryView
+    }
 }
 
 // MARK: - UICollectionViewDelegate
 /// 계좌 셀 선택과 같은 컬렉션 뷰의 사용자 상호작용을 처리합니다.
-extension AccountListViewController:
+extension FlowLayoutAccountListViewController:
     UICollectionViewDelegate {
 
     /// 사용자가 계좌 셀을 선택했을 때 호출됩니다.
@@ -199,14 +275,15 @@ extension AccountListViewController:
         _ collectionView: UICollectionView,
         didSelectItemAt indexPath: IndexPath
     ) {
-        let account = accounts[indexPath.item]
+        let account = sections[indexPath.section]
+            .accounts[indexPath.item]
         showAccountDetail(account: account)
     }
 }
 
 // MARK: - UICollectionViewDelegateFlowLayout
 /// 계좌 목록 컬렉션 뷰에서 사용하는 셀의 크기를 설정합니다.
-extension AccountListViewController:
+extension FlowLayoutAccountListViewController:
     UICollectionViewDelegateFlowLayout {
 
     /// 지정된 위치에 표시할 계좌 셀의 크기를 반환합니다.
@@ -242,5 +319,7 @@ extension AccountListViewController:
 }
 
 #Preview {
-    AccountListViewController(accounts: BankAccount.sample)
+    FlowLayoutAccountListViewController(
+        sections: BankAccountSection.sample
+    )
 }
