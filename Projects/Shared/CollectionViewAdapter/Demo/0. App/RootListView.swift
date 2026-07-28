@@ -155,6 +155,19 @@ struct RootListView: View {
 
                     NavigationLink {
                         ComponentCapabilityDemoViewController(
+                            kind: .longPressable
+                        )
+                        .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "LongPressable",
+                            caption: "Content 전체의 길게 누르기 이벤트를 modifier로 연결합니다",
+                            shape: .purple
+                        )
+                    }
+
+                    NavigationLink {
+                        ComponentCapabilityDemoViewController(
                             kind: .containsButton
                         )
                         .toSwiftUI()

@@ -195,6 +195,16 @@ final class ComponentCapabilityDemoViewController:
                     .pressedEffect(scale: 0.94)
             )
 
+        case .longPressable:
+            return AnyComponent(
+                LongPressableDemoComponent(item: item)
+                    .onLongPress(
+                        minimumDuration: 0.6
+                    ) { [weak self] in
+                        self?.didLongPressCard()
+                    }
+            )
+
         case .containsButton:
             return AnyComponent(
                 ContainsButtonDemoComponent(item: item)
@@ -217,6 +227,13 @@ final class ComponentCapabilityDemoViewController:
         interactionCount += 1
         updateResult(
             "카드 전체 탭 이벤트를 \(interactionCount)번 받았습니다."
+        )
+    }
+
+    private func didLongPressCard() {
+        interactionCount += 1
+        updateResult(
+            "Long press 이벤트를 \(interactionCount)번 받았습니다."
         )
     }
 

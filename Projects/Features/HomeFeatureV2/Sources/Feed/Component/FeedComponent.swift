@@ -45,7 +45,8 @@ struct FeedComponent: Component, Equatable {
 final class FeedRowView:
     UIView,
     Touchable,
-    Pressable
+    Pressable,
+    LongPressable
 {
 
     struct Item: Identifiable, Equatable {

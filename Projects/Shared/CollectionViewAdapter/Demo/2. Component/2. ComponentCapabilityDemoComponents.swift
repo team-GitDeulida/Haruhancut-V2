@@ -41,6 +41,26 @@ struct PressableDemoComponent: Component {
     }
 }
 
+/// `LongPressable`만 채택한 Content를 만드는 Component입니다.
+struct LongPressableDemoComponent: Component {
+    let item: ComponentCapabilityDemoItem
+
+    var estimatedHeight: CGFloat {
+        164
+    }
+
+    func createContent() -> LongPressableDemoContentView {
+        LongPressableDemoContentView()
+    }
+
+    func render(
+        context _: ComponentContext,
+        content: LongPressableDemoContentView
+    ) {
+        content.item = item
+    }
+}
+
 /// `ContainsButton`만 채택한 Content를 만드는 Component입니다.
 struct ContainsButtonDemoComponent: Component {
     let item: ComponentCapabilityDemoItem

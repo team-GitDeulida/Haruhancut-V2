@@ -250,6 +250,34 @@ final class PressableDemoContentView:
     }
 }
 
+/// Content 전체 long press만 지원하는 예제입니다.
+final class LongPressableDemoContentView:
+    ComponentCapabilityCardContentView,
+    LongPressable
+{
+    private let holdLabel = UILabel()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+
+        isAccessibilityElement = true
+        accessibilityTraits = .button
+        holdLabel.text = "HOLD"
+        holdLabel.textColor = .systemPurple
+        holdLabel.font = .monospacedSystemFont(
+            ofSize: 11,
+            weight: .bold
+        )
+        holdLabel.isUserInteractionEnabled = false
+        installAccessory(holdLabel)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:)는 지원하지 않습니다.")
+    }
+}
+
 /// Content 내부 UIButton 동작만 지원하는 예제입니다.
 final class ContainsButtonDemoContentView:
     ComponentCapabilityCardContentView,
