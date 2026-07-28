@@ -184,7 +184,7 @@ struct RootListView: View {
                 }
 
                 Section("CollectionView") {
-                    
+
                     NavigationLink {
                         CollectionViewAdapterExampleView()
                     } label: {
@@ -194,7 +194,7 @@ struct RootListView: View {
                             shape: .yellow
                         )
                     }
-                    
+
                     NavigationLink {
                         AdapterAccountListViewController(accounts: BankAccount.sample).toSwiftUI()
                     } label: {
@@ -286,15 +286,38 @@ struct RootListView: View {
                     }
                 }
 
-                Section("Next Examples") {
-                    Text("새 예제는 NavigationLink를 추가해 확장할 수 있습니다.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+                READMEExampleSections()
             }
             .navigationTitle("Adapter Demo")
         }
         .tint(.yellow)
+    }
+}
+
+private struct READMEExampleSections: View {
+    var body: some View {
+        Section("README Examples") {
+            ForEach(
+                READMEExampleRoute.allCases,
+                id: \.self
+            ) { route in
+                NavigationLink {
+                    route.destination
+                } label: {
+                    CustomLabel(
+                        title: route.title,
+                        caption: route.caption,
+                        shape: route.tint
+                    )
+                }
+            }
+        }
+
+        Section("Next Examples") {
+            Text("새 예제는 NavigationLink를 추가해 확장할 수 있습니다.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 
