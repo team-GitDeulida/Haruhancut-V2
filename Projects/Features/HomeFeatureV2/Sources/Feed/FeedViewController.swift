@@ -18,8 +18,7 @@ final class FeedViewController: UIViewController, View {
 
     var disposeBag = DisposeBag()
     private let customView = FeedView()
-    private let isReadOnly:
-        Bool
+    private let isReadOnly: Bool
 
     private lazy var collectionViewAdapter = CollectionViewAdapter(
         collectionView: customView.collectionView
@@ -31,13 +30,8 @@ final class FeedViewController: UIViewController, View {
     private var currentComponents: [FeedComponent] = []
     private var didSkipInitialAppear = false
 
-    init(
-        reactor: FeedReactor,
-        isReadOnly:
-            Bool = false
-    ) {
-        self.isReadOnly =
-            isReadOnly
+    init(reactor: FeedReactor, isReadOnly: Bool = false) {
+        self.isReadOnly = isReadOnly
         super.init(nibName: nil, bundle: nil)
         self.reactor = reactor
     }
@@ -53,12 +47,8 @@ final class FeedViewController: UIViewController, View {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupRefreshControl()
-        customView.cameraBtn
-            .isHidden =
-            isReadOnly
-        customView.bubbleView
-            .isHidden =
-            isReadOnly
+        customView.cameraBtn.isHidden = isReadOnly
+        customView.bubbleView.isHidden = isReadOnly
         reactor?.action.onNext(.viewDidLoad)
     }
 
@@ -113,9 +103,7 @@ final class FeedViewController: UIViewController, View {
             SectionModels {
                 LazySection(identifier: "feed") {
                     For(of: components) { component in
-                        self.makeInteractiveComponent(
-                            component
-                        )
+                        self.makeInteractiveComponent(component)
                     }
                 }
                 .withSectionLayout(
@@ -124,13 +112,12 @@ final class FeedViewController: UIViewController, View {
                         estimatedRowHeight: 240,
                         interItemSpacing: 20,
                         lineSpacing: 20,
-                        contentInsets:
-                            NSDirectionalEdgeInsets(
-                                top: 20,
-                                leading: 16,
-                                bottom: 0,
-                                trailing: 16
-                            )
+                        contentInsets: NSDirectionalEdgeInsets(
+                            top: 20,
+                            leading: 16,
+                            bottom: 0,
+                            trailing: 16
+                        )
                     )
                 )
             },
@@ -138,53 +125,34 @@ final class FeedViewController: UIViewController, View {
         )
 
         let hasContent = !components.isEmpty
-        customView.emptyLabel.text =
-            isReadOnly
-            ? LocalizationKey
-                .adminPreviewEmpty
-                .localized
-            : LocalizationKey
-                .homeDescription
-                .localized
+        customView.emptyLabel.text = isReadOnly
+            ? LocalizationKey.adminPreviewEmpty.localized
+            : LocalizationKey.homeDescription.localized
         customView.emptyLabel.isHidden = hasContent
         customView.bubbleView.text = hasContent
             ? LocalizationKey.homeFeedBubbleDoneToday.localized
             : LocalizationKey.homeFeedBubbleAddPhoto.localized
 
-        let canAddPhoto =
-            !hasContent ||
-            ProcessInfo.processInfo.arguments.contains("-UITest")
-        customView.cameraBtn.isEnabled =
-            !isReadOnly && canAddPhoto
-        customView.cameraBtn.alpha =
-            canAddPhoto ? 1.0 : 0.3
+        let canAddPhoto = !hasContent || ProcessInfo.processInfo.arguments.contains("-UITest")
+        customView.cameraBtn.isEnabled = !isReadOnly && canAddPhoto
+        customView.cameraBtn.alpha = canAddPhoto ? 1.0 : 0.3
     }
 
-    private func makeInteractiveComponent(
-        _ component: FeedComponent
-    ) -> AnyComponent {
+    private func makeInteractiveComponent(_ component: FeedComponent) -> AnyComponent {
         let interactiveComponent = component
             .pressedEffect()
             .onTouch { [weak self] in
-                self?.imageTappedRelay.accept(
-                    component.post
-                )
+                self?.imageTappedRelay.accept(component.post)
             }
 
         guard !isReadOnly else {
-            return AnyComponent(
-                interactiveComponent
-            )
+            return AnyComponent(interactiveComponent)
         }
 
         return AnyComponent(
             interactiveComponent
-                .onLongPress(
-                    minimumDuration: 0.4
-                ) { [weak self] in
-                    self?.longPressedRelay.accept(
-                        component.post
-                    )
+                .onLongPress(minimumDuration: 0.4) { [weak self] in
+                    self?.longPressedRelay.accept(component.post)
                 }
         )
     }
@@ -202,8 +170,7 @@ final class FeedViewController: UIViewController, View {
             action: #selector(didRequestRefresh),
             for: .valueChanged
         )
-        customView.collectionView.refreshControl =
-            refreshControl
+        customView.collectionView.refreshControl = refreshControl
     }
 
     @objc
@@ -221,7 +188,10 @@ final class FeedViewController: UIViewController, View {
 
         refreshControl.endRefreshing()
         let topOffset = -customView.collectionView.adjustedContentInset.top
-        customView.collectionView.setContentOffset(.init(x: 0, y: topOffset), animated: false)
+        customView.collectionView.setContentOffset(
+            .init(x: 0, y: topOffset),
+            animated: false
+        )
     }
 }
 
