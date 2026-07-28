@@ -29,7 +29,7 @@ struct RootListView: View {
                 Section("UIKit Examples") {
                     NavigationLink {
                         FlowLayoutAccountListViewController(
-                            accounts: BankAccount.sample
+                            sections: BankAccountSection.sample
                         )
                         .toSwiftUI()
                     } label: {
@@ -42,7 +42,7 @@ struct RootListView: View {
 
                     NavigationLink {
                         CompositionalAccountListViewController(
-                            accounts: BankAccount.sample
+                            sections: BankAccountSection.sample
                         )
                         .toSwiftUI()
                     } label: {
@@ -55,7 +55,7 @@ struct RootListView: View {
 
                     NavigationLink {
                         DiffableAccountListViewController(
-                            accounts: BankAccount.sample
+                            sections: BankAccountSection.sample
                         )
                         .toSwiftUI()
                     } label: {
@@ -68,7 +68,7 @@ struct RootListView: View {
 
                     NavigationLink {
                         DifferenceKitAccountListViewController(
-                            accounts: BankAccount.sample
+                            sections: BankAccountSection.sample
                         )
                         .toSwiftUI()
                     } label: {

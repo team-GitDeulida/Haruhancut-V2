@@ -9,7 +9,7 @@ import UIKit
 
 final class FlowLayoutAccountListViewController: UIViewController {
 
-    private let accounts: [BankAccount]
+    private let sections: [BankAccountSection]
 
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -19,7 +19,7 @@ final class FlowLayoutAccountListViewController: UIViewController {
         layout.sectionInset = UIEdgeInsets(
             top: 12,
             left: 20,
-            bottom: 12,
+            bottom: 4,
             right: 20
         )
         layout.headerReferenceSize = CGSize(
@@ -65,8 +65,8 @@ final class FlowLayoutAccountListViewController: UIViewController {
         return collectionView
     }()
 
-    init(accounts: [BankAccount]) {
-        self.accounts = accounts
+    init(sections: [BankAccountSection]) {
+        self.sections = sections
 
         super.init(
             nibName: nil,
@@ -157,17 +157,27 @@ final class FlowLayoutAccountListViewController: UIViewController {
 extension FlowLayoutAccountListViewController:
     UICollectionViewDataSource {
 
+    /// 계좌 목록에 표시할 섹션 개수를 반환합니다.
+    ///
+    /// - Parameter collectionView: 섹션 개수를 요청한 컬렉션 뷰입니다.
+    /// - Returns: 현재 계좌 목록에 저장된 섹션 개수입니다.
+    func numberOfSections(
+        in collectionView: UICollectionView
+    ) -> Int {
+        sections.count
+    }
+
     /// 지정된 섹션에 표시할 계좌 셀의 개수를 반환합니다.
     ///
     /// - Parameters:
     ///   - collectionView: 아이템 개수를 요청한 컬렉션 뷰입니다.
     ///   - section: 아이템 개수를 확인할 섹션의 인덱스입니다.
-    /// - Returns: `accounts` 배열에 저장된 계좌 개수입니다.
+    /// - Returns: 해당 섹션에 저장된 계좌 개수입니다.
     func collectionView(
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        accounts.count
+        sections[section].accounts.count
     }
 
     /// 지정된 위치에 표시할 계좌 셀을 생성하고 데이터를 설정합니다.
@@ -192,7 +202,8 @@ extension FlowLayoutAccountListViewController:
             return UICollectionViewCell()
         }
 
-        let account = accounts[indexPath.item]
+        let account = sections[indexPath.section]
+            .accounts[indexPath.item]
 
         cell.configure(
             account: account,
@@ -230,7 +241,12 @@ extension FlowLayoutAccountListViewController:
 
         switch kind {
         case UICollectionView.elementKindSectionHeader:
-            supplementaryView.configure(kind: .header)
+            let section = sections[indexPath.section]
+            supplementaryView.configure(
+                kind: .header,
+                title: section.title,
+                description: section.description
+            )
 
         case UICollectionView.elementKindSectionFooter:
             supplementaryView.configure(kind: .footer)
@@ -259,7 +275,8 @@ extension FlowLayoutAccountListViewController:
         _ collectionView: UICollectionView,
         didSelectItemAt indexPath: IndexPath
     ) {
-        let account = accounts[indexPath.item]
+        let account = sections[indexPath.section]
+            .accounts[indexPath.item]
         showAccountDetail(account: account)
     }
 }
@@ -302,5 +319,7 @@ extension FlowLayoutAccountListViewController:
 }
 
 #Preview {
-    FlowLayoutAccountListViewController(accounts: BankAccount.sample)
+    FlowLayoutAccountListViewController(
+        sections: BankAccountSection.sample
+    )
 }

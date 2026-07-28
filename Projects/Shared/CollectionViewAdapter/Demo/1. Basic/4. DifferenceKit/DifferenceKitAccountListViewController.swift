@@ -30,7 +30,31 @@ final class DifferenceKitAccountListViewController: UIViewController {
         }
     }
 
-    private var accounts: [AccountItem]
+    /// DifferenceKit이 사용할 계좌 섹션입니다.
+    ///
+    /// 섹션 ID는 동일한 섹션을 식별하고, 제목과 설명이 달라지면
+    /// 섹션 header를 갱신하도록 내용 비교에 포함합니다.
+    private struct SectionItem: Differentiable {
+        let section: BankAccountSection
+
+        var differenceIdentifier: String {
+            section.id
+        }
+
+        func isContentEqual(
+            to source: SectionItem
+        ) -> Bool {
+            section.title == source.section.title
+                && section.description == source.section.description
+        }
+    }
+
+    private typealias AccountSection = ArraySection<
+        SectionItem,
+        AccountItem
+    >
+
+    private var sections: [AccountSection]
 
     private lazy var collectionView: UICollectionView = {
         let collectionView = UICollectionView(
@@ -66,15 +90,26 @@ final class DifferenceKitAccountListViewController: UIViewController {
         return collectionView
     }()
 
-    init(accounts: [BankAccount]) {
-        self.accounts = accounts.map { account in
-            AccountItem(account: account)
-        }
+    init(sections: [BankAccountSection]) {
+        self.sections = Self.makeSections(from: sections)
 
         super.init(
             nibName: nil,
             bundle: nil
         )
+    }
+
+    private static func makeSections(
+        from source: [BankAccountSection]
+    ) -> [AccountSection] {
+        source.map { section in
+            AccountSection(
+                model: SectionItem(section: section),
+                elements: section.accounts.map { account in
+                    AccountItem(account: account)
+                }
+            )
+        }
     }
 
     @available(*, unavailable)
@@ -122,15 +157,13 @@ final class DifferenceKitAccountListViewController: UIViewController {
     /// DifferenceKit은 section 및 item 변경을 안전한 순서의 단계로 나누므로,
     /// `setData` 클로저에서 각 단계의 데이터를 동기적으로 갱신해야 합니다.
     ///
-    /// - Parameter accounts: 화면에 반영할 새 계좌 목록입니다.
+    /// - Parameter sections: 화면에 반영할 새 계좌 섹션 목록입니다.
     private func apply(
-        accounts: [BankAccount]
+        sections: [BankAccountSection]
     ) {
-        let target = accounts.map { account in
-            AccountItem(account: account)
-        }
+        let target = Self.makeSections(from: sections)
         let changeset = StagedChangeset(
-            source: self.accounts,
+            source: self.sections,
             target: target
         )
 
@@ -139,8 +172,8 @@ final class DifferenceKitAccountListViewController: UIViewController {
             interrupt: { changeset in
                 changeset.changeCount > 100
             },
-            setData: { [unowned self] accounts in
-                self.accounts = accounts
+            setData: { [unowned self] sections in
+                self.sections = sections
             }
         )
     }
@@ -209,7 +242,7 @@ final class DifferenceKitAccountListViewController: UIViewController {
         section.contentInsets = NSDirectionalEdgeInsets(
             top: 12,
             leading: 0,
-            bottom: 12,
+            bottom: 4,
             trailing: 0
         )
         section.boundarySupplementaryItems = [
@@ -250,17 +283,27 @@ final class DifferenceKitAccountListViewController: UIViewController {
 /// DifferenceKit이 단계별로 갱신하는 계좌 목록을 컬렉션 뷰에 표시합니다.
 extension DifferenceKitAccountListViewController: UICollectionViewDataSource {
 
-    /// 계좌 목록에 표시할 아이템 개수를 반환합니다.
+    /// 계좌 목록에 표시할 섹션 개수를 반환합니다.
+    ///
+    /// - Parameter collectionView: 섹션 개수를 요청한 컬렉션 뷰입니다.
+    /// - Returns: 현재 DifferenceKit 데이터 소스에 저장된 섹션 개수입니다.
+    func numberOfSections(
+        in collectionView: UICollectionView
+    ) -> Int {
+        sections.count
+    }
+
+    /// 지정된 섹션에 표시할 계좌 아이템 개수를 반환합니다.
     ///
     /// - Parameters:
     ///   - collectionView: 아이템 개수를 요청한 컬렉션 뷰입니다.
     ///   - section: 아이템 개수를 확인할 섹션의 인덱스입니다.
-    /// - Returns: 현재 DifferenceKit 데이터 소스에 저장된 계좌 개수입니다.
+    /// - Returns: 해당 DifferenceKit 섹션에 저장된 계좌 개수입니다.
     func collectionView(
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        accounts.count
+        sections[section].elements.count
     }
 
     /// 지정된 위치의 계좌 항목으로 셀을 구성합니다.
@@ -282,7 +325,9 @@ extension DifferenceKitAccountListViewController: UICollectionViewDataSource {
             return UICollectionViewCell()
         }
 
-        let account = accounts[indexPath.item].account
+        let account = sections[indexPath.section]
+            .elements[indexPath.item]
+            .account
 
         cell.configure(
             account: account,
@@ -320,7 +365,12 @@ extension DifferenceKitAccountListViewController: UICollectionViewDataSource {
 
         switch kind {
         case UICollectionView.elementKindSectionHeader:
-            supplementaryView.configure(kind: .header)
+            let section = sections[indexPath.section].model.section
+            supplementaryView.configure(
+                kind: .header,
+                title: section.title,
+                description: section.description
+            )
 
         case UICollectionView.elementKindSectionFooter:
             supplementaryView.configure(kind: .footer)
@@ -347,13 +397,15 @@ extension DifferenceKitAccountListViewController: UICollectionViewDelegate {
         didSelectItemAt indexPath: IndexPath
     ) {
         showAccountDetail(
-            account: accounts[indexPath.item].account
+            account: sections[indexPath.section]
+                .elements[indexPath.item]
+                .account
         )
     }
 }
 
 #Preview {
     DifferenceKitAccountListViewController(
-        accounts: BankAccount.sample
+        sections: BankAccountSection.sample
     )
 }

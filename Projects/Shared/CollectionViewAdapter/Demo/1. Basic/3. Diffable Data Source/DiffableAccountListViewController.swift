@@ -9,16 +9,12 @@ import UIKit
 
 final class DiffableAccountListViewController: UIViewController {
 
-    private enum Section: Hashable {
-        case account
-    }
-
     private typealias DataSource = UICollectionViewDiffableDataSource<
-        Section,
+        String,
         UUID
     >
 
-    private let accounts: [BankAccount]
+    private let sections: [BankAccountSection]
     private let accountsByID: [UUID: BankAccount]
 
     private lazy var collectionView: UICollectionView = {
@@ -56,12 +52,16 @@ final class DiffableAccountListViewController: UIViewController {
 
     private lazy var dataSource: DataSource = makeDataSource()
 
-    init(accounts: [BankAccount]) {
-        self.accounts = accounts
+    init(sections: [BankAccountSection]) {
+        self.sections = sections
         self.accountsByID = Dictionary(
-            uniqueKeysWithValues: accounts.map { account in
-                (account.id, account)
-            }
+            uniqueKeysWithValues: sections
+                .flatMap { section in
+                    section.accounts
+                }
+                .map { account in
+                    (account.id, account)
+                }
         )
 
         super.init(
@@ -142,7 +142,7 @@ final class DiffableAccountListViewController: UIViewController {
             return cell
         }
 
-        dataSource.supplementaryViewProvider = {
+        dataSource.supplementaryViewProvider = { [weak self]
             collectionView,
             kind,
             indexPath in
@@ -160,7 +160,19 @@ final class DiffableAccountListViewController: UIViewController {
 
             switch kind {
             case UICollectionView.elementKindSectionHeader:
-                supplementaryView.configure(kind: .header)
+                guard
+                    let self,
+                    self.sections.indices.contains(indexPath.section)
+                else {
+                    assertionFailure("BankAccountSection 생성 실패")
+                    return nil
+                }
+                let section = self.sections[indexPath.section]
+                supplementaryView.configure(
+                    kind: .header,
+                    title: section.title,
+                    description: section.description
+                )
 
             case UICollectionView.elementKindSectionFooter:
                 supplementaryView.configure(kind: .footer)
@@ -182,13 +194,16 @@ final class DiffableAccountListViewController: UIViewController {
     private func applySnapshot(
         animatingDifferences: Bool
     ) {
-        var snapshot = NSDiffableDataSourceSnapshot<Section, UUID>()
+        var snapshot = NSDiffableDataSourceSnapshot<String, UUID>()
 
-        snapshot.appendSections([.account])
-        snapshot.appendItems(
-            accounts.map(\.id),
-            toSection: .account
-        )
+        snapshot.appendSections(sections.map(\.id))
+
+        sections.forEach { section in
+            snapshot.appendItems(
+                section.accounts.map(\.id),
+                toSection: section.id
+            )
+        }
 
         dataSource.apply(
             snapshot,
@@ -260,7 +275,7 @@ final class DiffableAccountListViewController: UIViewController {
         section.contentInsets = NSDirectionalEdgeInsets(
             top: 12,
             leading: 0,
-            bottom: 12,
+            bottom: 4,
             trailing: 0
         )
         section.boundarySupplementaryItems = [
@@ -323,6 +338,6 @@ extension DiffableAccountListViewController: UICollectionViewDelegate {
 
 #Preview {
     DiffableAccountListViewController(
-        accounts: BankAccount.sample
+        sections: BankAccountSection.sample
     )
 }

@@ -96,11 +96,23 @@ final class AccountListSupplementaryView: UICollectionReusableView {
         footerLabel.text = nil
     }
 
-    func configure(kind: Kind) {
+    /// 섹션에 맞는 header 또는 footer 내용을 설정합니다.
+    ///
+    /// - Parameters:
+    ///   - kind: 설정할 supplementary view의 종류입니다.
+    ///   - title: header에 표시할 제목입니다.
+    ///   - description: header에 표시할 설명입니다.
+    func configure(
+        kind: Kind,
+        title: String = "내 계좌",
+        description: String = "기본 UICollectionView로 계좌 목록을 표시합니다."
+    ) {
         switch kind {
         case .header:
             headerContentView.isHidden = false
             footerLabel.isHidden = true
+            headerTitleLabel.text = title
+            headerDescriptionLabel.text = description
             return
 
         case .footer:
@@ -179,7 +191,7 @@ final class AccountListSupplementaryView: UICollectionReusableView {
 
             footerLabel.topAnchor.constraint(
                 equalTo: topAnchor,
-                constant: 14
+                constant: 8
             ),
             footerLabel.leadingAnchor.constraint(
                 equalTo: leadingAnchor,
