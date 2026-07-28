@@ -125,6 +125,60 @@ struct RootListView: View {
                         )
                     }
                 }
+
+                Section("Component") {
+                    NavigationLink {
+                        ComponentCapabilityDemoViewController(
+                            kind: .touchable
+                        )
+                        .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Touchable",
+                            caption: "Content 전체의 탭 이벤트를 modifier로 연결합니다",
+                            shape: .blue
+                        )
+                    }
+
+                    NavigationLink {
+                        ComponentCapabilityDemoViewController(
+                            kind: .pressable
+                        )
+                        .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Pressable",
+                            caption: "누르는 동안 Content에 축소 효과를 적용합니다",
+                            shape: .indigo
+                        )
+                    }
+
+                    NavigationLink {
+                        ComponentCapabilityDemoViewController(
+                            kind: .containsButton
+                        )
+                        .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "ContainsButton",
+                            caption: "Content 내부 버튼 이벤트를 modifier로 전달합니다",
+                            shape: .orange
+                        )
+                    }
+
+                    NavigationLink {
+                        ComponentCapabilityDemoViewController(
+                            kind: .containsSwitch
+                        )
+                        .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "ContainsSwitch",
+                            caption: "Content 내부 스위치의 변경 값을 전달합니다",
+                            shape: .green
+                        )
+                    }
+                }
                 
                 Section("CollectionView") {
                     
