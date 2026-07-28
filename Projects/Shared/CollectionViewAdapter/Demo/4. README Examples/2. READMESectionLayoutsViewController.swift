@@ -97,7 +97,9 @@ final class READMESectionLayoutsViewController:
                     item: .init(
                         id: "featured-header",
                         text: "가로 Carousel",
-                        style: .header
+                        style: .header,
+                        appearance: .standalone,
+                        horizontalInset: 0
                     )
                 )
             )
@@ -128,7 +130,9 @@ final class READMESectionLayoutsViewController:
                     item: .init(
                         id: "topics-header",
                         text: "2열 Grid",
-                        style: .header
+                        style: .header,
+                        appearance: .standalone,
+                        horizontalInset: 0
                     )
                 )
             )

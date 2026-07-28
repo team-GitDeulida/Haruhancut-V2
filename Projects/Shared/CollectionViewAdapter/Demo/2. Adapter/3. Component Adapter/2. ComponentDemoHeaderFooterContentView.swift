@@ -1,17 +1,38 @@
 import CollectionViewAdapter
 import UIKit
 
+enum ComponentDemoTextStyle: Equatable {
+    case header
+    case footer
+}
+
+enum ComponentDemoTextAppearance: Equatable {
+    case connected
+    case standalone
+}
+
 /// Section의 header와 footer에서 공통으로 사용하는 UIView입니다.
 final class ComponentDemoTextContentView: UIView {
     struct Item: Identifiable, Equatable {
-        enum Style: Equatable {
-            case header
-            case footer
-        }
-
         let id: String
         let text: String
-        let style: Style
+        let style: ComponentDemoTextStyle
+        let appearance: ComponentDemoTextAppearance
+        let horizontalInset: CGFloat
+
+        init(
+            id: String,
+            text: String,
+            style: ComponentDemoTextStyle,
+            appearance: ComponentDemoTextAppearance = .connected,
+            horizontalInset: CGFloat = 20
+        ) {
+            self.id = id
+            self.text = text
+            self.style = style
+            self.appearance = appearance
+            self.horizontalInset = horizontalInset
+        }
     }
 
     var item: Item? {
@@ -26,6 +47,8 @@ final class ComponentDemoTextContentView: UIView {
     private let surfaceView = UIView()
     private let label = UILabel()
 
+    private var surfaceLeadingConstraint: NSLayoutConstraint!
+    private var surfaceTrailingConstraint: NSLayoutConstraint!
     private var labelTopConstraint: NSLayoutConstraint!
     private var labelBottomConstraint: NSLayoutConstraint!
 
@@ -51,6 +74,10 @@ final class ComponentDemoTextContentView: UIView {
         surfaceView.layer.cornerRadius =
             ComponentDemoStyle.cardCornerRadius
         surfaceView.layer.masksToBounds = true
+        surfaceLeadingConstraint.constant =
+            item.horizontalInset
+        surfaceTrailingConstraint.constant =
+            -item.horizontalInset
 
         switch item.style {
         case .header:
@@ -64,10 +91,6 @@ final class ComponentDemoTextContentView: UIView {
             label.textColor = ComponentDemoStyle.textPrimary
             labelTopConstraint.constant = 24
             labelBottomConstraint.constant = -12
-            surfaceView.layer.maskedCorners = [
-                .layerMinXMinYCorner,
-                .layerMaxXMinYCorner,
-            ]
 
         case .footer:
             label.font = UIFontMetrics(forTextStyle: .caption1)
@@ -80,9 +103,37 @@ final class ComponentDemoTextContentView: UIView {
             label.textColor = ComponentDemoStyle.textSecondary
             labelTopConstraint.constant = 14
             labelBottomConstraint.constant = -18
+        }
+
+        switch item.appearance {
+        case .connected:
+            surfaceView.layer.maskedCorners =
+                connectedCorners(for: item.style)
+
+        case .standalone:
             surfaceView.layer.maskedCorners = [
+                .layerMinXMinYCorner,
+                .layerMaxXMinYCorner,
                 .layerMinXMaxYCorner,
-                .layerMaxXMaxYCorner,
+                .layerMaxXMaxYCorner
+            ]
+        }
+    }
+
+    private func connectedCorners(
+        for style: ComponentDemoTextStyle
+    ) -> CACornerMask {
+        switch style {
+        case .header:
+            return [
+                .layerMinXMinYCorner,
+                .layerMaxXMinYCorner
+            ]
+
+        case .footer:
+            return [
+                .layerMinXMaxYCorner,
+                .layerMaxXMaxYCorner
             ]
         }
     }
@@ -108,15 +159,18 @@ final class ComponentDemoTextContentView: UIView {
             equalTo: surfaceView.bottomAnchor
         )
 
-        NSLayoutConstraint.activate([
+        surfaceLeadingConstraint =
             surfaceView.leadingAnchor.constraint(
-                equalTo: leadingAnchor,
-                constant: 20
-            ),
+                equalTo: leadingAnchor
+            )
+        surfaceTrailingConstraint =
             surfaceView.trailingAnchor.constraint(
-                equalTo: trailingAnchor,
-                constant: -20
-            ),
+                equalTo: trailingAnchor
+            )
+
+        NSLayoutConstraint.activate([
+            surfaceLeadingConstraint,
+            surfaceTrailingConstraint,
             surfaceView.topAnchor.constraint(equalTo: topAnchor),
             surfaceView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
@@ -129,7 +183,7 @@ final class ComponentDemoTextContentView: UIView {
                 constant: -20
             ),
             labelTopConstraint,
-            labelBottomConstraint,
+            labelBottomConstraint
         ])
     }
 }

@@ -72,7 +72,8 @@ final class READMESnapshotUpdatesViewController:
                     item: .init(
                         id: "snapshot-header",
                         text: "Diffable 상태 갱신",
-                        style: .header
+                        style: .header,
+                        appearance: .standalone
                     )
                 )
             )
@@ -82,7 +83,8 @@ final class READMESnapshotUpdatesViewController:
                         id: "snapshot-footer",
                         text:
                             "Adapter가 insert, move, delete와 content 변경을 계산합니다.",
-                        style: .footer
+                        style: .footer,
+                        appearance: .standalone
                     )
                 )
             )
