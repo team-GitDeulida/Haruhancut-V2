@@ -25,10 +25,7 @@ private final class ComponentLongPressGestureRecognizer:
         self.contentView = contentView
         super.init(target: nil, action: nil)
 
-        addTarget(
-            self,
-            action: #selector(didRecognizeLongPress)
-        )
+        addTarget(self, action: #selector(didRecognizeLongPress))
         minimumPressDuration = 0.5
         cancelsTouchesInView = false
         delegate = self
@@ -55,22 +52,15 @@ private final class ComponentLongPressGestureRecognizer:
 
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith otherGestureRecognizer:
-            UIGestureRecognizer
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        if let longPressGestureRecognizer =
-            otherGestureRecognizer as?
-                UILongPressGestureRecognizer
-        {
+        if let longPressGestureRecognizer = otherGestureRecognizer as? UILongPressGestureRecognizer {
             // 0초 long press는 `Pressable`의 시각적 눌림 효과입니다.
-            return longPressGestureRecognizer
-                .minimumPressDuration == 0
+            return longPressGestureRecognizer.minimumPressDuration == 0
         }
 
-        return otherGestureRecognizer
-            is UIPanGestureRecognizer
-            && otherGestureRecognizer.view
-                is UIScrollView
+        return otherGestureRecognizer is UIPanGestureRecognizer
+            && otherGestureRecognizer.view is UIScrollView
     }
 
     @objc
@@ -85,23 +75,14 @@ private final class ComponentLongPressGestureRecognizer:
 
 private extension UIView {
     /// UIView마다 하나만 설치되는 내부 long press recognizer를 반환합니다.
-    var componentLongPressGestureRecognizer:
-        ComponentLongPressGestureRecognizer
-    {
+    var componentLongPressGestureRecognizer: ComponentLongPressGestureRecognizer {
         if let gestureRecognizer = gestureRecognizers?
-            .compactMap({
-                $0 as?
-                    ComponentLongPressGestureRecognizer
-            })
-            .first
-        {
+            .compactMap({ $0 as? ComponentLongPressGestureRecognizer })
+            .first {
             return gestureRecognizer
         }
 
-        let gestureRecognizer =
-            ComponentLongPressGestureRecognizer(
-                contentView: self
-            )
+        let gestureRecognizer = ComponentLongPressGestureRecognizer(contentView: self)
         addGestureRecognizer(gestureRecognizer)
         return gestureRecognizer
     }
@@ -130,20 +111,13 @@ public extension LongPressable where Self: UIView {
 
 extension LongPressable where Self: UIView {
     /// 기본 long press recognizer를 설치하고 최신 인식 시간을 반영합니다.
-    func installLongPressHandlingIfNeeded(
-        minimumDuration: TimeInterval
-    ) {
-        precondition(
-            minimumDuration > 0,
-            "minimumDuration은 0보다 커야 합니다."
-        )
+    func installLongPressHandlingIfNeeded(minimumDuration: TimeInterval) {
+        precondition(minimumDuration > 0, "minimumDuration은 0보다 커야 합니다.")
 
         isUserInteractionEnabled = true
 
-        let gestureRecognizer =
-            componentLongPressGestureRecognizer
-        gestureRecognizer.minimumPressDuration =
-            minimumDuration
+        let gestureRecognizer = componentLongPressGestureRecognizer
+        gestureRecognizer.minimumPressDuration = minimumDuration
 
         // Self-sizing으로 display 수명에서 빠졌다가 돌아온 Content도
         // UIKit의 현재 gesture environment에 다시 연결합니다.

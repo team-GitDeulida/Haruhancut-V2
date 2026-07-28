@@ -21,24 +21,17 @@ where Wrapped.Content: ContainsSwitch {
     /// - Parameters:
     ///   - wrapped: 감쌀 원본 Component.
     ///   - action: 스위치의 새 값과 함께 실행할 동작.
-    public init(
-        wrapped: Wrapped,
-        action: @escaping (Wrapped.Content, Bool) -> Void
-    ) {
+    public init(wrapped: Wrapped, action: @escaping (Wrapped.Content, Bool) -> Void) {
         self.wrapped = wrapped
         self.action = action
     }
 
     /// 원본을 렌더링한 뒤 토글 이벤트를 현재 render 수명에 연결합니다.
     @MainActor
-    public func render(
-        context: ComponentContext,
-        content: Wrapped.Content
-    ) {
+    public func render(context: ComponentContext, content: Wrapped.Content) {
         wrapped.render(content: content, context: context)
 
-        let observation = content.switchToggleEvent.observe {
-            [weak content] isOn in
+        let observation = content.switchToggleEvent.observe { [weak content] isOn in
             guard let content else { return }
             action(content, isOn)
         }
@@ -58,9 +51,7 @@ public extension Component where Content: ContainsSwitch {
     ///
     /// - Parameter action: 스위치의 새 값과 함께 실행할 동작.
     /// - Returns: 토글 동작이 합성된 Component.
-    func onToggle(
-        _ action: @escaping (Bool) -> Void
-    ) -> OnToggleModifier<Self> {
+    func onToggle(_ action: @escaping (Bool) -> Void) -> OnToggleModifier<Self> {
         OnToggleModifier(wrapped: self) { _, isOn in
             action(isOn)
         }
@@ -70,9 +61,7 @@ public extension Component where Content: ContainsSwitch {
     ///
     /// - Parameter action: 스위치의 새 값과 함께 실행할 동작.
     /// - Returns: 토글 동작이 합성된 Component.
-    func onToggle(
-        _ action: @escaping (Content, Bool) -> Void
-    ) -> OnToggleModifier<Self> {
+    func onToggle(_ action: @escaping (Content, Bool) -> Void) -> OnToggleModifier<Self> {
         OnToggleModifier(wrapped: self, action: action)
     }
 }

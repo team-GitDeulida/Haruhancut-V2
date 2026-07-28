@@ -26,10 +26,7 @@ private final class ComponentTouchGestureRecognizer:
         self.contentView = contentView
         super.init(target: nil, action: nil)
 
-        addTarget(
-            self,
-            action: #selector(didRecognizeTouch)
-        )
+        addTarget(self, action: #selector(didRecognizeTouch))
         cancelsTouchesInView = false
         delegate = self
     }
@@ -55,33 +52,25 @@ private final class ComponentTouchGestureRecognizer:
 
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
-        shouldRequireFailureOf otherGestureRecognizer:
-            UIGestureRecognizer
+        shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        guard
-            let longPressGestureRecognizer =
-                otherGestureRecognizer as?
-                    UILongPressGestureRecognizer
-        else {
+        guard let longPressGestureRecognizer =
+            otherGestureRecognizer as? UILongPressGestureRecognizer else {
             return false
         }
 
         // 0초 long press는 눌림 효과를 표시하기 위한 시각적 recognizer입니다.
         // 삭제처럼 실제 동작을 수행하는 long press가 인식되면 전체 Content의
         // tap은 실패하도록 기다려 두 동작이 함께 실행되지 않게 합니다.
-        return longPressGestureRecognizer
-            .minimumPressDuration > 0
+        return longPressGestureRecognizer.minimumPressDuration > 0
     }
 
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith otherGestureRecognizer:
-            UIGestureRecognizer
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        otherGestureRecognizer
-            is UIPanGestureRecognizer
-            && otherGestureRecognizer.view
-                is UIScrollView
+        otherGestureRecognizer is UIPanGestureRecognizer
+            && otherGestureRecognizer.view is UIScrollView
     }
 
     @objc
@@ -92,22 +81,14 @@ private final class ComponentTouchGestureRecognizer:
 
 private extension UIView {
     /// UIView마다 하나만 설치되는 내부 tap recognizer를 반환합니다.
-    var componentTouchGestureRecognizer:
-        ComponentTouchGestureRecognizer
-    {
+    var componentTouchGestureRecognizer: ComponentTouchGestureRecognizer {
         if let gestureRecognizer = gestureRecognizers?
-            .compactMap({
-                $0 as? ComponentTouchGestureRecognizer
-            })
-            .first
-        {
+            .compactMap({ $0 as? ComponentTouchGestureRecognizer })
+            .first {
             return gestureRecognizer
         }
 
-        let gestureRecognizer =
-            ComponentTouchGestureRecognizer(
-                contentView: self
-            )
+        let gestureRecognizer = ComponentTouchGestureRecognizer(contentView: self)
         addGestureRecognizer(gestureRecognizer)
         return gestureRecognizer
     }

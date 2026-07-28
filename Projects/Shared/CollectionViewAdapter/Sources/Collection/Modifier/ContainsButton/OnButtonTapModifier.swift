@@ -21,24 +21,17 @@ where Wrapped.Content: ContainsButton {
     /// - Parameters:
     ///   - wrapped: 감쌀 원본 Component.
     ///   - action: 내부 버튼이 눌렸을 때 실행할 동작.
-    public init(
-        wrapped: Wrapped,
-        action: @escaping (Wrapped.Content) -> Void
-    ) {
+    public init(wrapped: Wrapped, action: @escaping (Wrapped.Content) -> Void) {
         self.wrapped = wrapped
         self.action = action
     }
 
     /// 원본을 렌더링한 뒤 버튼 이벤트를 현재 render 수명에 연결합니다.
     @MainActor
-    public func render(
-        context: ComponentContext,
-        content: Wrapped.Content
-    ) {
+    public func render(context: ComponentContext, content: Wrapped.Content) {
         wrapped.render(content: content, context: context)
 
-        let observation = content.buttonTapEvent.observe {
-            [weak content] in
+        let observation = content.buttonTapEvent.observe { [weak content] in
             guard let content else { return }
             action(content)
         }
@@ -58,9 +51,7 @@ public extension Component where Content: ContainsButton {
     ///
     /// - Parameter action: 버튼이 눌렸을 때 실행할 동작.
     /// - Returns: 버튼 동작이 합성된 Component.
-    func onButtonTap(
-        _ action: @escaping () -> Void
-    ) -> OnButtonTapModifier<Self> {
+    func onButtonTap(_ action: @escaping () -> Void) -> OnButtonTapModifier<Self> {
         OnButtonTapModifier(wrapped: self) { _ in
             action()
         }
@@ -70,9 +61,7 @@ public extension Component where Content: ContainsButton {
     ///
     /// - Parameter action: 버튼이 눌렸을 때 실행할 동작.
     /// - Returns: 버튼 동작이 합성된 Component.
-    func onButtonTap(
-        _ action: @escaping (Content) -> Void
-    ) -> OnButtonTapModifier<Self> {
+    func onButtonTap(_ action: @escaping (Content) -> Void) -> OnButtonTapModifier<Self> {
         OnButtonTapModifier(wrapped: self, action: action)
     }
 }

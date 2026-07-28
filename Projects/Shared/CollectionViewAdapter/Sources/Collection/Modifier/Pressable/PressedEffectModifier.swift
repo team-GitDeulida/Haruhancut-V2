@@ -8,8 +8,7 @@
 import UIKit
 
 /// `Pressable` Content에 눌림 시각 효과를 적용하는 modifier입니다.
-public struct PressedEffectModifier<Wrapped: Component>:
-    ComponentModifier
+public struct PressedEffectModifier<Wrapped: Component>: ComponentModifier
 where Wrapped.Content: Pressable {
     /// 감싸는 원본 Component입니다.
     public let wrapped: Wrapped
@@ -22,49 +21,31 @@ where Wrapped.Content: Pressable {
     /// - Parameters:
     ///   - wrapped: 감쌀 원본 Component.
     ///   - scale: 0보다 크고 1보다 작은 눌림 상태의 축소 비율.
-    public init(
-        wrapped: Wrapped,
-        scale: CGFloat
-    ) {
+    public init(wrapped: Wrapped, scale: CGFloat) {
         self.wrapped = wrapped
         self.scale = scale
     }
 
     /// 원본을 렌더링한 뒤 Content에 눌림 효과를 한 번만 설치합니다.
     @MainActor
-    public func render(
-        context: ComponentContext,
-        content: Wrapped.Content
-    ) {
-        wrapped.render(
-            content: content,
-            context: context
-        )
-        content.installPressedEffectIfNeeded(
-            scale: scale
-        )
+    public func render(context: ComponentContext, content: Wrapped.Content) {
+        wrapped.render(content: content, context: context)
+        content.installPressedEffectIfNeeded(scale: scale)
     }
 }
 
-private struct PressedEffectUpdateToken:
-    Hashable
-{
+private struct PressedEffectUpdateToken: Hashable {
     let wrappedToken: AnyHashable?
     let scale: CGFloat
 }
 
-extension PressedEffectModifier:
-    ComponentUpdateTokenProviding
-{
+extension PressedEffectModifier: ComponentUpdateTokenProviding {
     var componentUpdateToken: AnyHashable {
-        AnyHashable(
+        let wrappedToken = (wrapped as? any ComponentUpdateTokenProviding)?.componentUpdateToken
+
+        return AnyHashable(
             PressedEffectUpdateToken(
-                wrappedToken:
-                    (
-                        wrapped as?
-                            any ComponentUpdateTokenProviding
-                    )?
-                    .componentUpdateToken,
+                wrappedToken: wrappedToken,
                 scale: scale
             )
         )
@@ -77,9 +58,7 @@ public extension Component where Content: Pressable {
     ///
     /// - Parameter scale: 0보다 크고 1보다 작은 눌림 상태의 축소 비율.
     /// - Returns: 눌림 효과가 합성된 Component.
-    func pressedEffect(
-        scale: CGFloat = 0.97
-    ) -> PressedEffectModifier<Self> {
+    func pressedEffect(scale: CGFloat = 0.97) -> PressedEffectModifier<Self> {
         PressedEffectModifier(
             wrapped: self,
             scale: scale

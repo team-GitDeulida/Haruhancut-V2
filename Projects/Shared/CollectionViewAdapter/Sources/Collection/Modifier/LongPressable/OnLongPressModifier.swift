@@ -8,8 +8,7 @@
 import UIKit
 
 /// `LongPressable` Content의 길게 누르기 이벤트를 처리하는 modifier입니다.
-public struct OnLongPressModifier<Wrapped: Component>:
-    ComponentModifier
+public struct OnLongPressModifier<Wrapped: Component>: ComponentModifier
 where Wrapped.Content: LongPressable {
     /// 감싸는 원본 Component입니다.
     public let wrapped: Wrapped
@@ -31,10 +30,7 @@ where Wrapped.Content: LongPressable {
         minimumDuration: TimeInterval,
         action: @escaping (Wrapped.Content) -> Void
     ) {
-        precondition(
-            minimumDuration > 0,
-            "minimumDuration은 0보다 커야 합니다."
-        )
+        precondition(minimumDuration > 0, "minimumDuration은 0보다 커야 합니다.")
 
         self.wrapped = wrapped
         self.minimumDuration = minimumDuration
@@ -43,20 +39,11 @@ where Wrapped.Content: LongPressable {
 
     /// 원본을 렌더링한 뒤 long press 이벤트를 현재 render 수명에 연결합니다.
     @MainActor
-    public func render(
-        context: ComponentContext,
-        content: Wrapped.Content
-    ) {
-        wrapped.render(
-            content: content,
-            context: context
-        )
-        content.installLongPressHandlingIfNeeded(
-            minimumDuration: minimumDuration
-        )
+    public func render(context: ComponentContext, content: Wrapped.Content) {
+        wrapped.render(content: content, context: context)
+        content.installLongPressHandlingIfNeeded(minimumDuration: minimumDuration)
 
-        let observation = content.longPressEvent.observe {
-            [weak content] in
+        let observation = content.longPressEvent.observe { [weak content] in
             guard let content else {
                 return
             }
@@ -66,9 +53,7 @@ where Wrapped.Content: LongPressable {
     }
 }
 
-extension OnLongPressModifier:
-    ComponentUpdateTokenProviding
-{
+extension OnLongPressModifier: ComponentUpdateTokenProviding {
     var componentUpdateToken: AnyHashable {
         AnyHashable(modifierID)
     }

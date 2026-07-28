@@ -24,10 +24,8 @@ private final class ComponentPressedEffectGestureRecognizer:
     UIGestureRecognizerDelegate
 {
     private enum Constant {
-        static let scrollCancellationDistance:
-            CGFloat = 10
-        static let animationDuration:
-            TimeInterval = 0.12
+        static let scrollCancellationDistance: CGFloat = 10
+        static let animationDuration: TimeInterval = 0.12
     }
 
     private weak var contentView: UIView?
@@ -35,18 +33,12 @@ private final class ComponentPressedEffectGestureRecognizer:
     private var initialLocation: CGPoint?
     private var isPressed = false
 
-    init(
-        contentView: UIView,
-        pressedScale: CGFloat
-    ) {
+    init(contentView: UIView, pressedScale: CGFloat) {
         self.contentView = contentView
         self.pressedScale = pressedScale
         super.init(target: nil, action: nil)
 
-        addTarget(
-            self,
-            action: #selector(handlePress)
-        )
+        addTarget(self, action: #selector(handlePress))
         minimumPressDuration = 0
         cancelsTouchesInView = false
         delegate = self
@@ -57,9 +49,7 @@ private final class ComponentPressedEffectGestureRecognizer:
         fatalError("init(coder:)는 지원하지 않습니다.")
     }
 
-    func updatePressedScale(
-        _ pressedScale: CGFloat
-    ) {
+    func updatePressedScale(_ pressedScale: CGFloat) {
         self.pressedScale = pressedScale
     }
 
@@ -67,8 +57,7 @@ private final class ComponentPressedEffectGestureRecognizer:
     private func handlePress() {
         switch state {
         case .began:
-            initialLocation =
-                location(in: contentView)
+            initialLocation = location(in: contentView)
             updatePressedState(true)
 
         case .changed:
@@ -79,18 +68,12 @@ private final class ComponentPressedEffectGestureRecognizer:
                 return
             }
 
-            let currentLocation =
-                location(in: contentView)
+            let currentLocation = location(in: contentView)
             let distance = hypot(
-                currentLocation.x
-                    - initialLocation.x,
-                currentLocation.y
-                    - initialLocation.y
+                currentLocation.x - initialLocation.x,
+                currentLocation.y - initialLocation.y
             )
-            if distance >=
-                Constant
-                    .scrollCancellationDistance
-            {
+            if distance >= Constant.scrollCancellationDistance {
                 updatePressedState(false)
             }
 
@@ -103,9 +86,7 @@ private final class ComponentPressedEffectGestureRecognizer:
         }
     }
 
-    private func updatePressedState(
-        _ pressed: Bool
-    ) {
+    private func updatePressedState(_ pressed: Bool) {
         guard isPressed != pressed else {
             return
         }
@@ -115,13 +96,9 @@ private final class ComponentPressedEffectGestureRecognizer:
             return
         }
 
-        let targetScale:
-            CGFloat = pressed
-                ? pressedScale
-                : 1
+        let targetScale: CGFloat = pressed ? pressedScale : 1
         UIView.animate(
-            withDuration:
-                Constant.animationDuration,
+            withDuration: Constant.animationDuration,
             delay: 0,
             options: [
                 .allowUserInteraction,
@@ -129,17 +106,15 @@ private final class ComponentPressedEffectGestureRecognizer:
                 .curveEaseOut,
             ]
         ) {
-            contentView.transform =
-                CGAffineTransform(
-                    scaleX: targetScale,
-                    y: targetScale
-                )
+            contentView.transform = CGAffineTransform(
+                scaleX: targetScale,
+                y: targetScale
+            )
         }
     }
 
     func gestureRecognizer(
-        _ gestureRecognizer:
-            UIGestureRecognizer,
+        _ gestureRecognizer: UIGestureRecognizer,
         shouldReceive touch: UITouch
     ) -> Bool {
         guard let contentView else {
@@ -153,48 +128,32 @@ private final class ComponentPressedEffectGestureRecognizer:
     }
 
     func gestureRecognizer(
-        _ gestureRecognizer:
-            UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith
-            otherGestureRecognizer:
-            UIGestureRecognizer
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        if otherGestureRecognizer
-            is UITapGestureRecognizer
-            || otherGestureRecognizer
-                is UILongPressGestureRecognizer
-        {
+        if otherGestureRecognizer is UITapGestureRecognizer
+            || otherGestureRecognizer is UILongPressGestureRecognizer {
             return true
         }
 
-        return otherGestureRecognizer
-            is UIPanGestureRecognizer
-            && otherGestureRecognizer.view
-                is UIScrollView
+        return otherGestureRecognizer is UIPanGestureRecognizer
+            && otherGestureRecognizer.view is UIScrollView
     }
 }
 
 extension Pressable where Self: UIView {
     /// 눌림 recognizer를 UIView 수명 동안 한 번만 설치하고 최신 scale을 반영합니다.
-    func installPressedEffectIfNeeded(
-        scale: CGFloat
-    ) {
+    func installPressedEffectIfNeeded(scale: CGFloat) {
         guard scale > 0, scale < 1 else {
             return
         }
 
         isUserInteractionEnabled = true
 
-        if let gestureRecognizer =
-            gestureRecognizers?
-                .compactMap({
-                    $0 as?
-                        ComponentPressedEffectGestureRecognizer
-                })
-                .first
-        {
-            gestureRecognizer
-                .updatePressedScale(scale)
+        if let gestureRecognizer = gestureRecognizers?
+            .compactMap({ $0 as? ComponentPressedEffectGestureRecognizer })
+            .first {
+            gestureRecognizer.updatePressedScale(scale)
             return
         }
 

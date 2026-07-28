@@ -21,20 +21,14 @@ where Wrapped.Content: Touchable {
     /// - Parameters:
     ///   - wrapped: 감쌀 원본 Component.
     ///   - action: Content가 터치되었을 때 실행할 동작.
-    public init(
-        wrapped: Wrapped,
-        action: @escaping (Wrapped.Content) -> Void
-    ) {
+    public init(wrapped: Wrapped, action: @escaping (Wrapped.Content) -> Void) {
         self.wrapped = wrapped
         self.action = action
     }
 
     /// 원본을 렌더링한 뒤 터치 이벤트를 현재 render 수명에 연결합니다.
     @MainActor
-    public func render(
-        context: ComponentContext,
-        content: Wrapped.Content
-    ) {
+    public func render(context: ComponentContext, content: Wrapped.Content) {
         // 원본 Component의 UI를 먼저 그립니다.
         wrapped.render(content: content, context: context)
 
@@ -43,8 +37,7 @@ where Wrapped.Content: Touchable {
 
         // Content의 터치 이벤트와 사용자가 `.onTouch`에 전달한 closure를
         // 현재 render 수명 동안 연결합니다.
-        let observation = content.touchEvent.observe {
-            [weak content] in
+        let observation = content.touchEvent.observe { [weak content] in
             guard let content else { return }
             action(content)
         }
@@ -67,9 +60,7 @@ public extension Component where Content: Touchable {
     ///
     /// - Parameter action: Content가 터치되었을 때 실행할 동작.
     /// - Returns: 터치 동작이 합성된 Component.
-    func onTouch(
-        _ action: @escaping () -> Void
-    ) -> OnTouchModifier<Self> {
+    func onTouch(_ action: @escaping () -> Void) -> OnTouchModifier<Self> {
         OnTouchModifier(wrapped: self) { _ in
             action()
         }
@@ -79,9 +70,7 @@ public extension Component where Content: Touchable {
     ///
     /// - Parameter action: Content가 터치되었을 때 실행할 동작.
     /// - Returns: 터치 동작이 합성된 Component.
-    func onTouch(
-        _ action: @escaping (Content) -> Void
-    ) -> OnTouchModifier<Self> {
+    func onTouch(_ action: @escaping (Content) -> Void) -> OnTouchModifier<Self> {
         OnTouchModifier(wrapped: self, action: action)
     }
 }

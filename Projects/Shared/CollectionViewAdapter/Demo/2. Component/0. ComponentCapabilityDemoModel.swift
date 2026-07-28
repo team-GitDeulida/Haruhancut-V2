@@ -130,10 +130,7 @@ enum ComponentCapabilityDemoKind: String {
 }
 
 /// 네 capability Component가 공통으로 표시하는 상태입니다.
-struct ComponentCapabilityDemoItem:
-    Identifiable,
-    Equatable
-{
+struct ComponentCapabilityDemoItem: Identifiable, Equatable {
     let kind: ComponentCapabilityDemoKind
     var isOn: Bool = true
 

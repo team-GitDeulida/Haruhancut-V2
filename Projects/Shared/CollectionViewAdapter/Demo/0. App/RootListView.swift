@@ -128,9 +128,7 @@ struct RootListView: View {
 
                 Section("Component") {
                     NavigationLink {
-                        ComponentCapabilityDemoViewController(
-                            kind: .touchable
-                        )
+                        ComponentCapabilityDemoViewController(kind: .touchable)
                         .toSwiftUI()
                     } label: {
                         CustomLabel(
@@ -141,9 +139,7 @@ struct RootListView: View {
                     }
 
                     NavigationLink {
-                        ComponentCapabilityDemoViewController(
-                            kind: .pressable
-                        )
+                        ComponentCapabilityDemoViewController(kind: .pressable)
                         .toSwiftUI()
                     } label: {
                         CustomLabel(
@@ -154,9 +150,7 @@ struct RootListView: View {
                     }
 
                     NavigationLink {
-                        ComponentCapabilityDemoViewController(
-                            kind: .longPressable
-                        )
+                        ComponentCapabilityDemoViewController(kind: .longPressable)
                         .toSwiftUI()
                     } label: {
                         CustomLabel(
@@ -167,9 +161,7 @@ struct RootListView: View {
                     }
 
                     NavigationLink {
-                        ComponentCapabilityDemoViewController(
-                            kind: .containsButton
-                        )
+                        ComponentCapabilityDemoViewController(kind: .containsButton)
                         .toSwiftUI()
                     } label: {
                         CustomLabel(
@@ -180,9 +172,7 @@ struct RootListView: View {
                     }
 
                     NavigationLink {
-                        ComponentCapabilityDemoViewController(
-                            kind: .containsSwitch
-                        )
+                        ComponentCapabilityDemoViewController(kind: .containsSwitch)
                         .toSwiftUI()
                     } label: {
                         CustomLabel(
@@ -192,7 +182,7 @@ struct RootListView: View {
                         )
                     }
                 }
-                
+
                 Section("CollectionView") {
                     
                     NavigationLink {

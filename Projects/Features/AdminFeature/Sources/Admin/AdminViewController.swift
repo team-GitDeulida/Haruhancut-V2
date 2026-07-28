@@ -241,9 +241,7 @@ final class AdminViewController:
                     ) {
                         component in
                         component
-                            .pressedEffect(
-                                scale: 0.98
-                            )
+                            .pressedEffect(scale: 0.98)
                             .onTouch {
                                 [weak self] in
                                 self?

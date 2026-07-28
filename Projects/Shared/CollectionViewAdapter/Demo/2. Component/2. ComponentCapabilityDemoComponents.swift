@@ -13,10 +13,7 @@ struct TouchableDemoComponent: Component {
         TouchableDemoContentView()
     }
 
-    func render(
-        context _: ComponentContext,
-        content: TouchableDemoContentView
-    ) {
+    func render(context _: ComponentContext, content: TouchableDemoContentView) {
         content.item = item
     }
 }
@@ -33,10 +30,7 @@ struct PressableDemoComponent: Component {
         PressableDemoContentView()
     }
 
-    func render(
-        context _: ComponentContext,
-        content: PressableDemoContentView
-    ) {
+    func render(context _: ComponentContext, content: PressableDemoContentView) {
         content.item = item
     }
 }
@@ -53,10 +47,7 @@ struct LongPressableDemoComponent: Component {
         LongPressableDemoContentView()
     }
 
-    func render(
-        context _: ComponentContext,
-        content: LongPressableDemoContentView
-    ) {
+    func render(context _: ComponentContext, content: LongPressableDemoContentView) {
         content.item = item
     }
 }
@@ -73,10 +64,7 @@ struct ContainsButtonDemoComponent: Component {
         ContainsButtonDemoContentView()
     }
 
-    func render(
-        context _: ComponentContext,
-        content: ContainsButtonDemoContentView
-    ) {
+    func render(context _: ComponentContext, content: ContainsButtonDemoContentView) {
         content.item = item
     }
 }
@@ -93,10 +81,7 @@ struct ContainsSwitchDemoComponent: Component {
         ContainsSwitchDemoContentView()
     }
 
-    func render(
-        context _: ComponentContext,
-        content: ContainsSwitchDemoContentView
-    ) {
+    func render(context _: ComponentContext, content: ContainsSwitchDemoContentView) {
         content.item = item
     }
 }

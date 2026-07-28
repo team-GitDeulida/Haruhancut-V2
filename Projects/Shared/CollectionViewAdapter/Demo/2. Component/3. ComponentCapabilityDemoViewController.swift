@@ -3,9 +3,7 @@ import UIKit
 
 /// 하나의 Component capability와 대응 modifier를 독립적으로 보여줍니다.
 @MainActor
-final class ComponentCapabilityDemoViewController:
-    UIViewController
-{
+final class ComponentCapabilityDemoViewController: UIViewController {
     private let kind: ComponentCapabilityDemoKind
 
     private var interactionCount = 0
@@ -40,9 +38,7 @@ final class ComponentCapabilityDemoViewController:
                 self.makeDemoComponent()
             }
             .withSectionLayout(
-                .verticalList(
-                    estimatedRowHeight: 164
-                )
+                .verticalList(estimatedRowHeight: 164)
             )
         }
     }
@@ -76,29 +72,22 @@ final class ComponentCapabilityDemoViewController:
         sectionTitleLabel.textColor = kind.accentColor
 
         summaryLabel.text = kind.summary
-        summaryLabel.font = .preferredFont(
-            forTextStyle: .title3
-        )
+        summaryLabel.font = .preferredFont(forTextStyle: .title3)
         summaryLabel.textColor = .label
         summaryLabel.numberOfLines = 0
         summaryLabel.adjustsFontForContentSizeCategory = true
 
         resultTitleLabel.text = "실행 결과"
-        resultTitleLabel.font = .preferredFont(
-            forTextStyle: .caption1
-        )
+        resultTitleLabel.font = .preferredFont(forTextStyle: .caption1)
         resultTitleLabel.textColor = .secondaryLabel
 
         resultLabel.text = kind.initialResult
-        resultLabel.font = .preferredFont(
-            forTextStyle: .body
-        )
+        resultLabel.font = .preferredFont(forTextStyle: .body)
         resultLabel.textColor = .label
         resultLabel.numberOfLines = 0
         resultLabel.adjustsFontForContentSizeCategory = true
 
-        resultView.backgroundColor =
-            kind.accentColor.withAlphaComponent(0.1)
+        resultView.backgroundColor = kind.accentColor.withAlphaComponent(0.1)
         resultView.layer.cornerRadius = 18
         resultView.layer.cornerCurve = .continuous
 
@@ -124,8 +113,7 @@ final class ComponentCapabilityDemoViewController:
 
     private func configureLayout() {
         rootStackView.translatesAutoresizingMaskIntoConstraints = false
-        resultStackView.translatesAutoresizingMaskIntoConstraints =
-            false
+        resultStackView.translatesAutoresizingMaskIntoConstraints = false
 
         collectionView.setContentHuggingPriority(
             .defaultLow,
@@ -198,9 +186,7 @@ final class ComponentCapabilityDemoViewController:
         case .longPressable:
             return AnyComponent(
                 LongPressableDemoComponent(item: item)
-                    .onLongPress(
-                        minimumDuration: 0.6
-                    ) { [weak self] in
+                    .onLongPress(minimumDuration: 0.6) { [weak self] in
                         self?.didLongPressCard()
                     }
             )
@@ -225,32 +211,22 @@ final class ComponentCapabilityDemoViewController:
 
     private func didTouchCard() {
         interactionCount += 1
-        updateResult(
-            "카드 전체 탭 이벤트를 \(interactionCount)번 받았습니다."
-        )
+        updateResult("카드 전체 탭 이벤트를 \(interactionCount)번 받았습니다.")
     }
 
     private func didLongPressCard() {
         interactionCount += 1
-        updateResult(
-            "Long press 이벤트를 \(interactionCount)번 받았습니다."
-        )
+        updateResult("Long press 이벤트를 \(interactionCount)번 받았습니다.")
     }
 
     private func didTapInnerButton() {
         interactionCount += 1
-        updateResult(
-            "내부 버튼 이벤트를 \(interactionCount)번 받았습니다."
-        )
+        updateResult("내부 버튼 이벤트를 \(interactionCount)번 받았습니다.")
     }
 
     private func didToggleSwitch(isOn: Bool) {
         isSwitchOn = isOn
-        updateResult(
-            isOn
-                ? "알림이 켜졌습니다."
-                : "알림이 꺼졌습니다."
-        )
+        updateResult(isOn ? "알림이 켜졌습니다." : "알림이 꺼졌습니다.")
         render(animatingDifferences: false)
     }
 
@@ -263,9 +239,7 @@ final class ComponentCapabilityDemoViewController:
         ) {}
     }
 
-    private func render(
-        animatingDifferences: Bool = true
-    ) {
+    private func render(animatingDifferences: Bool = true) {
         adapter.bind(
             sections,
             animatingDifferences: animatingDifferences

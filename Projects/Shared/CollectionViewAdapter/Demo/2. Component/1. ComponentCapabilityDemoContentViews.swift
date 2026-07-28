@@ -55,14 +55,12 @@ class ComponentCapabilityCardContentView: UIView {
             systemName: kind.symbolName
         )
         symbolView.tintColor = kind.accentColor
-        symbolBackgroundView.backgroundColor =
-            kind.accentColor.withAlphaComponent(0.14)
+        symbolBackgroundView.backgroundColor = kind.accentColor.withAlphaComponent(0.14)
         titleLabel.text = kind.cardTitle
         descriptionLabel.text = kind.cardDescription
         codeLabel.text = kind.code
         codeLabel.textColor = kind.accentColor
-        accessibilityLabel =
-            "\(kind.title), \(kind.cardTitle), \(kind.cardDescription)"
+        accessibilityLabel = "\(kind.title), \(kind.cardTitle), \(kind.cardDescription)"
     }
 
     private func configureView() {
@@ -77,11 +75,10 @@ class ComponentCapabilityCardContentView: UIView {
         symbolBackgroundView.isUserInteractionEnabled = false
 
         symbolView.contentMode = .scaleAspectFit
-        symbolView.preferredSymbolConfiguration =
-            UIImage.SymbolConfiguration(
-                pointSize: 23,
-                weight: .semibold
-            )
+        symbolView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(
+            pointSize: 23,
+            weight: .semibold
+        )
         symbolView.isUserInteractionEnabled = false
 
         titleLabel.font = .preferredFont(
@@ -95,8 +92,7 @@ class ComponentCapabilityCardContentView: UIView {
             forTextStyle: .subheadline
         )
         descriptionLabel.textColor = .secondaryLabel
-        descriptionLabel.adjustsFontForContentSizeCategory =
-            true
+        descriptionLabel.adjustsFontForContentSizeCategory = true
         descriptionLabel.numberOfLines = 0
 
         codeLabel.font = UIFontMetrics(
@@ -123,19 +119,15 @@ class ComponentCapabilityCardContentView: UIView {
         contentStackView.axis = .horizontal
         contentStackView.alignment = .center
         contentStackView.spacing = 14
-        contentStackView.addArrangedSubview(
-            symbolBackgroundView
-        )
+        contentStackView.addArrangedSubview(symbolBackgroundView)
         contentStackView.addArrangedSubview(textStackView)
         contentStackView.addArrangedSubview(accessoryStackView)
     }
 
     private func configureLayout() {
-        symbolBackgroundView.translatesAutoresizingMaskIntoConstraints =
-            false
+        symbolBackgroundView.translatesAutoresizingMaskIntoConstraints = false
         symbolView.translatesAutoresizingMaskIntoConstraints = false
-        contentStackView.translatesAutoresizingMaskIntoConstraints =
-            false
+        contentStackView.translatesAutoresizingMaskIntoConstraints = false
 
         addSubview(contentStackView)
         symbolBackgroundView.addSubview(symbolView)
@@ -186,10 +178,7 @@ class ComponentCapabilityCardContentView: UIView {
 }
 
 /// Content 전체 탭만 지원하는 예제입니다.
-final class TouchableDemoContentView:
-    ComponentCapabilityCardContentView,
-    Touchable
-{
+final class TouchableDemoContentView: ComponentCapabilityCardContentView, Touchable {
     private let touchImageView = UIImageView(
         image: UIImage(systemName: "hand.tap")
     )
@@ -200,11 +189,10 @@ final class TouchableDemoContentView:
         isAccessibilityElement = true
         accessibilityTraits = .button
         touchImageView.tintColor = .systemBlue
-        touchImageView.preferredSymbolConfiguration =
-            UIImage.SymbolConfiguration(
-                pointSize: 24,
-                weight: .medium
-            )
+        touchImageView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(
+            pointSize: 24,
+            weight: .medium
+        )
         touchImageView.isUserInteractionEnabled = false
         installAccessory(touchImageView)
 
@@ -225,10 +213,7 @@ final class TouchableDemoContentView:
 }
 
 /// 눌림 시각 효과만 지원하는 예제입니다.
-final class PressableDemoContentView:
-    ComponentCapabilityCardContentView,
-    Pressable
-{
+final class PressableDemoContentView: ComponentCapabilityCardContentView, Pressable {
     private let pressLabel = UILabel()
 
     override init(frame: CGRect) {
@@ -251,10 +236,7 @@ final class PressableDemoContentView:
 }
 
 /// Content 전체 long press만 지원하는 예제입니다.
-final class LongPressableDemoContentView:
-    ComponentCapabilityCardContentView,
-    LongPressable
-{
+final class LongPressableDemoContentView: ComponentCapabilityCardContentView, LongPressable {
     private let holdLabel = UILabel()
 
     override init(frame: CGRect) {
@@ -279,10 +261,7 @@ final class LongPressableDemoContentView:
 }
 
 /// Content 내부 UIButton 동작만 지원하는 예제입니다.
-final class ContainsButtonDemoContentView:
-    ComponentCapabilityCardContentView,
-    ContainsButton
-{
+final class ContainsButtonDemoContentView: ComponentCapabilityCardContentView, ContainsButton {
     let buttonTapEvent = ComponentEvent<Void>()
 
     private let actionButton = UIButton(type: .system)
@@ -322,10 +301,7 @@ final class ContainsButtonDemoContentView:
 }
 
 /// Content 내부 UISwitch 동작만 지원하는 예제입니다.
-final class ContainsSwitchDemoContentView:
-    ComponentCapabilityCardContentView,
-    ContainsSwitch
-{
+final class ContainsSwitchDemoContentView: ComponentCapabilityCardContentView, ContainsSwitch {
     let switchToggleEvent = ComponentEvent<Bool>()
 
     private let toggle = UISwitch()
