@@ -11,64 +11,18 @@ Cell 등록, Section 구성과 Compositional Layout 연결을 하나의 흐름�
 Diffable snapshot으로 변환하고, Cell 재사용과 supplementary view,
 layout, scroll event를 관리합니다.
 
-## 왜 만들었나요?
-
-### Collection View 화면은 책임이 빠르게 늘어납니다
-
-간단한 목록은 `UICollectionViewDiffableDataSource`만으로도 충분합니다.
-하지만 화면에 Header와 Footer, 서로 다른 Section layout, self-sizing,
-prefetch와 pagination이 함께 들어오면 ViewController가 알아야 할 것이
-많아집니다.
-
-- Cell과 supplementary view를 등록하고 concrete 타입으로 캐스팅합니다.
-- 화면 상태를 snapshot과 layout에 각각 반영합니다.
-- Item 변경과 재사용 시점에 맞춰 이벤트와 비동기 작업을 다시 연결합니다.
-- prefetch의 `IndexPath`를 실제 모델과 연결하고 취소 시점을 관리합니다.
-- Section마다 세로 목록, 가로 Carousel, Grid를 별도로 구성합니다.
-
-이 책임이 화면마다 반복되면 같은 연결 코드가 늘고, Item의 identity와
-화면 상태를 추적하기 어려워집니다.
-
-### 화면 선언과 UIKit 렌더링을 나눕니다
-
-CollectionViewAdapter에서는 화면 상태를 다음 세 단계로 나눕니다.
-
-1. `Component`가 Item을 어떤 `UIView`로 표시할지 정의합니다.
-2. `LazySection`이 Component와 Header, Footer, layout을 묶습니다.
-3. `CollectionViewAdapter`가 Section tree를 Collection View에 반영합니다.
-
-ViewController는 concrete `UICollectionViewCell`을 등록하거나
-Data Source에서 타입을 분기하지 않습니다. Adapter가 Component 타입에
-맞는 generic container를 등록하고, 재사용한 Content에는 최신 Item을
-다시 `render`합니다.
-
-### 여러 Collection View에 같은 구성 방식을 적용합니다
-
-CollectionViewAdapter는 UIKit 기반의 여러 Collection View 화면에서
-반복되는 등록, Section 구성, layout 연결과 snapshot 갱신을 공용 모듈로
-해결합니다.
-
-| 화면 요구사항 | CollectionViewAdapter가 맡는 역할 |
-| --- | --- |
-| 화면마다 다른 Cell과 supplementary view | `Component` 타입에 맞는 container를 등록하고 재사용합니다. |
-| Section마다 다른 목록, Grid와 Carousel | Section DSL과 `CollectionSectionLayout`으로 layout을 함께 선언합니다. |
-| 상태 변경에 따른 화면 갱신 | stable identity를 기준으로 diffable snapshot을 생성하고 반영합니다. |
-| 여러 화면에서 반복되는 prefetch와 pagination | 모델 식별자 기반 callback과 끝 도달 시점을 일관된 API로 제공합니다. |
-
-각 ViewController는 화면에 필요한 Component와 Section 구조에 집중하고,
-Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
-
 ## 목차
 
 - [지원 사양](#지원-사양)
-- [기능 지원표](#기능-지원표)
-- [모듈 연결](#모듈-연결)
-- [Core 구조](#core-구조)
 - [ReadmeCapture](#readmecapture)
   - [Vertical](#vertical)
   - [Grid](#grid)
   - [Horizontal + Vertical](#horizontal--vertical)
   - [Component를 SwiftUI에서 바로 사용하기](#component를-swiftui에서-바로-사용하기)
+- [왜 만들었나요?](#왜-만들었나요)
+- [기능 지원표](#기능-지원표)
+- [모듈 연결](#모듈-연결)
+- [Core 구조](#core-구조)
 - [핵심 개념](#핵심-개념)
   - [Component 상호작용 capability](#component-상호작용-capability)
 - [트러블슈팅](#트러블슈팅)
@@ -87,89 +41,6 @@ Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
 | 모듈 구성 | Tuist framework target |
 
 Framework, Tests, Demo target 모두 iOS 17부터 지원합니다.
-
-## 기능 지원표
-
-| 기능 | API | 역할 |
-| --- | --- | --- |
-| 선언형 Item | `Component` | `Identifiable & Equatable` Item을 `UIView` 생성·렌더링 규칙과 연결합니다. |
-| 선언형 Section | `SectionModels`, `LazySection`, `For(of:)` | Section과 Component를 상태에서 선언합니다. |
-| Header / Footer | `withHeader`, `withFooter` | 일반 Component를 boundary supplementary view로 재사용합니다. |
-| 세로 목록 | `.verticalList` | self-sizing 단일 열 목록을 구성합니다. |
-| Grid | `.grid` | 같은 너비의 여러 열을 구성합니다. |
-| 가로 목록 | `.horizontalCarousel` | orthogonal scrolling Section을 구성합니다. |
-| Custom layout | `CollectionSectionLayout` initializer | `NSCollectionLayoutSection`을 직접 만듭니다. |
-| 상태 갱신 | `bind(_:animatingDifferences:)` | Section tree를 새 Diffable snapshot으로 반영합니다. |
-| Component 이벤트 | `onTouch`, `pressedEffect`, `onLongPress`, `onButtonTap`, `onToggle` | Content가 채택한 capability에 필요한 동작만 합성합니다. |
-| 표시 lifecycle | `willDisplayItem`, `ComponentContext` | 표시 시점과 render 단위 작업 수명을 연결합니다. |
-| Prefetch | `prefetchItems`, `cancelPrefetchingItems` | `IndexPath`와 stable Section·Item ID를 함께 전달합니다. |
-| 전체 Pagination | `reachedEnd` | Collection View 끝 접근 영역에 들어올 때 알립니다. |
-| Section Pagination | `onReachedEnd` | 가로 Carousel Section의 끝 접근을 독립적으로 알립니다. |
-| SwiftUI 연결 | `ComponentView`, `ComponentRepresenting` | UIKit Component를 SwiftUI View hierarchy에서 재사용합니다. |
-
-## 모듈 연결
-
-사용할 feature target의 `Project.swift`에
-`CollectionViewAdapter` project dependency를 추가합니다.
-
-```swift
-dependencies: [
-    .project(
-        target: "CollectionViewAdapter",
-        path: "../../Shared/CollectionViewAdapter"
-    ),
-]
-```
-
-프로젝트를 다시 생성한 뒤 모듈을 import합니다.
-
-```bash
-tuist generate
-```
-
-```swift
-import CollectionViewAdapter
-```
-
-## Core 구조
-
-```text
-화면 상태
-   ↓
-SectionModels
-└─ LazySection
-   ├─ Header / Footer Component
-   ├─ Item Component
-   └─ CollectionSectionLayout
-            ↓
-CollectionViewAdapter
-├─ UICollectionViewDiffableDataSource
-├─ CollectionViewLayoutAdapter
-├─ generic ContainerCell<Component>
-├─ supplementary provider
-└─ delegate · prefetch · scroll callback
-            ↓
-UICollectionView
-```
-
-### Cell 의존성 흐름
-
-화면마다 구체적인 `UICollectionViewCell`을 만들고 연결하는 대신,
-ViewController는 Section과 Component를 선언합니다. Adapter는
-`AnyComponent`와 snapshot을 관리하고, generic `ContainerCell`이
-Component의 `UIView` 생성과 render 생명주기를 처리합니다.
-
-<p align="center">
-  <img width="100%" alt="CollectionViewAdapter Cell dependency flow" src="docs/images/readme/cell-dependency-flow.svg">
-</p>
-
-`Component.Item.ID`는 Diffable Item identity로 사용합니다. 서로 다른
-Section에서는 같은 원본 Item ID를 재사용할 수 있도록 Adapter가 내부적으로
-Section ID와 Item ID를 함께 묶습니다.
-
-같은 ID의 Item이 새 상태에서 유지되면 `Equatable` 값과 Component 연결
-상태를 비교합니다. Content 타입이 같고 표시 값만 달라지면
-`reconfigureItems`로 갱신하고, container 타입이 바뀌면 reload합니다.
 
 ## ReadmeCapture
 
@@ -390,6 +261,136 @@ struct AccountStack: View {
 Collection View에서 사용할 때는 같은 Component를 `LazySection`에 넣고,
 SwiftUI에서는 `VStack`, `ForEach` 같은 View 구성 안에 직접 넣습니다.
 두 환경 모두 같은 `createContent`와 `render` 계약을 사용합니다.
+
+## 왜 만들었나요?
+
+### Collection View 화면은 책임이 빠르게 늘어납니다
+
+간단한 목록은 `UICollectionViewDiffableDataSource`만으로도 충분합니다.
+하지만 화면에 Header와 Footer, 서로 다른 Section layout, self-sizing,
+prefetch와 pagination이 함께 들어오면 ViewController가 알아야 할 것이
+많아집니다.
+
+- Cell과 supplementary view를 등록하고 concrete 타입으로 캐스팅합니다.
+- 화면 상태를 snapshot과 layout에 각각 반영합니다.
+- Item 변경과 재사용 시점에 맞춰 이벤트와 비동기 작업을 다시 연결합니다.
+- prefetch의 `IndexPath`를 실제 모델과 연결하고 취소 시점을 관리합니다.
+- Section마다 세로 목록, 가로 Carousel, Grid를 별도로 구성합니다.
+
+이 책임이 화면마다 반복되면 같은 연결 코드가 늘고, Item의 identity와
+화면 상태를 추적하기 어려워집니다.
+
+### 화면 선언과 UIKit 렌더링을 나눕니다
+
+CollectionViewAdapter에서는 화면 상태를 다음 세 단계로 나눕니다.
+
+1. `Component`가 Item을 어떤 `UIView`로 표시할지 정의합니다.
+2. `LazySection`이 Component와 Header, Footer, layout을 묶습니다.
+3. `CollectionViewAdapter`가 Section tree를 Collection View에 반영합니다.
+
+ViewController는 concrete `UICollectionViewCell`을 등록하거나
+Data Source에서 타입을 분기하지 않습니다. Adapter가 Component 타입에
+맞는 generic container를 등록하고, 재사용한 Content에는 최신 Item을
+다시 `render`합니다.
+
+### 여러 Collection View에 같은 구성 방식을 적용합니다
+
+CollectionViewAdapter는 UIKit 기반의 여러 Collection View 화면에서
+반복되는 등록, Section 구성, layout 연결과 snapshot 갱신을 공용 모듈로
+해결합니다.
+
+| 화면 요구사항 | CollectionViewAdapter가 맡는 역할 |
+| --- | --- |
+| 화면마다 다른 Cell과 supplementary view | `Component` 타입에 맞는 container를 등록하고 재사용합니다. |
+| Section마다 다른 목록, Grid와 Carousel | Section DSL과 `CollectionSectionLayout`으로 layout을 함께 선언합니다. |
+| 상태 변경에 따른 화면 갱신 | stable identity를 기준으로 diffable snapshot을 생성하고 반영합니다. |
+| 여러 화면에서 반복되는 prefetch와 pagination | 모델 식별자 기반 callback과 끝 도달 시점을 일관된 API로 제공합니다. |
+
+각 ViewController는 화면에 필요한 Component와 Section 구조에 집중하고,
+Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
+
+## 기능 지원표
+
+| 기능 | API | 역할 |
+| --- | --- | --- |
+| 선언형 Item | `Component` | `Identifiable & Equatable` Item을 `UIView` 생성·렌더링 규칙과 연결합니다. |
+| 선언형 Section | `SectionModels`, `LazySection`, `For(of:)` | Section과 Component를 상태에서 선언합니다. |
+| Header / Footer | `withHeader`, `withFooter` | 일반 Component를 boundary supplementary view로 재사용합니다. |
+| 세로 목록 | `.verticalList` | self-sizing 단일 열 목록을 구성합니다. |
+| Grid | `.grid` | 같은 너비의 여러 열을 구성합니다. |
+| 가로 목록 | `.horizontalCarousel` | orthogonal scrolling Section을 구성합니다. |
+| Custom layout | `CollectionSectionLayout` initializer | `NSCollectionLayoutSection`을 직접 만듭니다. |
+| 상태 갱신 | `bind(_:animatingDifferences:)` | Section tree를 새 Diffable snapshot으로 반영합니다. |
+| Component 이벤트 | `onTouch`, `pressedEffect`, `onLongPress`, `onButtonTap`, `onToggle` | Content가 채택한 capability에 필요한 동작만 합성합니다. |
+| 표시 lifecycle | `willDisplayItem`, `ComponentContext` | 표시 시점과 render 단위 작업 수명을 연결합니다. |
+| Prefetch | `prefetchItems`, `cancelPrefetchingItems` | `IndexPath`와 stable Section·Item ID를 함께 전달합니다. |
+| 전체 Pagination | `reachedEnd` | Collection View 끝 접근 영역에 들어올 때 알립니다. |
+| Section Pagination | `onReachedEnd` | 가로 Carousel Section의 끝 접근을 독립적으로 알립니다. |
+| SwiftUI 연결 | `ComponentView`, `ComponentRepresenting` | UIKit Component를 SwiftUI View hierarchy에서 재사용합니다. |
+
+## 모듈 연결
+
+사용할 feature target의 `Project.swift`에
+`CollectionViewAdapter` project dependency를 추가합니다.
+
+```swift
+dependencies: [
+    .project(
+        target: "CollectionViewAdapter",
+        path: "../../Shared/CollectionViewAdapter"
+    ),
+]
+```
+
+프로젝트를 다시 생성한 뒤 모듈을 import합니다.
+
+```bash
+tuist generate
+```
+
+```swift
+import CollectionViewAdapter
+```
+
+## Core 구조
+
+```text
+화면 상태
+   ↓
+SectionModels
+└─ LazySection
+   ├─ Header / Footer Component
+   ├─ Item Component
+   └─ CollectionSectionLayout
+            ↓
+CollectionViewAdapter
+├─ UICollectionViewDiffableDataSource
+├─ CollectionViewLayoutAdapter
+├─ generic ContainerCell<Component>
+├─ supplementary provider
+└─ delegate · prefetch · scroll callback
+            ↓
+UICollectionView
+```
+
+### Cell 의존성 흐름
+
+화면마다 구체적인 `UICollectionViewCell`을 만들고 연결하는 대신,
+ViewController는 Section과 Component를 선언합니다. Adapter는
+`AnyComponent`와 snapshot을 관리하고, generic `ContainerCell`이
+Component의 `UIView` 생성과 render 생명주기를 처리합니다.
+
+<p align="center">
+  <img width="100%" alt="CollectionViewAdapter Cell dependency flow" src="docs/images/readme/cell-dependency-flow.svg">
+</p>
+
+`Component.Item.ID`는 Diffable Item identity로 사용합니다. 서로 다른
+Section에서는 같은 원본 Item ID를 재사용할 수 있도록 Adapter가 내부적으로
+Section ID와 Item ID를 함께 묶습니다.
+
+같은 ID의 Item이 새 상태에서 유지되면 `Equatable` 값과 Component 연결
+상태를 비교합니다. Content 타입이 같고 표시 값만 달라지면
+`reconfigureItems`로 갱신하고, container 타입이 바뀌면 reload합니다.
 
 ## 핵심 개념
 
