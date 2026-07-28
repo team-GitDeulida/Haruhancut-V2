@@ -1,11 +1,40 @@
 import CollectionViewAdapter
 import UIKit
 
-/// Content가 채택한 capability에 필요한 modifier만 합성합니다.
+/// 하나의 Section에 카드를 Vertical 목록으로 배치합니다.
 @MainActor
-final class READMEComponentModifiersViewController:
+final class ReadmeVerticalViewController:
     UIViewController {
-    private var isSwitchOn = true
+    private let items: [GridDemoContentView.Item] = [
+        .init(
+            id: "morning",
+            title: "아침",
+            subtitle: "하루를 시작한 첫 장면",
+            symbolName: "sun.max.fill",
+            isFavorite: true
+        ),
+        .init(
+            id: "meal",
+            title: "한 끼",
+            subtitle: "기억하고 싶은 오늘의 맛",
+            symbolName: "fork.knife",
+            isFavorite: false
+        ),
+        .init(
+            id: "walk",
+            title: "산책",
+            subtitle: "걷다가 발견한 풍경",
+            symbolName: "figure.walk",
+            isFavorite: true
+        ),
+        .init(
+            id: "night",
+            title: "밤",
+            subtitle: "하루를 마무리한 장면",
+            symbolName: "moon.stars.fill",
+            isFavorite: false
+        )
+    ]
 
     private lazy var collectionView: UICollectionView = {
         let collectionView = UICollectionView(
@@ -15,13 +44,13 @@ final class READMEComponentModifiersViewController:
         )
         collectionView.backgroundColor =
             .systemGroupedBackground
-        collectionView.alwaysBounceVertical = true
         collectionView.contentInset = UIEdgeInsets(
-            top: 20,
+            top: 18,
             left: 0,
-            bottom: 28,
+            bottom: 32,
             right: 0
         )
+        collectionView.alwaysBounceVertical = true
         collectionView.translatesAutoresizingMaskIntoConstraints =
             false
         return collectionView
@@ -33,39 +62,19 @@ final class READMEComponentModifiersViewController:
 
     private var sections: SectionModels {
         SectionModels {
-            LazySection(identifier: "modifiers") {
-                TouchableDemoComponent(
-                    item: .init(kind: .touchable)
-                )
-                .onTouch {}
-
-                PressableDemoComponent(
-                    item: .init(kind: .pressable)
-                )
-                .pressedEffect(scale: 0.94)
-
-                ContainsSwitchDemoComponent(
-                    item: .init(
-                        kind: .containsSwitch,
-                        isOn: self.isSwitchOn
-                    )
-                )
-                .onToggle { [weak self] isOn in
-                    self?.isSwitchOn = isOn
-                    self?.render(
-                        animatingDifferences: false
-                    )
+            LazySection(identifier: "vertical") {
+                For(of: self.items) { item in
+                    GridDemoComponent(item: item)
                 }
             }
             .withSectionLayout(
                 .verticalList(
-                    estimatedRowHeight: 164,
-                    spacing: 14,
+                    spacing: 12,
                     contentInsets:
                         NSDirectionalEdgeInsets(
                             top: 0,
                             leading: 20,
-                            bottom: 0,
+                            bottom: 24,
                             trailing: 20
                         )
                 )
@@ -93,15 +102,9 @@ final class READMEComponentModifiersViewController:
             )
         ])
 
-        render(animatingDifferences: false)
-    }
-
-    private func render(
-        animatingDifferences: Bool
-    ) {
         adapter.bind(
             sections,
-            animatingDifferences: animatingDifferences
+            animatingDifferences: false
         )
     }
 }

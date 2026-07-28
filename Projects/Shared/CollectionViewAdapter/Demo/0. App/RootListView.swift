@@ -286,7 +286,7 @@ struct RootListView: View {
                     }
                 }
 
-                READMEExampleSections()
+                ReadmeCaptureSection()
             }
             .navigationTitle("Adapter Demo")
         }
@@ -294,11 +294,11 @@ struct RootListView: View {
     }
 }
 
-private struct READMEExampleSections: View {
+private struct ReadmeCaptureSection: View {
     var body: some View {
-        Section("README Examples") {
+        Section("ReadmeCapture") {
             ForEach(
-                READMEExampleRoute.allCases,
+                ReadmeCaptureRoute.allCases,
                 id: \.self
             ) { route in
                 NavigationLink {
@@ -313,11 +313,6 @@ private struct READMEExampleSections: View {
             }
         }
 
-        Section("Next Examples") {
-            Text("새 예제는 NavigationLink를 추가해 확장할 수 있습니다.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
     }
 }
 

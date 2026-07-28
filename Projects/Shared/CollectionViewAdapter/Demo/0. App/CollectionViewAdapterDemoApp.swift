@@ -2,13 +2,13 @@ import SwiftUI
 
 @main
 struct CollectionViewAdapterDemoApp: App {
-    private var readmeExample:
-        READMEExampleRoute? {
+    private var readmeCapture:
+        ReadmeCaptureRoute? {
         let arguments =
             ProcessInfo.processInfo.arguments
         guard
             let flagIndex = arguments.firstIndex(
-                of: "--readme-example"
+                of: "--readme-capture"
             ),
             arguments.indices.contains(
                 flagIndex + 1
@@ -17,16 +17,16 @@ struct CollectionViewAdapterDemoApp: App {
             return nil
         }
 
-        return READMEExampleRoute(
+        return ReadmeCaptureRoute(
             rawValue: arguments[flagIndex + 1]
         )
     }
 
     @ViewBuilder
     private var rootView: some View {
-        if let readmeExample {
-            READMEExampleCaptureRootView(
-                route: readmeExample
+        if let readmeCapture {
+            ReadmeCaptureRootView(
+                route: readmeCapture
             )
         } else {
             RootListView()

@@ -64,12 +64,10 @@ Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
 - [기능 지원표](#기능-지원표)
 - [모듈 연결](#모듈-연결)
 - [Core 구조](#core-구조)
-- [빠른 시작](#빠른-시작)
-- [Section마다 레이아웃 구성하기](#section마다-레이아웃-구성하기)
-- [상태를 새 snapshot으로 갱신하기](#상태를-새-snapshot으로-갱신하기)
-- [Component에 상호작용 합성하기](#component에-상호작용-합성하기)
-- [Prefetch와 Pagination 연결하기](#prefetch와-pagination-연결하기)
-- [SwiftUI에서 Component 재사용하기](#swiftui에서-component-재사용하기)
+- [ReadmeCapture](#readmecapture)
+  - [List](#list)
+  - [Vertical](#vertical)
+  - [Horizontal + Vertical](#horizontal--vertical)
 - [핵심 개념](#핵심-개념)
 - [트러블슈팅](#트러블슈팅)
 - [Demo 실행하기](#demo-실행하기)
@@ -171,13 +169,16 @@ Section ID와 Item ID를 함께 묶습니다.
 상태를 비교합니다. Content 타입이 같고 표시 값만 달라지면
 `reconfigureItems`로 갱신하고, container 타입이 바뀌면 reload합니다.
 
-## 빠른 시작
+## ReadmeCapture
 
-### Component와 Section을 선언합니다
+Demo 앱의 `ReadmeCapture` Section은 레이아웃 차이가 바로 보이는 세 가지
+예제로 구성됩니다. 모든 화면은 같은 `Component`, `LazySection`,
+`CollectionViewAdapter` 조합을 사용하고 Section layout만 다르게 선언합니다.
 
-`Component`는 Item에 맞는 `UIView`를 만들고 최신 상태를 반영하는
-최소 단위입니다. `createContent`는 container가 Content를 처음 만들 때
-호출되고, 재사용한 Content에는 `render`가 다시 호출됩니다.
+### List
+
+가장 단순한 단일 Section 목록입니다. 각 모델을 `AccountRowComponent`로
+변환하고 `.verticalList`로 위에서 아래로 배치합니다.
 
 <table>
 <tr><th>Source</th><th>Result</th></tr>
@@ -188,83 +189,42 @@ Section ID와 Item ID를 함께 묶습니다.
 import CollectionViewAdapter
 import UIKit
 
-struct Account: Identifiable, Equatable {
-    let id: String
-    let name: String
-    let balance: String
-}
-
-struct AccountComponent: Component {
-    let item: Account
-
-    var estimatedHeight: CGFloat { 84 }
-
-    func createContent() -> AccountContentView {
-        AccountContentView()
-    }
-
-    func render(
-        context: ComponentContext,
-        content: AccountContentView
-    ) {
-        content.configure(with: item)
-    }
-}
-
-let collectionView = UICollectionView(
-    frame: .zero,
-    collectionViewLayout:
-        UICollectionViewFlowLayout()
-)
-let adapter = CollectionViewAdapter(
-    collectionView: collectionView
-)
-
 let sections = SectionModels {
     LazySection(identifier: "accounts") {
         For(of: accounts) { account in
-            AccountComponent(item: account)
-                .onTouch {
-                    showAccount(account)
-                }
+            AccountRowComponent(item: account)
         }
     }
-    .withHeader(
-        TitleComponent(
-            item: .init(
-                id: "accounts-header",
-                title: "오늘의 계좌"
+    .withSectionLayout(
+        .verticalList(
+            spacing: 10,
+            contentInsets: .init(
+                top: 20,
+                leading: 20,
+                bottom: 20,
+                trailing: 20
             )
         )
     )
-    .withSectionLayout(
-        .verticalList(spacing: 0)
-    )
 }
 
-adapter.bind(
-    sections,
-    animatingDifferences: false
-)
+adapter.bind(sections)
 ```
 
 </td>
 <td width="35%" align="center">
 
-<img width="280" alt="CollectionViewAdapter quick start" src="docs/images/readme/quick-start.png">
+<img width="280" alt="CollectionViewAdapter list example" src="docs/images/readme/list.png">
 
 </td>
 </tr>
 </table>
 
-`bind`는 Rx의 binding API가 아닙니다. 전달한 Section tree를 즉시 resolve하고
-새 Diffable snapshot으로 적용하는 CollectionViewAdapter의 API입니다.
+### Vertical
 
-## Section마다 레이아웃 구성하기
-
-하나의 Collection View 안에서 Section마다 다른
-`CollectionSectionLayout`을 선택할 수 있습니다. Header와 Footer는
-Component가 UI를 만들고, 배치와 고정 여부는 Section layout이 결정합니다.
+카드 Component도 별도의 Cell subclass 없이 같은 방식으로 세로 배치할 수
+있습니다. Component의 `estimatedHeight`를 기준으로 self-sizing하며,
+간격과 바깥 여백은 Section layout이 담당합니다.
 
 <table>
 <tr><th>Source</th><th>Result</th></tr>
@@ -273,56 +233,17 @@ Component가 UI를 만들고, 배치와 고정 여부는 Section layout이 결�
 
 ```swift
 let sections = SectionModels {
-    LazySection(identifier: "featured") {
-        For(of: featured) { item in
+    LazySection(identifier: "cards") {
+        For(of: cards) { item in
             PhotoCardComponent(item: item)
         }
     }
-    .withHeader(
-        TitleComponent(
-            item: .init(
-                id: "featured-header",
-                title: "가로 Carousel"
-            )
-        )
-    )
     .withSectionLayout(
-        .horizontalCarousel(
-            itemWidth: 0.68,
-            estimatedHeight: 178,
-            spacing: 12,
-            behavior:
-                .continuousGroupLeadingBoundary,
-            contentInsets: .init(
-                top: 6,
-                leading: 20,
-                bottom: 18,
-                trailing: 20
-            )
-        )
-    )
-
-    LazySection(identifier: "topics") {
-        For(of: topics) { item in
-            PhotoCardComponent(item: item)
-        }
-    }
-    .withHeader(
-        TitleComponent(
-            item: .init(
-                id: "topics-header",
-                title: "2열 Grid"
-            )
-        )
-    )
-    .withSectionLayout(
-        .grid(
-            columns: 2,
+        .verticalList(
             estimatedRowHeight: 178,
-            interItemSpacing: 12,
-            lineSpacing: 12,
+            spacing: 12,
             contentInsets: .init(
-                top: 6,
+                top: 20,
                 leading: 20,
                 bottom: 24,
                 trailing: 20
@@ -337,333 +258,84 @@ adapter.bind(sections)
 </td>
 <td width="35%" align="center">
 
-<img width="280" alt="Carousel and grid section layouts" src="docs/images/readme/section-layouts.png">
+<img width="280" alt="CollectionViewAdapter vertical example" src="docs/images/readme/vertical.png">
 
 </td>
 </tr>
 </table>
 
-기본 layout은 세 종류입니다.
+### Horizontal + Vertical
 
-| Layout | 주요 설정 | 사용 시점 |
-| --- | --- | --- |
-| `.verticalList` | 추정 행 높이, 행 간격, inset | self-sizing 단일 열 목록 |
-| `.grid` | 열 수, 열·행 간격, inset | 같은 너비의 다중 열 |
-| `.horizontalCarousel` | Item 너비 비율, 가로 스크롤 방식, inset | 카드 Carousel과 Section별 pagination |
+한 Collection View 안에서 Section마다 서로 다른 스크롤 방향을 선언할 수
+있습니다. 첫 번째 Section은 가로 Carousel로 움직이고, 두 번째 Section은
+일반 세로 목록으로 이어집니다.
 
-직접 `NSCollectionLayoutSection`을 만들어야 한다면 custom initializer를
-사용합니다.
+<table>
+<tr><th>Source</th><th>Result</th></tr>
+<tr>
+<td width="65%">
 
 ```swift
-let customLayout = CollectionSectionLayout { context in
-    let height = max(
-        1,
-        context.maximumEstimatedItemHeight
+let sections = SectionModels {
+    LazySection(identifier: "featured") {
+        For(of: featured) { item in
+            PhotoCardComponent(item: item)
+        }
+    }
+    .withHeader(
+        TitleComponent(title: "Horizontal")
     )
-    // context.itemCount와 height로
-    // NSCollectionLayoutSection을 만듭니다.
-    return section
-}
-```
-
-## 상태를 새 snapshot으로 갱신하기
-
-화면 상태가 바뀌면 같은 Section DSL을 다시 만들고 `bind`하세요.
-Adapter가 현재 snapshot과 새 snapshot의 stable ID를 비교해 insert,
-delete, move와 기존 Item의 content 변경을 반영합니다.
-
-<table>
-<tr><th>Source</th><th>Result</th></tr>
-<tr>
-<td width="65%">
-
-```swift
-final class AccountViewController:
-    UIViewController
-{
-    private var accounts: [Account] = []
-
-    private var sections: SectionModels {
-        SectionModels {
-            LazySection(identifier: "accounts") {
-                For(of: self.accounts) { account in
-                    AccountComponent(
-                        item: account
-                    )
-                }
-            }
-            .withSectionLayout(
-                .verticalList(spacing: 10)
+    .withSectionLayout(
+        .horizontalCarousel(
+            itemWidth: 0.72,
+            estimatedHeight: 178,
+            spacing: 12,
+            behavior: .continuousGroupLeadingBoundary,
+            contentInsets: .init(
+                top: 8,
+                leading: 20,
+                bottom: 24,
+                trailing: 20
             )
+        )
+    )
+
+    LazySection(identifier: "accounts") {
+        For(of: accounts) { account in
+            AccountRowComponent(item: account)
         }
     }
-
-    private func applyNextSnapshot() {
-        accounts = [
-            .init(
-                id: "travel",
-                name: "여행 적금",
-                balance: "1,950,000원"
-            ),
-            .init(
-                id: "daily",
-                name: "생활비 통장",
-                balance: "2,310,000원"
-            ),
-            .init(
-                id: "investment",
-                name: "투자 계좌",
-                balance: "3,080,000원"
-            ),
-        ]
-
-        adapter.bind(
-            sections,
-            animatingDifferences: true
+    .withHeader(
+        TitleComponent(title: "Vertical")
+    )
+    .withSectionLayout(
+        .verticalList(
+            spacing: 10,
+            contentInsets: .init(
+                top: 8,
+                leading: 20,
+                bottom: 24,
+                trailing: 20
+            )
         )
-    }
+    )
 }
+
+adapter.bind(sections)
 ```
 
 </td>
 <td width="35%" align="center">
 
-<img width="280" alt="Diffable snapshot update" src="docs/images/readme/snapshot-updates.png">
+<img width="280" alt="CollectionViewAdapter horizontal and vertical sections example" src="docs/images/readme/mixed-sections.png">
 
 </td>
 </tr>
 </table>
 
-Item ID는 위치가 아니라 모델의 identity여야 합니다. 정렬이 바뀌어도 같은
-데이터라면 같은 ID를 유지하세요. 같은 ID의 Item 값이 달라지면 기존
-container를 유지한 채 최신 Component를 다시 렌더링합니다.
-
-## Component에 상호작용 합성하기
-
-상호작용은 모든 Component의 공통 요구사항이 아닙니다. Content가 필요한
-capability를 채택하고, Component 구성 지점에서 대응 modifier를 붙입니다.
-
-<table>
-<tr><th>Source</th><th>Result</th></tr>
-<tr>
-<td width="65%">
-
-```swift
-final class SettingContentView:
-    UIView,
-    Touchable,
-    Pressable,
-    ContainsSwitch
-{
-    let switchToggleEvent =
-        ComponentEvent<Bool>()
-
-    // View와 UISwitch 구성
-}
-
-struct SettingComponent: Component {
-    let item: Setting
-
-    func createContent()
-        -> SettingContentView
-    {
-        SettingContentView()
-    }
-
-    func render(
-        context: ComponentContext,
-        content: SettingContentView
-    ) {
-        content.configure(with: item)
-    }
-}
-
-SettingComponent(item: setting)
-    .pressedEffect(scale: 0.94)
-    .onTouch {
-        openSetting()
-    }
-    .onToggle { isOn in
-        updateNotification(isOn)
-    }
-```
-
-</td>
-<td width="35%" align="center">
-
-<img width="280" alt="Component interaction modifiers" src="docs/images/readme/component-modifiers.png">
-
-</td>
-</tr>
-</table>
-
-| Capability | Modifier | 이벤트 대상 |
-| --- | --- | --- |
-| `Touchable` | `.onTouch` | Content 전체 tap |
-| `Pressable` | `.pressedEffect` | 누르는 동안 scale 효과 |
-| `LongPressable` | `.onLongPress` | Content 전체 long press |
-| `ContainsButton` | `.onButtonTap` | Content 내부 button |
-| `ContainsSwitch` | `.onToggle` | Content 내부 switch 값 |
-
-modifier는 원본과 같은 Content를 사용합니다. 이벤트 observation은
-`ComponentContext.cancellationBag`에 저장되고, Item이 다시 렌더링되거나
-화면에서 사라지면 이전 연결을 취소합니다.
-
-## Prefetch와 Pagination 연결하기
-
-Prefetch callback은 `IndexPath`뿐 아니라 Section과 Item의 stable ID를
-함께 전달합니다. snapshot update로 위치가 바뀔 수 있는 화면에서는
-`itemIdentifier`로 실제 작업을 식별하세요.
-
-<table>
-<tr><th>Source</th><th>Result</th></tr>
-<tr>
-<td width="65%">
-
-```swift
-let adapter = CollectionViewAdapter(
-    collectionView: collectionView
-)
-
-adapter.prefetchItems = { items in
-    for item in items {
-        imageLoader.prefetch(
-            id: item.itemIdentifier
-        )
-    }
-}
-
-adapter.cancelPrefetchingItems = { items in
-    for item in items {
-        imageLoader.cancel(
-            id: item.itemIdentifier
-        )
-    }
-}
-
-adapter.reachedEndThreshold =
-    .relativeToViewport(1.2)
-
-adapter.reachedEnd = { [weak self] in
-    self?.loadNextPage()
-}
-
-private func loadNextPage() {
-    guard !isLoading else { return }
-    isLoading = true
-
-    repository.loadNextPage {
-        [weak self] newItems in
-        guard let self else { return }
-
-        items.append(contentsOf: newItems)
-        isLoading = false
-        adapter.bind(
-            sections,
-            animatingDifferences: false
-        )
-    }
-}
-```
-
-</td>
-<td width="35%" align="center">
-
-<img width="280" alt="Prefetch and pagination callbacks" src="docs/images/readme/prefetch-pagination.png">
-
-</td>
-</tr>
-</table>
-
-`reachedEnd`는 threshold 영역에 진입할 때 한 번 호출됩니다. 영역을
-벗어났다가 다시 들어오면 다음 callback을 전달합니다. callback 내부에는
-별도의 `isLoading` guard를 두어 중복 페이지 요청을 막으세요.
-
-가로 Carousel Section만 독립적으로 pagination하려면 Section modifier를
-사용합니다.
-
-```swift
-LazySection(identifier: "recommended") {
-    For(of: recommendations) { item in
-        RecommendationComponent(item: item)
-    }
-}
-.withSectionLayout(
-    .horizontalCarousel()
-)
-.onReachedEnd(
-    threshold: .relativeToViewport(1)
-) {
-    loadMoreRecommendations()
-}
-```
-
-## SwiftUI에서 Component 재사용하기
-
-`ComponentView`와 `ComponentRepresenting`은 Component를
-`UIViewRepresentable`로 연결합니다. `Component`가 SwiftUI `View`도 함께
-채택하면 Component 자체를 View처럼 사용할 수 있습니다.
-
-<table>
-<tr><th>Source</th><th>Result</th></tr>
-<tr>
-<td width="65%">
-
-```swift
-import CollectionViewAdapter
-import SwiftUI
-
-struct AccountComponent:
-    Component,
-    View
-{
-    let item: Account
-
-    func createContent() -> AccountContentView {
-        AccountContentView()
-    }
-
-    func render(
-        context: ComponentContext,
-        content: AccountContentView
-    ) {
-        content.configure(with: item)
-    }
-}
-
-struct AccountListView: View {
-    @State private var accounts: [Account]
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(accounts) { account in
-                    AccountComponent(
-                        item: account
-                    )
-                    .onButtonTap {
-                        showAccount(account)
-                    }
-                    .frame(height: 84)
-                }
-            }
-        }
-    }
-}
-```
-
-</td>
-<td width="35%" align="center">
-
-<img width="280" alt="UIKit Component reused in SwiftUI" src="docs/images/readme/swiftui-bridge.png">
-
-</td>
-</tr>
-</table>
-
-SwiftUI가 화면 상태와 View hierarchy를 관리해도 Content 생성과 render,
-event cancellation은 UIKit Collection View에서 사용할 때와 같은
-Component 계약을 따릅니다.
+Section마다 독립적인 `CollectionSectionLayout`을 가지므로 가로 Section의
+orthogonal scrolling과 화면 전체의 세로 스크롤을 한 Adapter에서 함께
+처리할 수 있습니다.
 
 ## 핵심 개념
 
@@ -863,25 +535,19 @@ tuist generate
 open Haruhancut.xcworkspace
 ```
 
-Demo 앱의 **README Examples** Section에서 README와 같은 순서로 다음
+Demo 앱의 **ReadmeCapture** Section에서 README와 같은 순서로 다음
 화면을 확인할 수 있습니다.
 
-1. Quick Start
-2. Section Layouts
-3. Snapshot Updates
-4. Component Modifiers
-5. Prefetch + Pagination
-6. SwiftUI Bridge
+1. List
+2. Vertical
+3. Horizontal + Vertical
 
 캡처 화면을 직접 실행하려면 scheme arguments에 예제 slug를 전달합니다.
 
 ```text
---readme-example quick-start
---readme-example section-layouts
---readme-example snapshot-updates
---readme-example component-modifiers
---readme-example prefetch-pagination
---readme-example swiftui-bridge
+--readme-capture list
+--readme-capture vertical
+--readme-capture mixed-sections
 ```
 
 ## 디렉터리 구조
@@ -908,7 +574,7 @@ CollectionViewAdapter
 │  ├─ 2. Adapter
 │  ├─ 2. Component
 │  ├─ 3. SwiftUI
-│  └─ 4. README Examples
+│  └─ 4. ReadmeCapture
 ├─ docs
 │  └─ images
 │     └─ readme
