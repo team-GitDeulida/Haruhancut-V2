@@ -49,6 +49,8 @@ final class ComponentDemoTextContentView: UIView {
 
     private var surfaceLeadingConstraint: NSLayoutConstraint!
     private var surfaceTrailingConstraint: NSLayoutConstraint!
+    private var labelLeadingConstraint: NSLayoutConstraint!
+    private var labelTrailingConstraint: NSLayoutConstraint!
     private var labelTopConstraint: NSLayoutConstraint!
     private var labelBottomConstraint: NSLayoutConstraint!
 
@@ -103,19 +105,33 @@ final class ComponentDemoTextContentView: UIView {
             labelBottomConstraint.constant = -18
         }
 
-        switch item.appearance {
+        apply(
+            appearance: item.appearance,
+            style: item.style
+        )
+    }
+
+    private func apply(
+        appearance: ComponentDemoTextAppearance,
+        style: ComponentDemoTextStyle
+    ) {
+        switch appearance {
         case .connected:
             surfaceView.backgroundColor =
                 ComponentDemoStyle.surface
             surfaceView.layer.cornerRadius =
                 ComponentDemoStyle.cardCornerRadius
             surfaceView.layer.maskedCorners =
-                connectedCorners(for: item.style)
+                connectedCorners(for: style)
+            labelLeadingConstraint.constant = 20
+            labelTrailingConstraint.constant = -20
 
         case .plain:
             surfaceView.backgroundColor = .clear
             surfaceView.layer.cornerRadius = 0
             surfaceView.layer.maskedCorners = []
+            labelLeadingConstraint.constant = 0
+            labelTrailingConstraint.constant = 0
         }
     }
 
@@ -157,6 +173,14 @@ final class ComponentDemoTextContentView: UIView {
         labelBottomConstraint = label.bottomAnchor.constraint(
             equalTo: surfaceView.bottomAnchor
         )
+        labelLeadingConstraint =
+            label.leadingAnchor.constraint(
+                equalTo: surfaceView.leadingAnchor
+            )
+        labelTrailingConstraint =
+            label.trailingAnchor.constraint(
+                equalTo: surfaceView.trailingAnchor
+            )
 
         surfaceLeadingConstraint =
             surfaceView.leadingAnchor.constraint(
@@ -173,14 +197,8 @@ final class ComponentDemoTextContentView: UIView {
             surfaceView.topAnchor.constraint(equalTo: topAnchor),
             surfaceView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            label.leadingAnchor.constraint(
-                equalTo: surfaceView.leadingAnchor,
-                constant: 20
-            ),
-            label.trailingAnchor.constraint(
-                equalTo: surfaceView.trailingAnchor,
-                constant: -20
-            ),
+            labelLeadingConstraint,
+            labelTrailingConstraint,
             labelTopConstraint,
             labelBottomConstraint
         ])
