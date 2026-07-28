@@ -10,6 +10,7 @@ private struct TestItem: Identifiable, Equatable {
 private final class TestContentView:
     UIView,
     Touchable,
+    Pressable,
     ContainsButton
 {
     let buttonTapEvent = ComponentEvent<Void>()
@@ -152,6 +153,37 @@ final class CollectionViewAdapterTests: XCTestCase {
     }
 
     @MainActor
+    func testPressedEffectConfigurationControlsRebinding() {
+        let item = TestItem(
+            id: 7,
+            title: "계좌"
+        )
+        let oldComponent = AnyComponent(
+            TestComponent(item: item)
+                .pressedEffect(scale: 0.97)
+        )
+        let sameComponent = AnyComponent(
+            TestComponent(item: item)
+                .pressedEffect(scale: 0.97)
+        )
+        let changedComponent = AnyComponent(
+            TestComponent(item: item)
+                .pressedEffect(scale: 0.95)
+        )
+
+        XCTAssertTrue(
+            oldComponent.isContentEqual(
+                to: sameComponent
+            )
+        )
+        XCTAssertFalse(
+            oldComponent.isContentEqual(
+                to: changedComponent
+            )
+        )
+    }
+
+    @MainActor
     func testTouchableReusesEventAndGestureRecognizer() {
         let contentView = TestContentView()
 
@@ -204,6 +236,128 @@ final class CollectionViewAdapterTests: XCTestCase {
 
         XCTAssertTrue(
             allowsSimultaneousRecognition
+        )
+    }
+
+    @MainActor
+    func testPressedEffectInstallsSingleGestureRecognizer() {
+        let component =
+            TestComponent(
+                item: TestItem(
+                    id: 7,
+                    title: "계좌"
+                )
+            )
+            .pressedEffect()
+        let contentView =
+            component.createContent()
+        let context = ComponentContext()
+
+        component.render(
+            context: context,
+            content: contentView
+        )
+        component.render(
+            context: context,
+            content: contentView
+        )
+
+        let pressedEffectRecognizers =
+            contentView.gestureRecognizers?
+                .compactMap({
+                    $0 as?
+                        UILongPressGestureRecognizer
+                })
+                .filter({
+                    $0.minimumPressDuration == 0
+                })
+
+        XCTAssertEqual(
+            pressedEffectRecognizers?.count,
+            1
+        )
+    }
+
+    @MainActor
+    func testPressedEffectAllowsCollectionViewPanGesture() {
+        let component =
+            TestComponent(
+                item: TestItem(
+                    id: 7,
+                    title: "계좌"
+                )
+            )
+            .pressedEffect()
+        let contentView =
+            component.createContent()
+        component.render(
+            context: ComponentContext(),
+            content: contentView
+        )
+
+        guard
+            let pressedGestureRecognizer =
+                contentView.gestureRecognizers?
+                    .compactMap({
+                        $0 as?
+                            UILongPressGestureRecognizer
+                    })
+                    .first(where: {
+                        $0.minimumPressDuration == 0
+                    })
+        else {
+            return XCTFail(
+                "Pressed effect recognizer 생성 실패"
+            )
+        }
+
+        let collectionView =
+            UICollectionView(
+                frame: .zero,
+                collectionViewLayout:
+                    UICollectionViewFlowLayout()
+            )
+        let allowsSimultaneousRecognition =
+            pressedGestureRecognizer.delegate?
+                .gestureRecognizer?(
+                    pressedGestureRecognizer,
+                    shouldRecognizeSimultaneouslyWith:
+                        collectionView
+                            .panGestureRecognizer
+                )
+            ?? false
+
+        XCTAssertTrue(
+            allowsSimultaneousRecognition
+        )
+    }
+
+    @MainActor
+    func testComponentInteractionExcludesNestedControl() {
+        let contentView = TestContentView()
+        let label = UILabel()
+        let button = UIButton()
+        let outsideView = UIView()
+        contentView.addSubview(label)
+        contentView.addSubview(button)
+
+        XCTAssertTrue(
+            shouldReceiveComponentInteraction(
+                touchedView: label,
+                within: contentView
+            )
+        )
+        XCTAssertFalse(
+            shouldReceiveComponentInteraction(
+                touchedView: button,
+                within: contentView
+            )
+        )
+        XCTAssertFalse(
+            shouldReceiveComponentInteraction(
+                touchedView: outsideView,
+                within: contentView
+            )
         )
     }
 

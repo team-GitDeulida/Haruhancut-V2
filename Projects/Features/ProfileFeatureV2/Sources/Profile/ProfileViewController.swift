@@ -336,6 +336,9 @@ final class ProfileViewController:
                             targetWidth:
                                 targetWidth
                         )
+                        .pressedEffect(
+                            scale: 0.98
+                        )
                         .onTouch {
                             [weak self] in
                             self?

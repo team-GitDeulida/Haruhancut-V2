@@ -42,7 +42,11 @@ struct FeedComponent: Component, Equatable {
     }
 }
 
-final class FeedRowView: UIView, Touchable {
+final class FeedRowView:
+    UIView,
+    Touchable,
+    Pressable
+{
 
     struct Item: Identifiable, Equatable {
         let id: String
@@ -90,7 +94,6 @@ final class FeedRowView: UIView, Touchable {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
-        enablePressedEffect()
     }
 
     required init?(coder: NSCoder) {

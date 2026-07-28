@@ -57,7 +57,8 @@ struct AdminGroupComponent:
 
 final class AdminGroupContentView:
     UIView,
-    Touchable
+    Touchable,
+    Pressable
 {
     struct Item:
         Identifiable,
@@ -237,9 +238,6 @@ final class AdminGroupContentView:
         super.init(frame: frame)
         configureView()
         configureLayout()
-        enablePressedEffect(
-            scale: 0.98
-        )
     }
 
     @available(*, unavailable)

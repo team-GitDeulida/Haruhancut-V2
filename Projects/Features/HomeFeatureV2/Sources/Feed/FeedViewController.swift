@@ -116,11 +116,13 @@ final class FeedViewController: UIViewController, View {
             SectionModels {
                 LazySection(identifier: "feed") {
                     For(of: components) { component in
-                        component.onTouch { [weak self] in
-                            self?.imageTappedRelay.accept(
-                                component.post
-                            )
-                        }
+                        component
+                            .pressedEffect()
+                            .onTouch { [weak self] in
+                                self?.imageTappedRelay.accept(
+                                    component.post
+                                )
+                            }
                     }
                 }
                 .withSectionLayout(
