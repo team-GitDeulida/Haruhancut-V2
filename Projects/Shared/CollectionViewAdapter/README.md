@@ -152,6 +152,17 @@ CollectionViewAdapter
 UICollectionView
 ```
 
+### Cell 의존성 흐름
+
+화면마다 구체적인 `UICollectionViewCell`을 만들고 연결하는 대신,
+ViewController는 Section과 Component를 선언합니다. Adapter는
+`AnyComponent`와 snapshot을 관리하고, generic `ContainerCell`이
+Component의 `UIView` 생성과 render 생명주기를 처리합니다.
+
+<p align="center">
+  <img width="100%" alt="CollectionViewAdapter Cell dependency flow" src="docs/images/readme/cell-dependency-flow.svg">
+</p>
+
 `Component.Item.ID`는 Diffable Item identity로 사용합니다. 서로 다른
 Section에서는 같은 원본 Item ID를 재사용할 수 있도록 Adapter가 내부적으로
 Section ID와 Item ID를 함께 묶습니다.
