@@ -42,17 +42,21 @@ Data Source에서 타입을 분기하지 않습니다. Adapter가 Component 타�
 맞는 generic container를 등록하고, 재사용한 Content에는 최신 Item을
 다시 `render`합니다.
 
-### 어떤 화면에 적합한가요?
+### 여러 Collection View에 같은 구성 방식을 적용합니다
 
-| 선택 | 적합한 화면 | 감수할 점 |
-| --- | --- | --- |
-| SwiftUI `List` | 플랫폼 기본 목록 동작과 빠른 구성이 중요한 화면 | Section별 복합 layout이나 UIKit lifecycle 제어가 제한적입니다. |
-| 직접 만든 `UICollectionViewDataSource` | 화면마다 등록과 update 정책을 완전히 다르게 가져가야 하는 화면 | Cell 등록, casting, snapshot과 layout 연결 코드가 반복됩니다. |
-| CollectionViewAdapter | Component 재사용, Section별 layout, stable identity와 UIKit lifecycle을 함께 사용해야 하는 화면 | Item은 `Identifiable & Equatable`이어야 하고 Section DSL 규칙을 따라야 합니다. |
+CollectionViewAdapter는 UIKit 기반의 여러 Collection View 화면에서
+반복되는 등록, Section 구성, layout 연결과 snapshot 갱신을 공용 모듈로
+해결합니다.
 
-CollectionViewAdapter는 SwiftUI `List`를 대체하는 범용 프레임워크가
-아닙니다. 하루한컷의 UIKit 기반 Collection View에서 반복되는 연결 책임을
-공용 모듈로 옮기는 것이 목적입니다.
+| 화면 요구사항 | CollectionViewAdapter가 맡는 역할 |
+| --- | --- |
+| 화면마다 다른 Cell과 supplementary view | `Component` 타입에 맞는 container를 등록하고 재사용합니다. |
+| Section마다 다른 목록, Grid와 Carousel | Section DSL과 `CollectionSectionLayout`으로 layout을 함께 선언합니다. |
+| 상태 변경에 따른 화면 갱신 | stable identity를 기준으로 diffable snapshot을 생성하고 반영합니다. |
+| 여러 화면에서 반복되는 prefetch와 pagination | 모델 식별자 기반 callback과 끝 도달 시점을 일관된 API로 제공합니다. |
+
+각 ViewController는 화면에 필요한 Component와 Section 구조에 집중하고,
+Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
 
 ## 목차
 
