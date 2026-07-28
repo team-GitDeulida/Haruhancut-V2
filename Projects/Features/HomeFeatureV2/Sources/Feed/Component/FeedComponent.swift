@@ -42,7 +42,7 @@ struct FeedComponent: Component, Equatable {
     }
 }
 
-final class FeedRowView: UIView, Touchable {
+final class FeedRowView: UIView, Touchable, Pressable, LongPressable {
 
     struct Item: Identifiable, Equatable {
         let id: String
@@ -54,8 +54,7 @@ final class FeedRowView: UIView, Touchable {
             id = post.postId
             nickname = post.nickname
             imageURL = post.imageURL
-            relativeTimeText =
-                post.createdAt.toRelativeString()
+            relativeTimeText = post.createdAt.toRelativeString()
         }
     }
 
@@ -90,7 +89,6 @@ final class FeedRowView: UIView, Touchable {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
-        enablePressedEffect()
     }
 
     required init?(coder: NSCoder) {
@@ -140,8 +138,7 @@ final class FeedRowView: UIView, Touchable {
         imageView.kf.setImage(
             with: URL(string: item.imageURL)
         )
-        accessibilityLabel =
-            "\(item.nickname), \(item.relativeTimeText)"
+        accessibilityLabel = "\(item.nickname), \(item.relativeTimeText)"
     }
 }
 

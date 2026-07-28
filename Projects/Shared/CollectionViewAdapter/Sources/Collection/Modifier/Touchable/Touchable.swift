@@ -1,5 +1,5 @@
 //
-//  ComponentCapabilities.swift
+//  Touchable.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/24/26.
@@ -26,10 +26,7 @@ private final class ComponentTouchGestureRecognizer:
         self.contentView = contentView
         super.init(target: nil, action: nil)
 
-        addTarget(
-            self,
-            action: #selector(didRecognizeTouch)
-        )
+        addTarget(self, action: #selector(didRecognizeTouch))
         cancelsTouchesInView = false
         delegate = self
     }
@@ -47,51 +44,33 @@ private final class ComponentTouchGestureRecognizer:
             return false
         }
 
-        var touchedView = touch.view
-        while let view = touchedView {
-            if view === contentView {
-                return true
-            }
-
-            if view is UIControl {
-                return false
-            }
-
-            touchedView = view.superview
-        }
-
-        return false
+        return shouldReceiveComponentInteraction(
+            touchedView: touch.view,
+            within: contentView
+        )
     }
 
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
-        shouldRequireFailureOf otherGestureRecognizer:
-            UIGestureRecognizer
+        shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        guard
-            let longPressGestureRecognizer =
-                otherGestureRecognizer as?
-                    UILongPressGestureRecognizer
-        else {
+        guard let longPressGestureRecognizer =
+            otherGestureRecognizer as? UILongPressGestureRecognizer else {
             return false
         }
 
         // 0초 long press는 눌림 효과를 표시하기 위한 시각적 recognizer입니다.
         // 삭제처럼 실제 동작을 수행하는 long press가 인식되면 전체 Content의
         // tap은 실패하도록 기다려 두 동작이 함께 실행되지 않게 합니다.
-        return longPressGestureRecognizer
-            .minimumPressDuration > 0
+        return longPressGestureRecognizer.minimumPressDuration > 0
     }
 
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith otherGestureRecognizer:
-            UIGestureRecognizer
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        otherGestureRecognizer
-            is UIPanGestureRecognizer
-            && otherGestureRecognizer.view
-                is UIScrollView
+        otherGestureRecognizer is UIPanGestureRecognizer
+            && otherGestureRecognizer.view is UIScrollView
     }
 
     @objc
@@ -102,22 +81,14 @@ private final class ComponentTouchGestureRecognizer:
 
 private extension UIView {
     /// UIView마다 하나만 설치되는 내부 tap recognizer를 반환합니다.
-    var componentTouchGestureRecognizer:
-        ComponentTouchGestureRecognizer
-    {
+    var componentTouchGestureRecognizer: ComponentTouchGestureRecognizer {
         if let gestureRecognizer = gestureRecognizers?
-            .compactMap({
-                $0 as? ComponentTouchGestureRecognizer
-            })
-            .first
-        {
+            .compactMap({ $0 as? ComponentTouchGestureRecognizer })
+            .first {
             return gestureRecognizer
         }
 
-        let gestureRecognizer =
-            ComponentTouchGestureRecognizer(
-                contentView: self
-            )
+        let gestureRecognizer = ComponentTouchGestureRecognizer(contentView: self)
         addGestureRecognizer(gestureRecognizer)
         return gestureRecognizer
     }
@@ -156,22 +127,4 @@ extension Touchable where Self: UIView {
         removeGestureRecognizer(gestureRecognizer)
         addGestureRecognizer(gestureRecognizer)
     }
-}
-
-/// Content 안에 별도 버튼 동작이 있음을 나타내는 capability입니다.
-///
-/// 이 프로토콜을 따르는 Content에만 `.onButtonTap` modifier가 노출됩니다.
-@MainActor
-public protocol ContainsButton: AnyObject {
-    /// 내부 버튼이 눌렸을 때 값을 보내는 이벤트입니다.
-    var buttonTapEvent: ComponentEvent<Void> { get }
-}
-
-/// Content 안에 토글 동작이 있음을 나타내는 capability입니다.
-///
-/// 이 프로토콜을 따르는 Content에만 `.onToggle` modifier가 노출됩니다.
-@MainActor
-public protocol ContainsSwitch: AnyObject {
-    /// 내부 스위치 값이 바뀌었을 때 새 값을 보내는 이벤트입니다.
-    var switchToggleEvent: ComponentEvent<Bool> { get }
 }

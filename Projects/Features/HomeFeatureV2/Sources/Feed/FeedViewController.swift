@@ -18,8 +18,7 @@ final class FeedViewController: UIViewController, View {
 
     var disposeBag = DisposeBag()
     private let customView = FeedView()
-    private let isReadOnly:
-        Bool
+    private let isReadOnly: Bool
 
     private lazy var collectionViewAdapter = CollectionViewAdapter(
         collectionView: customView.collectionView
@@ -31,13 +30,8 @@ final class FeedViewController: UIViewController, View {
     private var currentComponents: [FeedComponent] = []
     private var didSkipInitialAppear = false
 
-    init(
-        reactor: FeedReactor,
-        isReadOnly:
-            Bool = false
-    ) {
-        self.isReadOnly =
-            isReadOnly
+    init(reactor: FeedReactor, isReadOnly: Bool = false) {
+        self.isReadOnly = isReadOnly
         super.init(nibName: nil, bundle: nil)
         self.reactor = reactor
     }
@@ -53,15 +47,8 @@ final class FeedViewController: UIViewController, View {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupRefreshControl()
-        if !isReadOnly {
-            setupLongPress()
-        }
-        customView.cameraBtn
-            .isHidden =
-            isReadOnly
-        customView.bubbleView
-            .isHidden =
-            isReadOnly
+        customView.cameraBtn.isHidden = isReadOnly
+        customView.bubbleView.isHidden = isReadOnly
         reactor?.action.onNext(.viewDidLoad)
     }
 
@@ -116,11 +103,7 @@ final class FeedViewController: UIViewController, View {
             SectionModels {
                 LazySection(identifier: "feed") {
                     For(of: components) { component in
-                        component.onTouch { [weak self] in
-                            self?.imageTappedRelay.accept(
-                                component.post
-                            )
-                        }
+                        self.makeInteractiveComponent(component)
                     }
                 }
                 .withSectionLayout(
@@ -129,13 +112,12 @@ final class FeedViewController: UIViewController, View {
                         estimatedRowHeight: 240,
                         interItemSpacing: 20,
                         lineSpacing: 20,
-                        contentInsets:
-                            NSDirectionalEdgeInsets(
-                                top: 20,
-                                leading: 16,
-                                bottom: 0,
-                                trailing: 16
-                            )
+                        contentInsets: NSDirectionalEdgeInsets(
+                            top: 20,
+                            leading: 16,
+                            bottom: 0,
+                            trailing: 16
+                        )
                     )
                 )
             },
@@ -143,45 +125,36 @@ final class FeedViewController: UIViewController, View {
         )
 
         let hasContent = !components.isEmpty
-        customView.emptyLabel.text =
-            isReadOnly
-            ? LocalizationKey
-                .adminPreviewEmpty
-                .localized
-            : LocalizationKey
-                .homeDescription
-                .localized
+        customView.emptyLabel.text = isReadOnly
+            ? LocalizationKey.adminPreviewEmpty.localized
+            : LocalizationKey.homeDescription.localized
         customView.emptyLabel.isHidden = hasContent
         customView.bubbleView.text = hasContent
             ? LocalizationKey.homeFeedBubbleDoneToday.localized
             : LocalizationKey.homeFeedBubbleAddPhoto.localized
 
-        let canAddPhoto =
-            !hasContent ||
-            ProcessInfo.processInfo.arguments.contains("-UITest")
-        customView.cameraBtn.isEnabled =
-            !isReadOnly && canAddPhoto
-        customView.cameraBtn.alpha =
-            canAddPhoto ? 1.0 : 0.3
+        let canAddPhoto = !hasContent || ProcessInfo.processInfo.arguments.contains("-UITest")
+        customView.cameraBtn.isEnabled = !isReadOnly && canAddPhoto
+        customView.cameraBtn.alpha = canAddPhoto ? 1.0 : 0.3
     }
 
-    private func setupLongPress() {
-        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        longPress.minimumPressDuration = 0.4
-        customView.collectionView.addGestureRecognizer(longPress)
-    }
+    private func makeInteractiveComponent(_ component: FeedComponent) -> AnyComponent {
+        let interactiveComponent = component
+            .pressedEffect()
+            .onTouch { [weak self] in
+                self?.imageTappedRelay.accept(component.post)
+            }
 
-    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began else { return }
+        guard !isReadOnly else {
+            return AnyComponent(interactiveComponent)
+        }
 
-        let location = gesture.location(in: customView.collectionView)
-        guard
-            let indexPath = customView.collectionView.indexPathForItem(at: location),
-            currentComponents.indices.contains(indexPath.item)
-        else { return }
-
-        let post = currentComponents[indexPath.item].post
-        longPressedRelay.accept(post)
+        return AnyComponent(
+            interactiveComponent
+                .onLongPress(minimumDuration: 0.4) { [weak self] in
+                    self?.longPressedRelay.accept(component.post)
+                }
+        )
     }
 
     private func setupRefreshControl() {
@@ -197,8 +170,7 @@ final class FeedViewController: UIViewController, View {
             action: #selector(didRequestRefresh),
             for: .valueChanged
         )
-        customView.collectionView.refreshControl =
-            refreshControl
+        customView.collectionView.refreshControl = refreshControl
     }
 
     @objc
@@ -216,7 +188,10 @@ final class FeedViewController: UIViewController, View {
 
         refreshControl.endRefreshing()
         let topOffset = -customView.collectionView.adjustedContentInset.top
-        customView.collectionView.setContentOffset(.init(x: 0, y: topOffset), animated: false)
+        customView.collectionView.setContentOffset(
+            .init(x: 0, y: topOffset),
+            animated: false
+        )
     }
 }
 

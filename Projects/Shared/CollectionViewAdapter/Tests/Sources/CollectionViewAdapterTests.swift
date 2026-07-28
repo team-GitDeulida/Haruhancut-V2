@@ -10,6 +10,8 @@ private struct TestItem: Identifiable, Equatable {
 private final class TestContentView:
     UIView,
     Touchable,
+    Pressable,
+    LongPressable,
     ContainsButton
 {
     let buttonTapEvent = ComponentEvent<Void>()
@@ -131,10 +133,7 @@ final class CollectionViewAdapterTests: XCTestCase {
 
     @MainActor
     func testEventModifierForcesRebinding() {
-        let item = TestItem(
-            id: 7,
-            title: "계좌"
-        )
+        let item = TestItem(id: 7, title: "계좌")
         let oldComponent = AnyComponent(
             TestComponent(item: item)
                 .onTouch {}
@@ -144,11 +143,42 @@ final class CollectionViewAdapterTests: XCTestCase {
                 .onTouch {}
         )
 
-        XCTAssertFalse(
-            oldComponent.isContentEqual(
-                to: newComponent
-            )
+        XCTAssertFalse(oldComponent.isContentEqual(to: newComponent))
+    }
+
+    @MainActor
+    func testLongPressModifierForcesRebinding() {
+        let item = TestItem(id: 7, title: "계좌")
+        let oldComponent = AnyComponent(
+            TestComponent(item: item)
+                .onLongPress {}
         )
+        let newComponent = AnyComponent(
+            TestComponent(item: item)
+                .onLongPress {}
+        )
+
+        XCTAssertFalse(oldComponent.isContentEqual(to: newComponent))
+    }
+
+    @MainActor
+    func testPressedEffectConfigurationControlsRebinding() {
+        let item = TestItem(id: 7, title: "계좌")
+        let oldComponent = AnyComponent(
+            TestComponent(item: item)
+                .pressedEffect(scale: 0.97)
+        )
+        let sameComponent = AnyComponent(
+            TestComponent(item: item)
+                .pressedEffect(scale: 0.97)
+        )
+        let changedComponent = AnyComponent(
+            TestComponent(item: item)
+                .pressedEffect(scale: 0.95)
+        )
+
+        XCTAssertTrue(oldComponent.isContentEqual(to: sameComponent))
+        XCTAssertFalse(oldComponent.isContentEqual(to: changedComponent))
     }
 
     @MainActor
@@ -161,10 +191,7 @@ final class CollectionViewAdapterTests: XCTestCase {
         contentView.installTouchHandlingIfNeeded()
 
         XCTAssertTrue(firstEvent === secondEvent)
-        XCTAssertEqual(
-            contentView.gestureRecognizers?.count,
-            1
-        )
+        XCTAssertEqual(contentView.gestureRecognizers?.count, 1)
     }
 
     @MainActor
@@ -172,39 +199,199 @@ final class CollectionViewAdapterTests: XCTestCase {
         let contentView = TestContentView()
         contentView.installTouchHandlingIfNeeded()
 
-        guard
-            let tapGestureRecognizer =
-                contentView.gestureRecognizers?
-                    .compactMap({
-                        $0 as?
-                            UITapGestureRecognizer
-                    })
-                    .first
-        else {
-            return XCTFail(
-                "Touchable tap recognizer 생성 실패"
-            )
+        guard let tapGestureRecognizer = contentView.gestureRecognizers?
+            .compactMap({ $0 as? UITapGestureRecognizer })
+            .first else {
+            return XCTFail("Touchable tap recognizer 생성 실패")
         }
 
-        let collectionView =
-            UICollectionView(
-                frame: .zero,
-                collectionViewLayout:
-                    UICollectionViewFlowLayout()
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout: UICollectionViewFlowLayout()
+        )
+        let allowsSimultaneousRecognition = tapGestureRecognizer.delegate?
+            .gestureRecognizer?(
+                tapGestureRecognizer,
+                shouldRecognizeSimultaneouslyWith: collectionView.panGestureRecognizer
             )
-        let allowsSimultaneousRecognition =
-            tapGestureRecognizer.delegate?
-                .gestureRecognizer?(
-                    tapGestureRecognizer,
-                    shouldRecognizeSimultaneouslyWith:
-                        collectionView
-                            .panGestureRecognizer
-                )
             ?? false
 
-        XCTAssertTrue(
-            allowsSimultaneousRecognition
+        XCTAssertTrue(allowsSimultaneousRecognition)
+    }
+
+    @MainActor
+    func testPressedEffectInstallsSingleGestureRecognizer() {
+        let component = TestComponent(
+            item: TestItem(id: 7, title: "계좌")
         )
+            .pressedEffect()
+        let contentView = component.createContent()
+        let context = ComponentContext()
+
+        component.render(context: context, content: contentView)
+        component.render(context: context, content: contentView)
+
+        let pressedEffectRecognizers = contentView.gestureRecognizers?
+            .compactMap({ $0 as? UILongPressGestureRecognizer })
+            .filter({ $0.minimumPressDuration == 0 })
+
+        XCTAssertEqual(pressedEffectRecognizers?.count, 1)
+    }
+
+    @MainActor
+    func testPressedEffectAllowsCollectionViewPanGesture() {
+        let component = TestComponent(
+            item: TestItem(id: 7, title: "계좌")
+        )
+            .pressedEffect()
+        let contentView = component.createContent()
+        component.render(
+            context: ComponentContext(),
+            content: contentView
+        )
+
+        guard let pressedGestureRecognizer = contentView.gestureRecognizers?
+            .compactMap({ $0 as? UILongPressGestureRecognizer })
+            .first(where: { $0.minimumPressDuration == 0 }) else {
+            return XCTFail("Pressed effect recognizer 생성 실패")
+        }
+
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout: UICollectionViewFlowLayout()
+        )
+        let allowsSimultaneousRecognition = pressedGestureRecognizer.delegate?
+            .gestureRecognizer?(
+                pressedGestureRecognizer,
+                shouldRecognizeSimultaneouslyWith: collectionView.panGestureRecognizer
+            )
+            ?? false
+
+        XCTAssertTrue(allowsSimultaneousRecognition)
+    }
+
+    @MainActor
+    func testLongPressableReusesEventAndGestureRecognizer() {
+        let component = TestComponent(
+            item: TestItem(id: 7, title: "계좌")
+        )
+            .onLongPress(minimumDuration: 0.4) {}
+        let contentView = component.createContent()
+        let context = ComponentContext()
+
+        component.render(context: context, content: contentView)
+        let firstEvent = contentView.longPressEvent
+        component.render(context: context, content: contentView)
+        let secondEvent = contentView.longPressEvent
+
+        let longPressRecognizers = contentView.gestureRecognizers?
+            .compactMap({ $0 as? UILongPressGestureRecognizer })
+            .filter({ $0.minimumPressDuration > 0 })
+
+        XCTAssertTrue(firstEvent === secondEvent)
+        XCTAssertEqual(longPressRecognizers?.count, 1)
+        XCTAssertEqual(
+            longPressRecognizers?.first?.minimumPressDuration ?? -1,
+            0.4,
+            accuracy: 0.001
+        )
+    }
+
+    @MainActor
+    func testLongPressableUpdatesMinimumDuration() {
+        let item = TestItem(id: 7, title: "계좌")
+        let contentView = TestContentView()
+
+        TestComponent(item: item)
+            .onLongPress(minimumDuration: 0.4) {}
+            .render(
+                context: ComponentContext(),
+                content: contentView
+            )
+        TestComponent(item: item)
+            .onLongPress(minimumDuration: 0.8) {}
+            .render(
+                context: ComponentContext(),
+                content: contentView
+            )
+
+        let longPressRecognizers = contentView.gestureRecognizers?
+            .compactMap({ $0 as? UILongPressGestureRecognizer })
+            .filter({ $0.minimumPressDuration > 0 })
+
+        XCTAssertEqual(longPressRecognizers?.count, 1)
+        XCTAssertEqual(
+            longPressRecognizers?.first?.minimumPressDuration ?? -1,
+            0.8,
+            accuracy: 0.001
+        )
+    }
+
+    @MainActor
+    func testLongPressableAllowsPressedEffectAndCollectionViewPan() {
+        let component = TestComponent(
+            item: TestItem(id: 7, title: "계좌")
+        )
+            .pressedEffect()
+            .onLongPress {}
+        let contentView = component.createContent()
+        component.render(
+            context: ComponentContext(),
+            content: contentView
+        )
+
+        let longPressRecognizers = contentView.gestureRecognizers?
+            .compactMap({ $0 as? UILongPressGestureRecognizer })
+        guard let semanticLongPress = longPressRecognizers?
+            .first(where: { $0.minimumPressDuration > 0 }),
+            let pressedEffect = longPressRecognizers?
+            .first(where: { $0.minimumPressDuration == 0 })
+        else {
+            return XCTFail("LongPressable recognizer 생성 실패")
+        }
+
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout: UICollectionViewFlowLayout()
+        )
+        let allowsPressedEffect = semanticLongPress.delegate?
+            .gestureRecognizer?(
+                semanticLongPress,
+                shouldRecognizeSimultaneouslyWith: pressedEffect
+            )
+            ?? false
+        let allowsCollectionViewPan = semanticLongPress.delegate?
+            .gestureRecognizer?(
+                semanticLongPress,
+                shouldRecognizeSimultaneouslyWith: collectionView.panGestureRecognizer
+            )
+            ?? false
+
+        XCTAssertTrue(allowsPressedEffect)
+        XCTAssertTrue(allowsCollectionViewPan)
+    }
+
+    @MainActor
+    func testComponentInteractionExcludesNestedControl() {
+        let contentView = TestContentView()
+        let label = UILabel()
+        let button = UIButton()
+        let outsideView = UIView()
+        contentView.addSubview(label)
+        contentView.addSubview(button)
+
+        XCTAssertTrue(shouldReceiveComponentInteraction(
+            touchedView: label,
+            within: contentView
+        ))
+        XCTAssertFalse(shouldReceiveComponentInteraction(
+            touchedView: button,
+            within: contentView
+        ))
+        XCTAssertFalse(shouldReceiveComponentInteraction(
+            touchedView: outsideView,
+            within: contentView
+        ))
     }
 
     @MainActor
@@ -212,65 +399,42 @@ final class CollectionViewAdapterTests: XCTestCase {
         let contentView = TestContentView()
         contentView.installTouchHandlingIfNeeded()
 
-        guard
-            let tapGestureRecognizer =
-                contentView.gestureRecognizers?
-                    .compactMap({
-                        $0 as?
-                            UITapGestureRecognizer
-                    })
-                    .first
-        else {
-            return XCTFail(
-                "Touchable tap recognizer 생성 실패"
-            )
+        guard let tapGestureRecognizer = contentView.gestureRecognizers?
+            .compactMap({ $0 as? UITapGestureRecognizer })
+            .first else {
+            return XCTFail("Touchable tap recognizer 생성 실패")
         }
 
-        let semanticLongPressRecognizer =
-            UILongPressGestureRecognizer()
-        let allowsSimultaneousRecognition =
-            tapGestureRecognizer.delegate?
-                .gestureRecognizer?(
-                    tapGestureRecognizer,
-                    shouldRecognizeSimultaneouslyWith:
-                        semanticLongPressRecognizer
-                )
+        let semanticLongPressRecognizer = UILongPressGestureRecognizer()
+        let allowsSimultaneousRecognition = tapGestureRecognizer.delegate?
+            .gestureRecognizer?(
+                tapGestureRecognizer,
+                shouldRecognizeSimultaneouslyWith: semanticLongPressRecognizer
+            )
             ?? false
 
-        XCTAssertFalse(
-            allowsSimultaneousRecognition
-        )
+        XCTAssertFalse(allowsSimultaneousRecognition)
 
-        let requiresSemanticLongPressToFail =
-            tapGestureRecognizer.delegate?
-                .gestureRecognizer?(
-                    tapGestureRecognizer,
-                    shouldRequireFailureOf:
-                        semanticLongPressRecognizer
-                )
+        let requiresSemanticLongPressToFail = tapGestureRecognizer.delegate?
+            .gestureRecognizer?(
+                tapGestureRecognizer,
+                shouldRequireFailureOf: semanticLongPressRecognizer
+            )
             ?? false
 
-        XCTAssertTrue(
-            requiresSemanticLongPressToFail
-        )
+        XCTAssertTrue(requiresSemanticLongPressToFail)
 
-        let pressedEffectLongPressRecognizer =
-            UILongPressGestureRecognizer()
-        pressedEffectLongPressRecognizer
-            .minimumPressDuration = 0
+        let pressedEffectLongPressRecognizer = UILongPressGestureRecognizer()
+        pressedEffectLongPressRecognizer.minimumPressDuration = 0
 
-        let requiresPressedEffectToFail =
-            tapGestureRecognizer.delegate?
-                .gestureRecognizer?(
-                    tapGestureRecognizer,
-                    shouldRequireFailureOf:
-                        pressedEffectLongPressRecognizer
-                )
+        let requiresPressedEffectToFail = tapGestureRecognizer.delegate?
+            .gestureRecognizer?(
+                tapGestureRecognizer,
+                shouldRequireFailureOf: pressedEffectLongPressRecognizer
+            )
             ?? false
 
-        XCTAssertFalse(
-            requiresPressedEffectToFail
-        )
+        XCTAssertFalse(requiresPressedEffectToFail)
     }
 
     @MainActor
@@ -333,12 +497,10 @@ final class CollectionViewAdapterTests: XCTestCase {
     @MainActor
     func testCellRestoresEventBindingsWhenRedisplayed() {
         var touchCount = 0
+        var longPressCount = 0
         var buttonTapCount = 0
         let component = TestComponent(
-            item: TestItem(
-                id: 7,
-                title: "계좌"
-            )
+            item: TestItem(id: 7, title: "계좌")
         )
         .onTouch {
             touchCount += 1
@@ -346,37 +508,46 @@ final class CollectionViewAdapterTests: XCTestCase {
         .onButtonTap {
             buttonTapCount += 1
         }
+        .onLongPress {
+            longPressCount += 1
+        }
         let cell = ContainerCell<
-            OnButtonTapModifier<
-                OnTouchModifier<TestComponent>
+            OnLongPressModifier<
+                OnButtonTapModifier<
+                    OnTouchModifier<TestComponent>
+                >
             >
         >()
         cell.bindingContext = ComponentContext()
         cell.bind(component: AnyComponent(component))
 
-        guard
-            let content = cell.contentView.subviews
-                .compactMap({ $0 as? TestContentView })
-                .first
-        else {
+        guard let content = cell.contentView.subviews
+            .compactMap({ $0 as? TestContentView })
+            .first else {
             return XCTFail("Component Content 생성 실패")
         }
 
         content.touchEvent.send(())
+        content.longPressEvent.send(())
         content.buttonTapEvent.send(())
         XCTAssertEqual(touchCount, 1)
+        XCTAssertEqual(longPressCount, 1)
         XCTAssertEqual(buttonTapCount, 1)
 
         cell.contentDidEndDisplay()
         content.touchEvent.send(())
+        content.longPressEvent.send(())
         content.buttonTapEvent.send(())
         XCTAssertEqual(touchCount, 1)
+        XCTAssertEqual(longPressCount, 1)
         XCTAssertEqual(buttonTapCount, 1)
 
         cell.contentWillDisplay()
         content.touchEvent.send(())
+        content.longPressEvent.send(())
         content.buttonTapEvent.send(())
         XCTAssertEqual(touchCount, 2)
+        XCTAssertEqual(longPressCount, 2)
         XCTAssertEqual(buttonTapCount, 2)
     }
 

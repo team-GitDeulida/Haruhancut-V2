@@ -71,7 +71,8 @@ struct ProfilePostComponent: Component {
 
 final class ProfilePostContentView:
     UIView,
-    Touchable
+    Touchable,
+    Pressable
 {
     struct Item:
         Identifiable,
@@ -107,9 +108,6 @@ final class ProfilePostContentView:
     override init(frame: CGRect) {
         super.init(frame: frame)
         configureView()
-        enablePressedEffect(
-            scale: 0.98
-        )
     }
 
     @available(*, unavailable)
