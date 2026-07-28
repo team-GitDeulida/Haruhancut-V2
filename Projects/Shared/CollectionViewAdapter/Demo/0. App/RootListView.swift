@@ -78,6 +78,52 @@ struct RootListView: View {
                             shape: .teal
                         )
                     }
+
+                    NavigationLink {
+                        DelegateAccountListViewController(
+                            sections: BankAccountSection.sample
+                        )
+                        .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Delegate Events",
+                            caption: "선택, 길게 누르기, 표시 lifecycle delegate를 사용합니다",
+                            shape: .pink
+                        )
+                    }
+
+                    NavigationLink {
+                        PrefetchAccountListViewController()
+                            .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Prefetching",
+                            caption: "곧 표시할 셀의 데이터를 미리 준비하고 취소합니다",
+                            shape: .mint
+                        )
+                    }
+
+                    NavigationLink {
+                        ScrollInfiniteAccountListViewController()
+                            .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Scroll Infinite",
+                            caption: "스크롤 위치가 끝에 가까워지면 다음 페이지를 요청합니다",
+                            shape: .orange
+                        )
+                    }
+
+                    NavigationLink {
+                        PrefetchImageInfiniteScrollViewController()
+                            .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "Prefetch + Scroll",
+                            caption: "페이지 요청과 아이템별 이미지 prefetch를 함께 사용합니다",
+                            shape: .cyan
+                        )
+                    }
                 }
                 
                 Section("CollectionView") {
