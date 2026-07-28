@@ -172,8 +172,9 @@ Section ID와 Item ID를 함께 묶습니다.
 ## ReadmeCapture
 
 Demo 앱의 `ReadmeCapture` Section은 레이아웃 차이가 바로 보이는 세 가지
-예제로 구성됩니다. 모든 화면은 같은 `Component`, `LazySection`,
-`CollectionViewAdapter` 조합을 사용하고 Section layout만 다르게 선언합니다.
+예제로 구성됩니다. 각 화면은 `LazySection`과 `CollectionViewAdapter`를
+기반으로 Component 종류, Section 수와 Section layout을 요구사항에 맞게
+조합합니다.
 
 ### Vertical
 
