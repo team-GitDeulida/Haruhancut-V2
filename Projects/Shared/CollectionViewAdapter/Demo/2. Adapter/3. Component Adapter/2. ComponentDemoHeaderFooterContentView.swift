@@ -1,17 +1,38 @@
 import CollectionViewAdapter
 import UIKit
 
+enum ComponentDemoTextStyle: Equatable {
+    case header
+    case footer
+}
+
+enum ComponentDemoTextAppearance: Equatable {
+    case connected
+    case plain
+}
+
 /// Section의 header와 footer에서 공통으로 사용하는 UIView입니다.
 final class ComponentDemoTextContentView: UIView {
     struct Item: Identifiable, Equatable {
-        enum Style: Equatable {
-            case header
-            case footer
-        }
-
         let id: String
         let text: String
-        let style: Style
+        let style: ComponentDemoTextStyle
+        let appearance: ComponentDemoTextAppearance
+        let horizontalInset: CGFloat
+
+        init(
+            id: String,
+            text: String,
+            style: ComponentDemoTextStyle,
+            appearance: ComponentDemoTextAppearance = .connected,
+            horizontalInset: CGFloat = 20
+        ) {
+            self.id = id
+            self.text = text
+            self.style = style
+            self.appearance = appearance
+            self.horizontalInset = horizontalInset
+        }
     }
 
     var item: Item? {
@@ -26,6 +47,10 @@ final class ComponentDemoTextContentView: UIView {
     private let surfaceView = UIView()
     private let label = UILabel()
 
+    private var surfaceLeadingConstraint: NSLayoutConstraint!
+    private var surfaceTrailingConstraint: NSLayoutConstraint!
+    private var labelLeadingConstraint: NSLayoutConstraint!
+    private var labelTrailingConstraint: NSLayoutConstraint!
     private var labelTopConstraint: NSLayoutConstraint!
     private var labelBottomConstraint: NSLayoutConstraint!
 
@@ -48,9 +73,11 @@ final class ComponentDemoTextContentView: UIView {
         }
 
         label.text = item.text
-        surfaceView.layer.cornerRadius =
-            ComponentDemoStyle.cardCornerRadius
         surfaceView.layer.masksToBounds = true
+        surfaceLeadingConstraint.constant =
+            item.horizontalInset
+        surfaceTrailingConstraint.constant =
+            -item.horizontalInset
 
         switch item.style {
         case .header:
@@ -64,10 +91,6 @@ final class ComponentDemoTextContentView: UIView {
             label.textColor = ComponentDemoStyle.textPrimary
             labelTopConstraint.constant = 24
             labelBottomConstraint.constant = -12
-            surfaceView.layer.maskedCorners = [
-                .layerMinXMinYCorner,
-                .layerMaxXMinYCorner,
-            ]
 
         case .footer:
             label.font = UIFontMetrics(forTextStyle: .caption1)
@@ -80,9 +103,52 @@ final class ComponentDemoTextContentView: UIView {
             label.textColor = ComponentDemoStyle.textSecondary
             labelTopConstraint.constant = 14
             labelBottomConstraint.constant = -18
-            surfaceView.layer.maskedCorners = [
+        }
+
+        apply(
+            appearance: item.appearance,
+            style: item.style
+        )
+    }
+
+    private func apply(
+        appearance: ComponentDemoTextAppearance,
+        style: ComponentDemoTextStyle
+    ) {
+        switch appearance {
+        case .connected:
+            surfaceView.backgroundColor =
+                ComponentDemoStyle.surface
+            surfaceView.layer.cornerRadius =
+                ComponentDemoStyle.cardCornerRadius
+            surfaceView.layer.maskedCorners =
+                connectedCorners(for: style)
+            labelLeadingConstraint.constant = 20
+            labelTrailingConstraint.constant = -20
+
+        case .plain:
+            surfaceView.backgroundColor = .clear
+            surfaceView.layer.cornerRadius = 0
+            surfaceView.layer.maskedCorners = []
+            labelLeadingConstraint.constant = 0
+            labelTrailingConstraint.constant = 0
+        }
+    }
+
+    private func connectedCorners(
+        for style: ComponentDemoTextStyle
+    ) -> CACornerMask {
+        switch style {
+        case .header:
+            return [
+                .layerMinXMinYCorner,
+                .layerMaxXMinYCorner
+            ]
+
+        case .footer:
+            return [
                 .layerMinXMaxYCorner,
-                .layerMaxXMaxYCorner,
+                .layerMaxXMaxYCorner
             ]
         }
     }
@@ -107,29 +173,34 @@ final class ComponentDemoTextContentView: UIView {
         labelBottomConstraint = label.bottomAnchor.constraint(
             equalTo: surfaceView.bottomAnchor
         )
+        labelLeadingConstraint =
+            label.leadingAnchor.constraint(
+                equalTo: surfaceView.leadingAnchor
+            )
+        labelTrailingConstraint =
+            label.trailingAnchor.constraint(
+                equalTo: surfaceView.trailingAnchor
+            )
+
+        surfaceLeadingConstraint =
+            surfaceView.leadingAnchor.constraint(
+                equalTo: leadingAnchor
+            )
+        surfaceTrailingConstraint =
+            surfaceView.trailingAnchor.constraint(
+                equalTo: trailingAnchor
+            )
 
         NSLayoutConstraint.activate([
-            surfaceView.leadingAnchor.constraint(
-                equalTo: leadingAnchor,
-                constant: 20
-            ),
-            surfaceView.trailingAnchor.constraint(
-                equalTo: trailingAnchor,
-                constant: -20
-            ),
+            surfaceLeadingConstraint,
+            surfaceTrailingConstraint,
             surfaceView.topAnchor.constraint(equalTo: topAnchor),
             surfaceView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            label.leadingAnchor.constraint(
-                equalTo: surfaceView.leadingAnchor,
-                constant: 20
-            ),
-            label.trailingAnchor.constraint(
-                equalTo: surfaceView.trailingAnchor,
-                constant: -20
-            ),
+            labelLeadingConstraint,
+            labelTrailingConstraint,
             labelTopConstraint,
-            labelBottomConstraint,
+            labelBottomConstraint
         ])
     }
 }

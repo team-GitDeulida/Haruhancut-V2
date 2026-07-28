@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="950" viewBox="0 0 1500 950" role="img" aria-labelledby="title desc">
+  <title id="title">CollectionViewAdapter의 Cell 의존성 흐름</title>
+  <desc id="desc">UICollectionView를 직접 구현하면 ViewController가 구체적인 Cell을 알고, 화면별 Adapter를 만들면 그 의존성이 Adapter로 이동한다. CollectionViewAdapter에서는 ViewController가 SectionModels와 Component만 선언하고, Adapter가 AnyComponent와 snapshot을 관리하며, generic ContainerCell이 UIView 생성과 render 생명주기를 처리한다.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="7" stdDeviation="10" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto">
+      <path d="M0,0 L14,7 L0,14 Z" fill="#64748b"/>
+    </marker>
+    <marker id="blue-arrow" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto">
+      <path d="M0,0 L14,7 L0,14 Z" fill="#3182f6"/>
+    </marker>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", sans-serif; fill: #0f172a; }
+      .title { font-size: 38px; font-weight: 800; }
+      .subtitle { font-size: 20px; font-weight: 500; fill: #475569; }
+      .step { font-size: 18px; font-weight: 800; letter-spacing: 0.8px; }
+      .heading { font-size: 27px; font-weight: 800; }
+      .node { font-size: 22px; font-weight: 750; }
+      .node-compact { font-size: 18px; font-weight: 750; }
+      .body { font-size: 17px; font-weight: 500; fill: #475569; }
+      .small { font-size: 16px; font-weight: 600; fill: #64748b; }
+      .chip { font-size: 18px; font-weight: 750; }
+      .summary { font-size: 24px; font-weight: 800; }
+      .summary-body { font-size: 18px; font-weight: 550; fill: #475569; }
+    </style>
+  </defs>
+
+  <rect width="1500" height="950" rx="34" fill="#f8fafc"/>
+
+  <text x="60" y="68" class="title">구체적인 Cell 의존성을 공용 Container 안으로 옮기기</text>
+  <text x="60" y="108" class="subtitle">화면은 Component와 Section을 선언하고, 등록·재사용·렌더링은 CollectionViewAdapter가 맡습니다.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="40" y="145" width="450" height="620" rx="28" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+    <rect x="525" y="145" width="450" height="620" rx="28" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+    <rect x="1010" y="145" width="450" height="620" rx="28" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+  </g>
+
+  <!-- Step 1: UICollectionView 직접 구현 -->
+  <rect x="75" y="178" width="88" height="36" rx="18" fill="#fee2e2"/>
+  <text x="119" y="202" class="step" text-anchor="middle" fill="#b91c1c">직접 구현</text>
+  <text x="75" y="254" class="heading">ViewController가 Cell을 압니다</text>
+  <text x="75" y="286" class="body">화면 코드에 Cell 세부 구현이 모입니다.</text>
+
+  <rect x="75" y="322" width="380" height="100" rx="20" fill="#fff1f2" stroke="#fda4af" stroke-width="2.5"/>
+  <text x="265" y="361" class="node" text-anchor="middle">ViewController</text>
+  <text x="265" y="393" class="body" text-anchor="middle">register · dequeue · cast · configure · size</text>
+
+  <line x1="265" y1="422" x2="265" y2="470" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="75" y="482" width="380" height="88" rx="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="265" y="520" class="node" text-anchor="middle">AccountCell · PhotoGridCell</text>
+  <text x="265" y="549" class="body" text-anchor="middle">구체적인 UICollectionViewCell</text>
+
+  <rect x="75" y="663" width="380" height="72" rx="18" fill="#fff1f2"/>
+  <text x="265" y="693" class="small" text-anchor="middle">구체 Cell 의존성 위치</text>
+  <text x="265" y="721" class="chip" text-anchor="middle" fill="#be123c">ViewController</text>
+
+  <!-- Step 2: 화면별 Adapter -->
+  <rect x="544" y="178" width="144" height="36" rx="18" fill="#ffedd5"/>
+  <text x="616" y="202" class="step" text-anchor="middle" fill="#c2410c">화면별 Adapter</text>
+  <text x="560" y="254" class="heading">Adapter가 Cell을 압니다</text>
+  <text x="560" y="286" class="body">화면은 짧아져도 Cell 타입별 분기가 남습니다.</text>
+
+  <rect x="560" y="314" width="380" height="68" rx="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="750" y="356" class="node" text-anchor="middle">ViewController</text>
+
+  <line x1="750" y1="382" x2="750" y2="420" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="560" y="432" width="380" height="96" rx="20" fill="#fff7ed" stroke="#fdba74" stroke-width="2.5"/>
+  <text x="750" y="469" class="node-compact" text-anchor="middle">AccountCollectionViewAdapter</text>
+  <text x="750" y="500" class="body" text-anchor="middle">register · dequeue · cast · configure · size</text>
+
+  <line x1="750" y1="528" x2="750" y2="564" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="560" y="576" width="380" height="70" rx="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="750" y="619" class="node" text-anchor="middle">AccountCell · PhotoGridCell</text>
+
+  <rect x="560" y="687" width="380" height="48" rx="16" fill="#fff7ed"/>
+  <text x="750" y="718" class="chip" text-anchor="middle" fill="#c2410c">구체 Cell 의존성 위치: Adapter</text>
+
+  <!-- Step 3: CollectionViewAdapter -->
+  <rect x="1025" y="178" width="230" height="36" rx="18" fill="#dbeafe"/>
+  <text x="1140" y="202" class="step" text-anchor="middle" fill="#1d4ed8">CollectionViewAdapter</text>
+  <text x="1045" y="254" class="heading">공용 Container로 렌더링합니다</text>
+  <text x="1045" y="286" class="body">화면은 구체 Cell 타입을 참조하지 않습니다.</text>
+
+  <rect x="1045" y="308" width="380" height="70" rx="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="1235" y="337" class="node" text-anchor="middle">ViewController</text>
+  <text x="1235" y="364" class="small" text-anchor="middle">SectionModels · LazySection · Component</text>
+
+  <line x1="1235" y1="378" x2="1235" y2="405" stroke="#3182f6" stroke-width="3" marker-end="url(#blue-arrow)"/>
+
+  <rect x="1045" y="417" width="380" height="76" rx="18" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="1235" y="448" class="node" text-anchor="middle">CollectionViewAdapter</text>
+  <text x="1235" y="477" class="small" text-anchor="middle">AnyComponent · snapshot · layout</text>
+
+  <line x1="1235" y1="493" x2="1235" y2="521" stroke="#3182f6" stroke-width="3" marker-end="url(#blue-arrow)"/>
+
+  <rect x="1033" y="533" width="404" height="137" rx="22" fill="#eff6ff" stroke="#60a5fa" stroke-width="2.5" stroke-dasharray="10 8"/>
+  <rect x="1053" y="549" width="196" height="32" rx="16" fill="#dbeafe"/>
+  <text x="1151" y="571" class="small" text-anchor="middle" fill="#1d4ed8">generic Container Cell</text>
+  <text x="1235" y="615" class="node" text-anchor="middle">ContainerCell&lt;Component&gt;</text>
+  <text x="1235" y="646" class="small" text-anchor="middle">createContent · render · reuse lifecycle</text>
+
+  <rect x="1045" y="697" width="380" height="38" rx="14" fill="#dcfce7"/>
+  <text x="1235" y="722" class="chip" text-anchor="middle" fill="#15803d">외부의 구체 UICollectionViewCell 참조 0개</text>
+
+  <!-- Summary -->
+  <rect x="40" y="795" width="1420" height="125" rx="24" fill="#ffffff" stroke="#dbeafe" stroke-width="2"/>
+  <text x="76" y="848" class="summary">의존성 이동</text>
+  <rect x="250" y="817" width="190" height="42" rx="21" fill="#fff1f2"/>
+  <text x="345" y="844" class="chip" text-anchor="middle" fill="#be123c">ViewController</text>
+  <line x1="454" y1="838" x2="514" y2="838" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="530" y="817" width="200" height="42" rx="21" fill="#fff7ed"/>
+  <text x="630" y="844" class="chip" text-anchor="middle" fill="#c2410c">화면별 Adapter</text>
+  <line x1="744" y1="838" x2="804" y2="838" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="820" y="817" width="268" height="42" rx="21" fill="#dbeafe"/>
+  <text x="954" y="844" class="chip" text-anchor="middle" fill="#1d4ed8">ContainerCell&lt;Component&gt;</text>
+  <text x="250" y="895" class="summary-body">ViewController는 Section과 Component를 선언하고, Adapter와 generic Container가 Cell 생명주기를 처리합니다.</text>
+</svg>
