@@ -2,16 +2,16 @@ import SwiftUI
 
 /// README의 Source/Result와 캡처 전용 Demo 화면을 연결합니다.
 enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
-    case list
     case vertical
+    case grid
     case mixedSections = "mixed-sections"
 
     var title: String {
         switch self {
-        case .list:
-            "List"
         case .vertical:
             "Vertical"
+        case .grid:
+            "Grid"
         case .mixedSections:
             "Horizontal + Vertical"
         }
@@ -19,10 +19,10 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
 
     var caption: String {
         switch self {
-        case .list:
-            "하나의 Section에 기본 목록을 구성합니다"
         case .vertical:
-            "카드를 한 방향 Vertical 목록으로 배치합니다"
+            "하나의 Section에 기본 목록을 구성합니다"
+        case .grid:
+            "카드를 2열 Grid로 배치합니다"
         case .mixedSections:
             "첫 Section은 가로, 두 번째는 세로로 구성합니다"
         }
@@ -30,10 +30,10 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
 
     var symbolName: String {
         switch self {
-        case .list:
-            "list.bullet"
         case .vertical:
-            "rectangle.grid.1x2.fill"
+            "list.bullet"
+        case .grid:
+            "square.grid.2x2.fill"
         case .mixedSections:
             "rectangle.3.group.fill"
         }
@@ -41,9 +41,9 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
 
     var tint: Color {
         switch self {
-        case .list:
-            .blue
         case .vertical:
+            .blue
+        case .grid:
             .orange
         case .mixedSections:
             .purple
@@ -54,13 +54,13 @@ enum ReadmeCaptureRoute: String, CaseIterable, Hashable {
     @ViewBuilder
     var destination: some View {
         switch self {
-        case .list:
-            ReadmeListViewController()
+        case .vertical:
+            ReadmeVerticalViewController()
                 .toSwiftUI()
                 .readmeCaptureNavigation(title: title)
 
-        case .vertical:
-            ReadmeVerticalViewController()
+        case .grid:
+            ReadmeGridViewController()
                 .toSwiftUI()
                 .readmeCaptureNavigation(title: title)
 

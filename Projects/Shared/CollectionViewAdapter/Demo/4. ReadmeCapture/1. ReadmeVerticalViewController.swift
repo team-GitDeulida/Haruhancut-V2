@@ -1,9 +1,9 @@
 import CollectionViewAdapter
 import UIKit
 
-/// 하나의 Section에 기본 목록을 구성합니다.
+/// 하나의 Section에 기본 Vertical 목록을 구성합니다.
 @MainActor
-final class ReadmeListViewController: UIViewController {
+final class ReadmeVerticalViewController: UIViewController {
     private let accounts: [ComponentDemoAccount] = [
         .init(
             id: "daily",
@@ -57,7 +57,7 @@ final class ReadmeListViewController: UIViewController {
 
     private var sections: SectionModels {
         SectionModels {
-            LazySection(identifier: "list") {
+            LazySection(identifier: "vertical") {
                 For(of: self.accounts) { account in
                     ComponentDemoRowComponent(
                         item: .init(

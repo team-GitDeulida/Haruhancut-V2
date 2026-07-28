@@ -65,8 +65,8 @@ Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
 - [모듈 연결](#모듈-연결)
 - [Core 구조](#core-구조)
 - [ReadmeCapture](#readmecapture)
-  - [List](#list)
   - [Vertical](#vertical)
+  - [Grid](#grid)
   - [Horizontal + Vertical](#horizontal--vertical)
 - [핵심 개념](#핵심-개념)
 - [트러블슈팅](#트러블슈팅)
@@ -175,10 +175,11 @@ Demo 앱의 `ReadmeCapture` Section은 레이아웃 차이가 바로 보이는 �
 예제로 구성됩니다. 모든 화면은 같은 `Component`, `LazySection`,
 `CollectionViewAdapter` 조합을 사용하고 Section layout만 다르게 선언합니다.
 
-### List
+### Vertical
 
-가장 단순한 단일 Section 목록입니다. 각 모델을 `AccountRowComponent`로
-변환하고 `.verticalList`로 위에서 아래로 배치합니다.
+가장 단순한 단일 Section 세로 목록입니다. 각 모델을
+`AccountRowComponent`로 변환하고 `.verticalList`로 위에서 아래로
+배치합니다.
 
 <table>
 <tr><th>Source</th><th>Result</th></tr>
@@ -196,15 +197,7 @@ let sections = SectionModels {
         }
     }
     .withSectionLayout(
-        .verticalList(
-            spacing: 10,
-            contentInsets: .init(
-                top: 20,
-                leading: 20,
-                bottom: 20,
-                trailing: 20
-            )
-        )
+        .verticalList(spacing: 10)
     )
 }
 
@@ -214,17 +207,16 @@ adapter.bind(sections)
 </td>
 <td width="35%" align="center">
 
-<img width="280" alt="CollectionViewAdapter list example" src="docs/images/readme/list.png">
+<img width="280" alt="CollectionViewAdapter vertical example" src="docs/images/readme/vertical.png">
 
 </td>
 </tr>
 </table>
 
-### Vertical
+### Grid
 
-카드 Component도 별도의 Cell subclass 없이 같은 방식으로 세로 배치할 수
-있습니다. Component의 `estimatedHeight`를 기준으로 self-sizing하며,
-간격과 바깥 여백은 Section layout이 담당합니다.
+카드 Component를 별도의 Cell subclass 없이 2열 Grid로 배치합니다.
+열 수, Item 간격, 행 간격과 바깥 여백은 Section layout이 담당합니다.
 
 <table>
 <tr><th>Source</th><th>Result</th></tr>
@@ -239,9 +231,11 @@ let sections = SectionModels {
         }
     }
     .withSectionLayout(
-        .verticalList(
+        .grid(
+            columns: 2,
             estimatedRowHeight: 178,
-            spacing: 12,
+            interItemSpacing: 12,
+            lineSpacing: 12,
             contentInsets: .init(
                 top: 20,
                 leading: 20,
@@ -258,7 +252,7 @@ adapter.bind(sections)
 </td>
 <td width="35%" align="center">
 
-<img width="280" alt="CollectionViewAdapter vertical example" src="docs/images/readme/vertical.png">
+<img width="280" alt="CollectionViewAdapter grid example" src="docs/images/readme/grid.png">
 
 </td>
 </tr>
@@ -538,15 +532,15 @@ open Haruhancut.xcworkspace
 Demo 앱의 **ReadmeCapture** Section에서 README와 같은 순서로 다음
 화면을 확인할 수 있습니다.
 
-1. List
-2. Vertical
+1. Vertical
+2. Grid
 3. Horizontal + Vertical
 
 캡처 화면을 직접 실행하려면 scheme arguments에 예제 slug를 전달합니다.
 
 ```text
---readme-capture list
 --readme-capture vertical
+--readme-capture grid
 --readme-capture mixed-sections
 ```
 

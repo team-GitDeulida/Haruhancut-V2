@@ -1,9 +1,9 @@
 import CollectionViewAdapter
 import UIKit
 
-/// 하나의 Section에 카드를 Vertical 목록으로 배치합니다.
+/// 하나의 Section에 카드를 2열 Grid로 배치합니다.
 @MainActor
-final class ReadmeVerticalViewController:
+final class ReadmeGridViewController:
     UIViewController {
     private let items: [GridDemoContentView.Item] = [
         .init(
@@ -33,6 +33,20 @@ final class ReadmeVerticalViewController:
             subtitle: "하루를 마무리한 장면",
             symbolName: "moon.stars.fill",
             isFavorite: false
+        ),
+        .init(
+            id: "nature",
+            title: "자연",
+            subtitle: "계절이 남긴 색깔",
+            symbolName: "leaf.fill",
+            isFavorite: false
+        ),
+        .init(
+            id: "coffee",
+            title: "커피",
+            subtitle: "잠깐 쉬어간 순간",
+            symbolName: "cup.and.saucer.fill",
+            isFavorite: true
         )
     ]
 
@@ -62,14 +76,17 @@ final class ReadmeVerticalViewController:
 
     private var sections: SectionModels {
         SectionModels {
-            LazySection(identifier: "vertical") {
+            LazySection(identifier: "grid") {
                 For(of: self.items) { item in
                     GridDemoComponent(item: item)
                 }
             }
             .withSectionLayout(
-                .verticalList(
-                    spacing: 12,
+                .grid(
+                    columns: 2,
+                    estimatedRowHeight: 178,
+                    interItemSpacing: 12,
+                    lineSpacing: 12,
                     contentInsets:
                         NSDirectionalEdgeInsets(
                             top: 0,
