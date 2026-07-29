@@ -1,0 +1,18 @@
+changelog:
+  categories:
+    - title: '✨ 새로운 기능이 추가되었어요'
+      labels:
+        - '✨ feature'
+    - title: '🐞 자잘한 버그를 수정했어요'
+      labels:
+        - '🔧 fix'
+        - '🔥 hotfix'
+    - title: '🛠 코드를 개선했어요'
+      labels:
+        - '⚙️ chore'
+        - '🔨 refactor'
+        - '✅ test'
+        - '📃 docs'
+    - title: '기타 변경'
+      labels:
+        - '*'
