@@ -50,7 +50,56 @@ jobs:
             exit 1
           fi
 
+      - name: Inspect release history
+        id: release-state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          current_release_count="$(
+            gh api \
+              --paginate \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              --jq ".[] | select(.tag_name == \"${TAG}\") | .id" \
+              | wc -l \
+              | tr -d '[:space:]'
+          )"
+
+          if (( current_release_count > 1 )); then
+            echo "::error::Multiple releases use tag ${TAG}. Resolve the duplicates before retrying."
+            exit 1
+          fi
+
+          current_state="$(
+            gh api \
+              --paginate \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              --jq ".[] | select(.tag_name == \"${TAG}\") | if .draft then \"draft\" else \"published\" end"
+          )"
+
+          published_release_count="$(
+            gh api \
+              --paginate \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              --jq '.[] | select(.draft == false and .prerelease == false) | .id' \
+              | wc -l \
+              | tr -d '[:space:]'
+          )"
+
+          if (( published_release_count > 0 )); then
+            echo "has_previous=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_previous=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "current_state=${current_state:-none}" >> "$GITHUB_OUTPUT"
+
       - name: Create ${{ inputs.release_mode }} release with generated notes
+        if: >-
+          steps.release-state.outputs.has_previous == 'true' &&
+          steps.release-state.outputs.current_state != 'published'
         uses: release-drafter/release-drafter@v7
         with:
           config-name: release-drafter.yml
@@ -60,3 +109,54 @@ jobs:
           commitish: ${{ inputs.target_branch }}
           publish: ${{ inputs.release_mode == 'latest' }}
           latest: ${{ inputs.release_mode == 'latest' }}
+
+      - name: Create or overwrite ${{ inputs.release_mode }} release with generated notes
+        if: >-
+          steps.release-state.outputs.has_previous == 'false' ||
+          steps.release-state.outputs.current_state == 'published'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ inputs.version }}
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
+          CURRENT_STATE: ${{ steps.release-state.outputs.current_state }}
+        run: |
+          set -euo pipefail
+
+          notes_file="${RUNNER_TEMP}/release-notes.md"
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -f target_commitish="$TARGET_BRANCH" \
+            --jq '.body' \
+            > "$notes_file"
+
+          if [[ "$CURRENT_STATE" == "draft" || "$CURRENT_STATE" == "published" ]]; then
+            release_command=(
+              release edit "$TAG"
+              --repo "$GITHUB_REPOSITORY"
+              --target "$TARGET_BRANCH"
+              --title "$TAG"
+              --notes-file "$notes_file"
+            )
+          else
+            release_command=(
+              release create "$TAG"
+              --repo "$GITHUB_REPOSITORY"
+              --target "$TARGET_BRANCH"
+              --title "$TAG"
+              --notes-file "$notes_file"
+            )
+          fi
+
+          if [[ "$RELEASE_MODE" == "latest" ]]; then
+            if [[ "$CURRENT_STATE" == "draft" || "$CURRENT_STATE" == "published" ]]; then
+              release_command+=(--draft=false)
+            fi
+            release_command+=(--latest)
+          else
+            release_command+=(--draft)
+          fi
+
+          gh "${release_command[@]}"
