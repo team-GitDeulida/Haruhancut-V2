@@ -203,11 +203,19 @@ extension AuthUsecaseImpl {
                         return self.updateUser(user: updated)
                     }
             }
-            .do(onSuccess: { savedUser in
-                // 최종 유저를 세션에 저장
+            .flatMap { savedUser -> Single<Void> in
+                // 최종 유저를 세션에 저장한 뒤 APNs 등록 완료 여부를 다시 확인한다.
+                // APNs 콜백과 회원가입 완료가 엇갈려도 마지막에 FCM 동기화를 재시도한다.
                 self.userSession.update(savedUser)
-            })
-            .mapToVoid()
+
+                return self.syncFcmIfNeeded()
+                    .catch { error in
+                        Logger.d(
+                            "회원가입 후 FCM 토큰 동기화 실패: \(error.localizedDescription)"
+                        )
+                        return .just(())
+                    }
+            }
     }
     
     public func signIn(platform: User.LoginPlatform) -> Single<SignInResult> {

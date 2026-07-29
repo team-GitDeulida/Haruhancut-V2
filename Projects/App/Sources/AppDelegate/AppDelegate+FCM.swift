@@ -26,22 +26,67 @@
  
  https://burgerkinghero.tistory.com/1
  */
-import Foundation
+import UIKit
+import UserNotifications
 import FirebaseMessaging
 import Domain
 import Core
 
+extension AppDelegate {
+
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Messaging.messaging().apnsToken = deviceToken
+        Logger.d("APNs device token 등록 완료")
+        syncFcmTokenIfNeeded(source: "APNs 등록")
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        Logger.e("APNs 등록 실패: \(error.localizedDescription)")
+    }
+
+    private func syncFcmTokenIfNeeded(source: String) {
+        let authUsecase = DIContainer.shared.resolve(AuthUsecaseProtocol.self)
+        _ = authUsecase.syncFcmIfNeeded()
+            .subscribe(
+                onSuccess: {
+                    Logger.d("\(source) 후 FCM 토큰 동기화 완료")
+                },
+                onFailure: { error in
+                    Logger.e(
+                        "\(source) 후 FCM 토큰 동기화 실패: \(error.localizedDescription)"
+                    )
+                }
+            )
+    }
+}
+
 extension AppDelegate: MessagingDelegate {
 
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        guard let token = fcmToken else { return }
+        guard let token = fcmToken else {
+            Logger.w("FCM registration token이 없습니다.")
+            return
+        }
+
         let store = DIContainer.shared.resolve(FCMTokenStore.self)
         store.latestToken = token
-        
-        let authUsecase = DIContainer.shared.resolve(AuthUsecaseProtocol.self)
-        _ = authUsecase.syncFcmIfNeeded()
-            .subscribe()
-        
-        
+        syncFcmTokenIfNeeded(source: "FCM 토큰 수신")
+    }
+}
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        Logger.d("포그라운드 알림 수신")
+        return [.list, .banner, .sound]
     }
 }

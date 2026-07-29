@@ -69,6 +69,7 @@ public enum FirebaseError: Error {
     case invalidData
     
     // Firebase FCM
+    case noAPNSToken
     case noFCMToken
     case unknown(Error)
 }
@@ -163,8 +164,30 @@ public protocol FirebaseAuthManagerProtocol {
 }
 
 public final class FirebaseAuthManager: FirebaseAuthManagerProtocol {
-   
-    public init() {}
+    typealias FCMTokenCompletion = (String?, Error?) -> Void
+
+    private let apnsTokenProvider: () -> Data?
+    private let fcmTokenProvider: (@escaping FCMTokenCompletion) -> Void
+
+    public convenience init() {
+        self.init(
+            apnsTokenProvider: {
+                Messaging.messaging().apnsToken
+            },
+            fcmTokenProvider: { completion in
+                Messaging.messaging().token(completion: completion)
+            }
+        )
+    }
+
+    init(
+        apnsTokenProvider: @escaping () -> Data?,
+        fcmTokenProvider: @escaping (@escaping FCMTokenCompletion) -> Void
+    ) {
+        self.apnsTokenProvider = apnsTokenProvider
+        self.fcmTokenProvider = fcmTokenProvider
+    }
+
     private var databaseRef: DatabaseReference {
         Database.database(url: Constants.Firebase.realtimeURL).reference()
     }
@@ -698,11 +721,18 @@ extension FirebaseAuthManager {
 extension FirebaseAuthManager {
     public func generateFcmToken() -> Single<String> {
         return Single.create { single in
-            Messaging.messaging().token { token, error in
+            guard self.apnsTokenProvider() != nil else {
+                print("⚠️ APNs device token 등록 전에는 FCM 토큰을 동기화하지 않습니다.")
+                single(.failure(FirebaseError.noAPNSToken))
+                return Disposables.create()
+            }
+
+            self.fcmTokenProvider { token, error in
                 if let error = error {
                     print("⚠️ FCM 토큰 발급 실패: \(error.localizedDescription)")
                     print("⚠️ FCM 토큰을 받을 수 없는 기기라서 넘아갑니다.")
                     single(.failure(FirebaseError.unknown(error)))
+                    return
                 }
                 
                 guard let token = token else {

@@ -83,6 +83,21 @@ final class FCMTokenSyncTests: XCTestCase {
         XCTAssertEqual(userSession.session?.uid, serverUser.uid)
     }
 
+    func testSignUpSynchronizesLatestFcmTokenAfterSessionIsCreated() async throws {
+        let newUser = makeUser(fcmToken: "noToken")
+        let repository = FCMAuthRepositoryStub(
+            serverUser: newUser,
+            localToken: "local-token"
+        )
+        let (sut, userSession) = makeSUT(repository: repository)
+
+        try await sut.signUp(user: newUser, profileImage: nil).value
+
+        XCTAssertEqual(repository.generateFcmTokenCallCount, 1)
+        XCTAssertEqual(repository.patchUserCallCount, 1)
+        XCTAssertEqual(userSession.fcmToken, "local-token")
+    }
+
     private func makeSUT(
         repository: FCMAuthRepositoryStub,
         sessionUser: User? = nil
