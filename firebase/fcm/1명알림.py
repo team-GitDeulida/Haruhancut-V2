@@ -11,7 +11,7 @@ SERVICE_ACCOUNT_PATH = Path(__file__).with_name(
 )
 DATABASE_URL = "https://haruhancut-kor-default-rtdb.firebaseio.com"
 
-DEFAULT_TITLE = "🎉 하루한컷 1.1.0 업데이트"
+DEFAULT_TITLE = "🎉 하루한컷 1.1.1 업데이트"
 DEFAULT_BODY = (
     "더 안정적이고 편리하게 사용할 수 있도록 개선했습니다.\n"
     "업데이트 후 새로운 하루를 기록해 보세요. 📸"
