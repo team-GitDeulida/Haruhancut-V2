@@ -45,7 +45,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.appCoordinator = appCoordinator
         
         #if DEBUG
-        self.configureForUITests()
+        if configureForUITests(
+            completion: {
+                appCoordinator.start()
+            }
+        ) {
+            return
+        }
         #endif
         appCoordinator.start()
 

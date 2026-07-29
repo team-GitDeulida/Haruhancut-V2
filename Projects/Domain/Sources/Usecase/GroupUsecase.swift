@@ -36,6 +36,10 @@ public protocol GroupUsecaseProtocol {
     func deleteComment(post: Post, commentId: String) -> Single<Void>
     func uploadImageAndUploadPost(image: UIImage) -> Observable<Void>
     func deletePostAndReload(post: Post) -> Observable<Void>
+
+    #if DEBUG
+    func resetPostsForUITests() -> Single<Int>
+    #endif
 }
 
 public extension GroupUsecaseProtocol {
@@ -49,6 +53,15 @@ public extension GroupUsecaseProtocol {
         )
     }
 }
+
+#if DEBUG
+public extension GroupUsecaseProtocol {
+    /// 실제 저장소를 사용하지 않는 Demo 구현을 위한 기본 동작입니다.
+    func resetPostsForUITests() -> Single<Int> {
+        .just(0)
+    }
+}
+#endif
 
 public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     private let groupRepository: GroupRepositoryProtocol
@@ -261,4 +274,50 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             }
             .mapToVoid()
     }
+
+    #if DEBUG
+    public func resetPostsForUITests() -> Single<Int> {
+        guard let groupId = userSession.groupId else {
+            return .error(DomainError.missingGroupId)
+        }
+
+        let repository = groupRepository
+
+        return repository
+            .fetchGroup(groupId: groupId)
+            .flatMap { [weak self] group -> Single<Int> in
+                let posts = group.postsByDate.values.flatMap { $0 }
+                let postsPath = "groups/\(groupId)/postsByDate"
+
+                let deleteImages = Observable
+                    .from(posts)
+                    .flatMap { post in
+                        repository
+                            .deleteImage(
+                                path: "groups/\(groupId)/images/\(post.postId).jpg"
+                            )
+                            .asObservable()
+                            .catch { error in
+                                Logger.w(
+                                    "UI 테스트 이미지 정리 실패: \(post.postId), \(error)"
+                                )
+                                return .just(())
+                            }
+                    }
+                    .toArray()
+                    .map { _ in () }
+
+                return repository
+                    .deleteValue(path: postsPath)
+                    .flatMap { deleteImages }
+                    .do(onSuccess: {
+                        self?.groupSession.update(
+                            \.postsByDate,
+                            [:]
+                        )
+                    })
+                    .map { posts.count }
+            }
+    }
+    #endif
 }
