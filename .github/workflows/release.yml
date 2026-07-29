@@ -79,11 +79,6 @@ jobs:
               --jq ".[] | select(.tag_name == \"${TAG}\") | if .draft then \"draft\" else \"published\" end"
           )"
 
-          if [[ "$current_state" == "published" ]]; then
-            echo "::error::Release ${TAG} is already published."
-            exit 1
-          fi
-
           published_release_count="$(
             gh api \
               --paginate \
@@ -102,7 +97,9 @@ jobs:
           echo "current_state=${current_state:-none}" >> "$GITHUB_OUTPUT"
 
       - name: Create ${{ inputs.release_mode }} release with generated notes
-        if: steps.release-state.outputs.has_previous == 'true'
+        if: >-
+          steps.release-state.outputs.has_previous == 'true' &&
+          steps.release-state.outputs.current_state != 'published'
         uses: release-drafter/release-drafter@v7
         with:
           config-name: release-drafter.yml
@@ -113,8 +110,10 @@ jobs:
           publish: ${{ inputs.release_mode == 'latest' }}
           latest: ${{ inputs.release_mode == 'latest' }}
 
-      - name: Create first ${{ inputs.release_mode }} release with generated notes
-        if: steps.release-state.outputs.has_previous == 'false'
+      - name: Create or overwrite ${{ inputs.release_mode }} release with generated notes
+        if: >-
+          steps.release-state.outputs.has_previous == 'false' ||
+          steps.release-state.outputs.current_state == 'published'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: v${{ inputs.version }}
@@ -133,7 +132,7 @@ jobs:
             --jq '.body' \
             > "$notes_file"
 
-          if [[ "$CURRENT_STATE" == "draft" ]]; then
+          if [[ "$CURRENT_STATE" == "draft" || "$CURRENT_STATE" == "published" ]]; then
             release_command=(
               release edit "$TAG"
               --repo "$GITHUB_REPOSITORY"
@@ -152,7 +151,7 @@ jobs:
           fi
 
           if [[ "$RELEASE_MODE" == "latest" ]]; then
-            if [[ "$CURRENT_STATE" == "draft" ]]; then
+            if [[ "$CURRENT_STATE" == "draft" || "$CURRENT_STATE" == "published" ]]; then
               release_command+=(--draft=false)
             fi
             release_command+=(--latest)
