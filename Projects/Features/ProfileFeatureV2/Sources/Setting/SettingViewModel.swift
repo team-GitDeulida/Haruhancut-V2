@@ -216,7 +216,21 @@ final class SettingViewModel:
                     .updateUser(
                         user: updatedUser
                     )
-                    .map { _ in
+                    .flatMap { [weak self] _ -> Single<Void> in
+                        guard let self else {
+                            return .just(())
+                        }
+
+                        return self.authUsecase
+                            .syncFcmIfNeeded()
+                            .catch { error in
+                                Logger.d(
+                                    "알림 활성화 후 FCM 토큰 동기화 실패: \(error.localizedDescription)"
+                                )
+                                return .just(())
+                            }
+                    }
+                    .map {
                         (true, false)
                     }
                     .asObservable()

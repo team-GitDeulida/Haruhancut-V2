@@ -66,6 +66,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         FirebaseApp.configure()
         Self.logger.notice("Firebase configured")
         
+        // 포그라운드 알림 처리
+        UNUserNotificationCenter.current().delegate = self
+        Self.logger.notice("User notification center delegate set")
+
         // fcm(MessagingDelegate), fcm -> session save
         Messaging.messaging().delegate = self
         Self.logger.notice("Messaging delegate set")
@@ -77,13 +81,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             } else {
                 Self.logger.notice("notification auth granted=\(granted, privacy: .public)")
             }
-            guard granted else { return }
-            
-            DispatchQueue.main.async {
-                UIApplication.shared.registerForRemoteNotifications()
-                Self.logger.notice("registerForRemoteNotifications called")
-            }
         }
+
+        // 사용자 알림 권한과 별개로 APNs에 앱을 등록해 device token을 확보한다.
+        application.registerForRemoteNotifications()
+        Self.logger.notice("registerForRemoteNotifications called")
         
         // Kakao
         if let nativeAppKey: String = Bundle.main.infoDictionary?["KAKAO_NATIVE_APP_KEY"] as? String {

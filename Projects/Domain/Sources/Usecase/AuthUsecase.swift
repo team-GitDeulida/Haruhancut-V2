@@ -203,11 +203,19 @@ extension AuthUsecaseImpl {
                         return self.updateUser(user: updated)
                     }
             }
-            .do(onSuccess: { savedUser in
-                // 최종 유저를 세션에 저장
+            .flatMap { savedUser -> Single<Void> in
+                // 최종 유저를 세션에 저장한 뒤 APNs 등록 완료 여부를 다시 확인한다.
+                // APNs 콜백과 회원가입 완료가 엇갈려도 마지막에 FCM 동기화를 재시도한다.
                 self.userSession.update(savedUser)
-            })
-            .mapToVoid()
+
+                return self.syncFcmIfNeeded()
+                    .catch { error in
+                        Logger.d(
+                            "회원가입 후 FCM 토큰 동기화 실패: \(error.localizedDescription)"
+                        )
+                        return .just(())
+                    }
+            }
     }
     
     public func signIn(platform: User.LoginPlatform) -> Single<SignInResult> {
@@ -220,11 +228,20 @@ extension AuthUsecaseImpl {
                 Logger.d("firebase 진행")
                 return self.resolveUser(uid: uid, platform: platform)
             }
-            .do { result in
-                if case .existingUser(let user) = result {
-                    Logger.d("기존 사용자")
-                    self.userSession.update(user)
+            .flatMap { result -> Single<SignInResult> in
+                guard case .existingUser(let user) = result else {
+                    return .just(result)
                 }
+
+                Logger.d("기존 사용자")
+                self.userSession.update(user)
+
+                return self.syncFcmIfNeeded()
+                    .map { result }
+                    .catch { error in
+                        Logger.d("로그인 후 FCM 토큰 동기화 실패: \(error.localizedDescription)")
+                        return .just(result)
+                    }
             }
     }
     
@@ -275,29 +292,30 @@ extension AuthUsecaseImpl {
         guard let sessionUser = userSession.session else {
             return .just(())
         }
-        
-        // 로컬 최신 토큰 없으면 조기리턴
-        guard let localToken = fcmTokenStore.latestToken else {
-            return .just(())
-        }
-        
-        return repository.fetchUser(uid: sessionUser.uid)
-            .flatMap { serverUser -> Single<Void> in
-                let serverToken = serverUser?.fcmToken
-                
-                // 값이 같으면 아무것도 안 함
-                if serverToken == localToken {
-                    return .just(())
-                }
-                
-                // 다르면 patch
-                return self.repository.patchUser(
-                    uid: sessionUser.uid,
-                    fields: ["fcmToken": localToken])
-                .do(onSuccess: {
-                    self.userSession.update(\.fcmToken, localToken)
-                    Logger.d("FCM 토큰 동기화 완료")
-                })
+
+        return repository.generateFcmToken()
+            .do(onSuccess: { localToken in
+                self.fcmTokenStore.latestToken = localToken
+            })
+            .flatMap { localToken in
+                self.repository.fetchUser(uid: sessionUser.uid)
+                    .flatMap { serverUser -> Single<Void> in
+                        let serverToken = serverUser?.fcmToken
+
+                        // 값이 같으면 아무것도 안 함
+                        if serverToken == localToken {
+                            return .just(())
+                        }
+
+                        // 다르면 patch
+                        return self.repository.patchUser(
+                            uid: sessionUser.uid,
+                            fields: ["fcmToken": localToken])
+                        .do(onSuccess: {
+                            self.userSession.update(\.fcmToken, localToken)
+                            Logger.d("FCM 토큰 동기화 완료")
+                        })
+                    }
             }
     }
 }

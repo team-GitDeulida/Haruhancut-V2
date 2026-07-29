@@ -49,7 +49,7 @@ Update `fastlane/metadata/review_information/notes.txt` in the existing bilingua
 2. Run:
 
    ```bash
-   python3 skills/haruhancut-app-store-release/scripts/validate_metadata.py \
+   python3 .agents/skills/haruhancut-app-store-release/scripts/validate_metadata.py \
      --metadata-root fastlane/metadata
    ```
 

@@ -72,7 +72,7 @@ let project = Project(
                 // "CFBundleDisplayName": "하루한컷",
 
                 // 앱 버전 설정
-                "CFBundleShortVersionString": "1.1.0",
+                "CFBundleShortVersionString": "1.1.1",
 
                 // 빌드 번호 설정
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
