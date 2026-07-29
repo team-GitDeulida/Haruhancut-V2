@@ -125,6 +125,8 @@ firebase/functions-javascript/node_modules/
 firebase/functions-python/venv/
 firebase/functions-python/__pycache__/
 firebase/functions-python/.env
+firebase/fcm/__pycache__/
+firebase/fcm/*firebase-adminsdk*.json
 firebase/functions-typescript/haruhancut-kor-9baad1900204.json
 firebase/functions-javascript/.env
 firebase/functions-javascript/haruhancut-kor-9baad1900204.json
