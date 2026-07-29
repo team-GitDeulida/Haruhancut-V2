@@ -1,75 +1,13 @@
 import * as admin from "firebase-admin";
 
-import "../config";
-
-interface UserData {
-  nickname?: unknown;
-  isPushEnabled?: unknown;
-  fcmToken?: unknown;
-}
-
-const invalidTokens = new Set(["", "noFCM", "noToken"]);
-
-/**
- * 필수 환경 변수를 읽습니다.
- * @param name 환경 변수 이름
- * @returns 환경 변수 값
- */
-function getRequiredEnv(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
-
-/**
- * Cloud Functions와 같은 환경 변수로 Firebase Admin SDK를 초기화합니다.
- * @returns 초기화된 Firebase 앱
- */
-function initializeFirebaseAdmin(): admin.app.App {
-  const projectId = getRequiredEnv("APP_PROJECT_ID");
-  const databaseURL = getRequiredEnv("APP_DATABASE_URL");
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_CLIENT_EMAIL?.trim();
-  const privateKeyValue =
-    process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-  const privateKey = privateKeyValue?.replace(/\\n/g, "\n");
-
-  if ((clientEmail && !privateKey) || (!clientEmail && privateKey)) {
-    throw new Error(
-        "Both GOOGLE_SERVICE_ACCOUNT_CLIENT_EMAIL and " +
-        "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY must be provided together.",
-    );
-  }
-
-  const credential =
-    clientEmail && privateKey ?
-      admin.credential.cert({
-        projectId:
-          process.env.GOOGLE_SERVICE_ACCOUNT_PROJECT_ID?.trim() || projectId,
-        clientEmail,
-        privateKey,
-      }) :
-      admin.credential.applicationDefault();
-
-  return admin.initializeApp({
-    credential,
-    databaseURL,
-    projectId,
-  });
-}
-
-/**
- * 로그에 FCM 토큰 전체가 노출되지 않도록 일부만 남깁니다.
- * @param token FCM 토큰
- * @returns 마스킹된 토큰
- */
-function maskToken(token: string): string {
-  if (token.length <= 14) {
-    return "***";
-  }
-  return `${token.slice(0, 8)}...${token.slice(-6)}`;
-}
+import {
+  createApnsAlertConfig,
+  getNickname,
+  getValidFcmToken,
+  initializeFirebaseAdmin,
+  maskToken,
+  NotificationUserData,
+} from "./notification-utils";
 
 /**
  * 명령행 인자 또는 환경 변수에서 테스트 대상 사용자 UID를 읽습니다.
@@ -111,27 +49,21 @@ async function main(): Promise<void> {
     const snapshot = await admin.database()
         .ref(`/users/${userId}`)
         .once("value");
-    const user = snapshot.val() as UserData | null;
+    const user = snapshot.val() as NotificationUserData | null;
 
     if (!user || typeof user !== "object") {
       throw new Error(`User not found: ${userId}`);
     }
 
-    const nickname =
-      typeof user.nickname === "string" && user.nickname.trim() ?
-        user.nickname.trim() :
-        "알 수 없는 사용자";
+    const nickname = getNickname(user);
 
     if (user.isPushEnabled !== true) {
       throw new Error(`${nickname} 사용자는 알림 설정이 꺼져 있습니다.`);
     }
 
-    const token =
-      typeof user.fcmToken === "string" ?
-        user.fcmToken.trim() :
-        "";
+    const token = getValidFcmToken(user.fcmToken);
 
-    if (invalidTokens.has(token)) {
+    if (!token) {
       throw new Error(`${nickname} 사용자의 유효한 FCM 토큰이 없습니다.`);
     }
 
@@ -150,17 +82,7 @@ async function main(): Promise<void> {
             type: "test",
             userId,
           },
-          apns: {
-            headers: {
-              "apns-priority": "10",
-              "apns-push-type": "alert",
-            },
-            payload: {
-              aps: {
-                sound: "default",
-              },
-            },
-          },
+          apns: createApnsAlertConfig(),
         },
         dryRun,
     );
