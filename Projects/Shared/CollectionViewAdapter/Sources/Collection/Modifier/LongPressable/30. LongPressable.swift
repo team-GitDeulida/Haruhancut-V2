@@ -1,5 +1,5 @@
 //
-//  LongPressable.swift
+//  30. LongPressable.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/28/26.
@@ -21,6 +21,9 @@ private final class ComponentLongPressGestureRecognizer:
 
     private weak var contentView: UIView?
 
+    /// Content View의 long press만 전달할 recognizer를 만듭니다.
+    ///
+    /// - Parameter contentView: 제스처를 감지할 Component Content View.
     init(contentView: UIView) {
         self.contentView = contentView
         super.init(target: nil, action: nil)
@@ -31,11 +34,18 @@ private final class ComponentLongPressGestureRecognizer:
         delegate = self
     }
 
+    /// Storyboard와 nib 기반 초기화는 지원하지 않습니다.
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:)는 지원하지 않습니다.")
     }
 
+    /// UIControl에서 시작한 터치를 제외하고 Content 내부 터치만 수신합니다.
+    ///
+    /// - Parameters:
+    ///   - gestureRecognizer: 수신 여부를 판단하는 long press recognizer.
+    ///   - touch: 새로 시작된 터치.
+    /// - Returns: Component 전체 long press로 처리할지 여부.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldReceive touch: UITouch
@@ -50,6 +60,12 @@ private final class ComponentLongPressGestureRecognizer:
         )
     }
 
+    /// Scroll과 눌림 효과 recognizer가 long press와 함께 동작할 수 있는지 판단합니다.
+    ///
+    /// - Parameters:
+    ///   - gestureRecognizer: 현재 long press recognizer.
+    ///   - otherGestureRecognizer: 동시에 인식할지 판단할 상대 recognizer.
+    /// - Returns: 두 recognizer의 동시 인식 허용 여부.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
@@ -64,6 +80,7 @@ private final class ComponentLongPressGestureRecognizer:
     }
 
     @objc
+    /// Long press가 시작된 순간에만 구독자에게 이벤트를 전달합니다.
     private func didRecognizeLongPress() {
         guard state == .began else {
             return

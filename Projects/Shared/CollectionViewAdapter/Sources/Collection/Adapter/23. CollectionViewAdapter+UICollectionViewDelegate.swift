@@ -1,5 +1,5 @@
 //
-//  CollectionViewAdapter+UICollectionViewDelegate.swift
+//  23. CollectionViewAdapter+UICollectionViewDelegate.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/26/26.

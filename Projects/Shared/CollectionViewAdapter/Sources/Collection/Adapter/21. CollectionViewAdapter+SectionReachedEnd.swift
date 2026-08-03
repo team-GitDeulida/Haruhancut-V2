@@ -1,5 +1,5 @@
 //
-//  CollectionViewAdapter+SectionReachedEnd.swift
+//  21. CollectionViewAdapter+SectionReachedEnd.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/27/26.
@@ -13,6 +13,9 @@ final class CollectionViewAdapterSectionReachedEndState {
     var isInsideThreshold = false
     var isDeliveryScheduled = false
 
+    /// 전달 기준과 초기 상태를 보관하는 Section 끝 접근 상태를 만듭니다.
+    ///
+    /// - Parameter threshold: 끝 접근 callback을 시작할 거리 기준.
     init(
         threshold: CollectionViewReachedEndThreshold
     ) {

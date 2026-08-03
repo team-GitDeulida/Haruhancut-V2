@@ -1,5 +1,5 @@
 //
-//  Touchable.swift
+//  34. Touchable.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/24/26.
@@ -22,6 +22,9 @@ private final class ComponentTouchGestureRecognizer:
 
     private weak var contentView: UIView?
 
+    /// Content View 내부의 탭만 전달할 recognizer를 만듭니다.
+    ///
+    /// - Parameter contentView: 제스처를 감지할 Component Content View.
     init(contentView: UIView) {
         self.contentView = contentView
         super.init(target: nil, action: nil)
@@ -31,11 +34,18 @@ private final class ComponentTouchGestureRecognizer:
         delegate = self
     }
 
+    /// Storyboard와 nib 기반 초기화는 지원하지 않습니다.
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:)는 지원하지 않습니다.")
     }
 
+    /// UIControl에서 시작한 터치를 제외하고 Content 내부 터치만 수신합니다.
+    ///
+    /// - Parameters:
+    ///   - gestureRecognizer: 수신 여부를 판단하는 tap recognizer.
+    ///   - touch: 새로 시작된 터치.
+    /// - Returns: Component 전체 탭으로 처리할지 여부.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldReceive touch: UITouch
@@ -50,6 +60,12 @@ private final class ComponentTouchGestureRecognizer:
         )
     }
 
+    /// 실제 long press 동작이 우선 인식되도록 탭의 실패 대기 여부를 판단합니다.
+    ///
+    /// - Parameters:
+    ///   - gestureRecognizer: 현재 tap recognizer.
+    ///   - otherGestureRecognizer: 우선순위를 비교할 상대 recognizer.
+    /// - Returns: 상대 recognizer가 실패한 뒤 탭을 인식할지 여부.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer
@@ -65,6 +81,12 @@ private final class ComponentTouchGestureRecognizer:
         return longPressGestureRecognizer.minimumPressDuration > 0
     }
 
+    /// Scroll recognizer와 탭 recognizer의 동시 인식 여부를 판단합니다.
+    ///
+    /// - Parameters:
+    ///   - gestureRecognizer: 현재 tap recognizer.
+    ///   - otherGestureRecognizer: 동시에 인식할지 판단할 상대 recognizer.
+    /// - Returns: 두 recognizer의 동시 인식 허용 여부.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
@@ -74,6 +96,7 @@ private final class ComponentTouchGestureRecognizer:
     }
 
     @objc
+    /// 탭이 인식되면 구독자에게 터치 이벤트를 전달합니다.
     private func didRecognizeTouch() {
         event.send(())
     }

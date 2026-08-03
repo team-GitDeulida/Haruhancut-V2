@@ -94,6 +94,9 @@ public final class CollectionViewLayoutAdapter {
     /// 빈 layout adapter를 만듭니다.
     public init() {}
 
+    /// 최신 Section 해석 결과로 layout provider의 조회 데이터를 갱신합니다.
+    ///
+    /// - Parameter sections: 현재 Adapter에 bind된 Section 배열.
     func updateSections(
         _ sections: [ResolvedSection]
     ) {

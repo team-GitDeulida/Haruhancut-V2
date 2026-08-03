@@ -16,6 +16,9 @@ private struct CollectionLayoutInsetsSignature:
     let bottom: CGFloat
     let trailing: CGFloat
 
+    /// 방향별 inset을 비교 가능한 값 묶음으로 변환합니다.
+    ///
+    /// - Parameter insets: 보관할 방향성 inset.
     init(_ insets: NSDirectionalEdgeInsets) {
         top = insets.top
         leading = insets.leading
@@ -70,6 +73,11 @@ public struct CollectionSectionLayoutContext {
     /// 현재 section Component 중 가장 큰 추정 높이입니다.
     public let maximumEstimatedItemHeight: CGFloat
 
+    /// Custom layout 생성에 사용할 Section 정보를 만듭니다.
+    ///
+    /// - Parameters:
+    ///   - itemCount: 현재 Section에 포함된 item 수.
+    ///   - maximumEstimatedItemHeight: Item 중 가장 큰 추정 높이.
     init(
         itemCount: Int,
         maximumEstimatedItemHeight: CGFloat
@@ -360,6 +368,10 @@ public struct CollectionSectionLayout {
         }
     }
 
+    /// Context를 사용해 layout section을 만들고 공통 content inset을 적용합니다.
+    ///
+    /// - Parameter context: 현재 Section의 item 수와 추정 크기 정보.
+    /// - Returns: Boundary item을 추가하기 전의 Compositional Layout section.
     func makeSection(
         context: CollectionSectionLayoutContext
     ) -> NSCollectionLayoutSection {
@@ -440,6 +452,11 @@ public struct CollectionSectionLayout {
                 == other.footerPinToVisibleBounds
     }
 
+    /// Header와 footer boundary item에 고정 배치 설정을 적용합니다.
+    ///
+    /// - Parameters:
+    ///   - header: 설정할 header boundary item.
+    ///   - footer: 설정할 footer boundary item.
     func applyBoundaryConfiguration(
         header:
             NSCollectionLayoutBoundarySupplementaryItem?,

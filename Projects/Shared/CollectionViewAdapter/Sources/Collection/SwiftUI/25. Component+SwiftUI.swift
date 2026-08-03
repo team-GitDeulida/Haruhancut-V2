@@ -1,5 +1,5 @@
 //
-//  Component+SwiftUI.swift
+//  25. Component+SwiftUI.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/24/26.
@@ -43,6 +43,7 @@ public final class UIComponentView<C: Component>: UIView {
         update(component: component)
     }
 
+    /// Storyboard와 nib 기반 초기화는 지원하지 않습니다.
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:)는 지원하지 않습니다.")

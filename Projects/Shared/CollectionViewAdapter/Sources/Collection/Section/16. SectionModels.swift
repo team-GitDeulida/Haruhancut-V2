@@ -122,6 +122,11 @@ public struct ConfiguredSection<Base: SectionModelType>:
     private let base: Base
     let sectionConfiguration: SectionConfiguration
 
+    /// 원본 Section과 합성할 설정을 보관하는 wrapper를 만듭니다.
+    ///
+    /// - Parameters:
+    ///   - base: Header, footer, layout 설정을 추가할 원본 Section.
+    ///   - configuration: 원본 Section에 적용할 설정 값.
     init(
         base: Base,
         configuration: SectionConfiguration
@@ -264,6 +269,9 @@ extension SectionModelType {
             .sectionConfiguration ?? SectionConfiguration()
     }
 
+    /// Section과 누적된 설정을 Adapter가 사용할 해석 결과로 변환합니다.
+    ///
+    /// - Returns: Layout, supplementary view와 끝 접근 설정을 포함한 Section 값.
     func resolve() -> ResolvedSection {
         let configuration = resolvedConfiguration
         return ResolvedSection(
@@ -354,6 +362,9 @@ struct ResolvedSection {
         items.map(\.estimatedHeight).max() ?? 44
     }
 
+    /// Item과 supplementary 설정을 포함한 UIKit layout section을 만듭니다.
+    ///
+    /// - Returns: Collection view에 적용할 Compositional Layout section.
     func makeLayoutSection() -> NSCollectionLayoutSection {
         let context = CollectionSectionLayoutContext(
             itemCount: items.count,

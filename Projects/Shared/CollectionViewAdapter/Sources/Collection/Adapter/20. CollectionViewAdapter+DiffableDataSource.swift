@@ -1,5 +1,5 @@
 //
-//  CollectionViewAdapter+DiffableDataSource.swift
+//  20. CollectionViewAdapter+DiffableDataSource.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/26/26.

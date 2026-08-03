@@ -81,6 +81,7 @@ public final class ContainerSupplementaryView<C: Component>:
         isContentActive = true
     }
 
+    /// 화면 표시 직전에 아직 활성화되지 않은 supplementary Content를 다시 렌더링합니다.
     func contentWillDisplay() {
         guard
             !isContentActive,
@@ -98,6 +99,7 @@ public final class ContainerSupplementaryView<C: Component>:
         isContentActive = true
     }
 
+    /// 화면에서 사라진 supplementary Content의 render 수명과 연결된 작업을 정리합니다.
     func contentDidEndDisplay() {
         guard isContentActive else {
             return
