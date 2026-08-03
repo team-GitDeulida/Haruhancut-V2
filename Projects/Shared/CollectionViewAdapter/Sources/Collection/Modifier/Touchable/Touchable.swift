@@ -1,5 +1,5 @@
 //
-//  34. Touchable.swift
+//  Touchable.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/24/26.

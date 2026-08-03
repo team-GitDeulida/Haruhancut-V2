@@ -1,5 +1,5 @@
 //
-//  30. LongPressable.swift
+//  LongPressable.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/28/26.
