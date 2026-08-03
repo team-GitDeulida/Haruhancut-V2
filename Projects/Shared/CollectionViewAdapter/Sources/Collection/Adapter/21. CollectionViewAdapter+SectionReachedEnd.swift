@@ -39,6 +39,8 @@ final class CollectionViewAdapterSectionReachedEndCallbacks {
 
 extension CollectionViewAdapter {
     /// 새 Section tree에 맞춰 callback 설정과 전달 상태를 동기화합니다.
+    ///
+    /// - Parameter sections: 끝 접근 설정을 추출할 최신 해석된 Section 배열.
     func updateSectionReachedEndConfigurations(
         _ sections: [ResolvedSection]
     ) {
@@ -89,6 +91,10 @@ extension CollectionViewAdapter {
     }
 
     /// 가로 Section이 threshold 영역에 새로 진입하면 callback을 예약합니다.
+    ///
+    /// - Parameters:
+    ///   - sectionIdentifier: 끝 접근 여부를 판단할 가로 Section의 식별자.
+    ///   - metrics: 현재 viewport 길이와 끝까지 남은 거리를 담은 측정값.
     func triggerSectionReachedEndIfNeeded(
         sectionIdentifier: AnyHashable,
         metrics:
@@ -139,6 +145,10 @@ extension CollectionViewAdapter {
     }
 
     /// UIKit layout 갱신이 끝난 다음 MainActor 실행 차례에 callback을 전달합니다.
+    ///
+    /// - Parameters:
+    ///   - sectionIdentifier: 실행할 callback 설정을 찾는 Section 식별자.
+    ///   - state: 중복 예약을 제어하는 해당 Section의 전달 상태.
     private func scheduleSectionReachedEndDelivery(
         sectionIdentifier: AnyHashable,
         state:

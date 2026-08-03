@@ -50,6 +50,8 @@ private final class ComponentPressedEffectGestureRecognizer:
     }
 
     /// Storyboard와 nib 기반 초기화는 지원하지 않습니다.
+    ///
+    /// - Parameter coder: Storyboard 또는 nib이 전달하는 decoder. 이 initializer는 사용할 수 없습니다.
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:)는 지원하지 않습니다.")
@@ -168,6 +170,8 @@ private final class ComponentPressedEffectGestureRecognizer:
 
 extension Pressable where Self: UIView {
     /// 눌림 recognizer를 UIView 수명 동안 한 번만 설치하고 최신 scale을 반영합니다.
+    ///
+    /// - Parameter scale: 터치 중 Content에 적용할 0보다 크고 1보다 작은 축소 비율.
     func installPressedEffectIfNeeded(scale: CGFloat) {
         guard scale > 0, scale < 1 else {
             return

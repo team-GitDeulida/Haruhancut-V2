@@ -27,6 +27,10 @@ where Wrapped.Content: ContainsButton {
     }
 
     /// 원본을 렌더링한 뒤 버튼 이벤트를 현재 render 수명에 연결합니다.
+    ///
+    /// - Parameters:
+    ///   - context: 이벤트 observation을 보관할 이번 render의 환경과 수명.
+    ///   - content: 버튼 이벤트를 제공하는 원본 Component Content.
     @MainActor
     public func render(context: ComponentContext, content: Wrapped.Content) {
         wrapped.render(content: content, context: context)

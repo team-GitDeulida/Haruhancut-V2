@@ -139,6 +139,10 @@ public struct CollectionSectionLayout {
     }
 
     /// 비교 가능한 기본 layout 설정과 생성 동작을 함께 보관합니다.
+    ///
+    /// - Parameters:
+    ///   - kindSignature: Layout 동등성 비교에 사용할 기본 layout 설정 값.
+    ///   - makeLayout: Context를 받아 UIKit layout section을 만드는 동작.
     private init(
         kindSignature:
             CollectionSectionLayoutKindSignature,
@@ -389,6 +393,12 @@ public struct CollectionSectionLayout {
     /// 개수와 group 너비, 간격으로 전체 content 너비를 계산할 수 있습니다.
     /// Custom layout은 배치 규칙을 알 수 없어 Section 단위 거리 감지를
     /// 제공하지 않습니다.
+    ///
+    /// - Parameters:
+    ///   - itemCount: 현재 가로 Section에 배치된 Item 수.
+    ///   - viewportWidth: 현재 가로 viewport의 유효 너비.
+    ///   - contentOffsetX: 가로 스크롤의 현재 content offset.
+    /// - Returns: 끝 접근 판단에 사용할 거리 정보 또는 지원하지 않으면 `nil`.
     func makeOrthogonalScrollMetrics(
         itemCount: Int,
         viewportWidth: CGFloat,
@@ -436,6 +446,9 @@ public struct CollectionSectionLayout {
     }
 
     /// 두 Section layout이 같은 배치 결과를 만드는지 비교합니다.
+    ///
+    /// - Parameter other: 현재 layout과 배치 설정을 비교할 다른 layout.
+    /// - Returns: Layout 종류, inset과 header/footer 고정 설정이 같으면 `true`.
     func isLayoutEquivalent(
         to other: CollectionSectionLayout
     ) -> Bool {

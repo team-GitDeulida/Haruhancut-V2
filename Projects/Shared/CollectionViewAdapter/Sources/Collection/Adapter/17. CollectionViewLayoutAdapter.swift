@@ -112,6 +112,11 @@ public final class CollectionViewLayoutAdapter {
     ///
     /// 별도 메서드로 분리해 UIKit handler뿐 아니라 회귀 테스트에서도 같은
     /// 거리 계산과 전달 경로를 사용할 수 있습니다.
+    ///
+    /// - Parameters:
+    ///   - sectionIdentifier: 스크롤한 가로 Section의 안정적인 식별자.
+    ///   - contentOffset: 가로 Section 내부의 현재 content offset.
+    ///   - viewportWidth: 현재 가로 viewport의 유효 너비.
     func handleOrthogonalScroll(
         sectionIdentifier: AnyHashable,
         contentOffset: CGPoint,

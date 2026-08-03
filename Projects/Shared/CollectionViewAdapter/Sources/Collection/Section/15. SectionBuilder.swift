@@ -37,6 +37,8 @@ public struct For<Data: RandomAccessCollection> {
 @MainActor
 public enum SectionBuilder {
     /// 일반 Component를 item 하나로 바꿉니다.
+    ///
+    /// - Parameter expression: Builder에 추가할 concrete Component.
     public static func buildExpression<C: Component>(
         _ expression: C
     ) -> [AnyComponent] {
@@ -44,6 +46,8 @@ public enum SectionBuilder {
     }
 
     /// 이미 type erase한 Component를 item 하나로 바꿉니다.
+    ///
+    /// - Parameter expression: Builder에 추가할 type-erased Component.
     public static func buildExpression(
         _ expression: AnyComponent
     ) -> [AnyComponent] {
@@ -51,6 +55,8 @@ public enum SectionBuilder {
     }
 
     /// `For(of:)`가 만든 item을 builder에 합칩니다.
+    ///
+    /// - Parameter expression: 반복 builder가 만든 Component 묶음.
     public static func buildExpression<Data: RandomAccessCollection>(
         _ expression: For<Data>
     ) -> [AnyComponent] {
@@ -58,6 +64,8 @@ public enum SectionBuilder {
     }
 
     /// 여러 표현식을 선언 순서대로 합칩니다.
+    ///
+    /// - Parameter components: 선언 순서로 전달된 Component 배열들.
     public static func buildBlock(
         _ components: [AnyComponent]...
     ) -> [AnyComponent] {
@@ -65,6 +73,8 @@ public enum SectionBuilder {
     }
 
     /// `if`의 값이 없을 때 빈 item 목록을 사용합니다.
+    ///
+    /// - Parameter component: 조건 분기에서 선택적으로 생성된 Component 배열.
     public static func buildOptional(
         _ component: [AnyComponent]?
     ) -> [AnyComponent] {
@@ -72,6 +82,8 @@ public enum SectionBuilder {
     }
 
     /// `if` 분기의 첫 번째 결과를 사용합니다.
+    ///
+    /// - Parameter component: `if` 조건이 참일 때 생성된 Component 배열.
     public static func buildEither(
         first component: [AnyComponent]
     ) -> [AnyComponent] {
@@ -79,6 +91,8 @@ public enum SectionBuilder {
     }
 
     /// `else` 분기의 두 번째 결과를 사용합니다.
+    ///
+    /// - Parameter component: `else` 분기에서 생성된 Component 배열.
     public static func buildEither(
         second component: [AnyComponent]
     ) -> [AnyComponent] {
@@ -86,6 +100,8 @@ public enum SectionBuilder {
     }
 
     /// Swift 표준 `for`가 만든 배열을 평탄화합니다.
+    ///
+    /// - Parameter components: 반복문 각 회차에서 생성된 Component 배열들.
     public static func buildArray(
         _ components: [[AnyComponent]]
     ) -> [AnyComponent] {
@@ -93,6 +109,8 @@ public enum SectionBuilder {
     }
 
     /// Availability 분기의 item을 그대로 사용합니다.
+    ///
+    /// - Parameter component: 현재 플랫폼에서 사용할 Component 배열.
     public static func buildLimitedAvailability(
         _ component: [AnyComponent]
     ) -> [AnyComponent] {

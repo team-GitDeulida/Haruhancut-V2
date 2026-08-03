@@ -75,6 +75,8 @@ extension CollectionViewAdapter {
     }
 
     /// 현재 scroll 위치를 기준으로 끝 접근 여부를 검사합니다.
+    ///
+    /// - Parameter scrollView: 스크롤 위치를 전달한 scroll view.
     public func scrollViewDidScroll(
         _ scrollView: UIScrollView
     ) {
@@ -85,6 +87,11 @@ extension CollectionViewAdapter {
     }
 
     /// 예상 정지 위치를 기준으로 끝 접근 여부를 미리 검사합니다.
+    ///
+    /// - Parameters:
+    ///   - scrollView: 감속을 시작하는 scroll view.
+    ///   - velocity: 손을 뗀 시점의 스크롤 속도.
+    ///   - targetContentOffset: UIKit이 계산한 예상 정지 위치를 가리키는 포인터.
     public func scrollViewWillEndDragging(
         _ scrollView: UIScrollView,
         withVelocity velocity: CGPoint,
@@ -98,6 +105,10 @@ extension CollectionViewAdapter {
     }
 
     /// threshold 영역에 새로 진입했으면 callback 전달을 예약합니다.
+    ///
+    /// - Parameters:
+    ///   - scrollView: 끝 접근 여부를 판단할 scroll view.
+    ///   - contentOffset: 판단에 사용할 현재 또는 예상 content offset.
     private func triggerReachedEndIfNeeded(
         scrollView: UIScrollView,
         contentOffset: CGPoint
@@ -207,6 +218,9 @@ extension CollectionViewAdapter {
     }
 
     /// CollectionView layout의 기본 scroll 방향을 반환합니다.
+    ///
+    /// - Parameter collectionView: layout 방향을 조회할 collection view.
+    /// - Returns: Compositional 또는 Flow Layout이 사용하는 scroll 방향.
     private func scrollDirection(
         of collectionView: UICollectionView
     ) -> UICollectionView.ScrollDirection {

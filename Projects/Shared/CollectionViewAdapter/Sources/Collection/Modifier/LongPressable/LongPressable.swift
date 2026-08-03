@@ -35,6 +35,8 @@ private final class ComponentLongPressGestureRecognizer:
     }
 
     /// Storyboard와 nib 기반 초기화는 지원하지 않습니다.
+    ///
+    /// - Parameter coder: Storyboard 또는 nib이 전달하는 decoder. 이 initializer는 사용할 수 없습니다.
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:)는 지원하지 않습니다.")
@@ -128,6 +130,8 @@ public extension LongPressable where Self: UIView {
 
 extension LongPressable where Self: UIView {
     /// 기본 long press recognizer를 설치하고 최신 인식 시간을 반영합니다.
+    ///
+    /// - Parameter minimumDuration: Long press로 인식하기까지 필요한 0보다 큰 시간.
     func installLongPressHandlingIfNeeded(minimumDuration: TimeInterval) {
         precondition(minimumDuration > 0, "minimumDuration은 0보다 커야 합니다.")
 

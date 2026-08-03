@@ -27,6 +27,10 @@ where Wrapped.Content: Pressable {
     }
 
     /// 원본을 렌더링한 뒤 Content에 눌림 효과를 한 번만 설치합니다.
+    ///
+    /// - Parameters:
+    ///   - context: 이번 render의 환경과 작업 수명.
+    ///   - content: 눌림 효과를 설치할 원본 Component Content.
     @MainActor
     public func render(context: ComponentContext, content: Wrapped.Content) {
         wrapped.render(content: content, context: context)
