@@ -152,6 +152,8 @@ guard let latest = files.sorted(by: {
 > 🔸 기능 추가 시 수정 범위를 모듈 단위로 제한해 변경 영향도 파악이 쉬워짐  
 > 🔸 공용 코드와 기능 코드를 분리해 프로젝트 구조를 더 명확하게 정리
 
+대표 Workspace 구성과 앱·위젯 경계를 드러내는 주요 의존성은 다음과 같습니다.
+
 ```swift
 let workspace = Workspace(
     name: "Haruhancut",
@@ -180,31 +182,27 @@ dependencies: [
 
 > **문제**
 >
-> UIKit으로 Collection View 화면을 만들 때마다 Cell과 Header/Footer 등록,
-> Data Source 타입 분기, Section별 Layout 구성이 반복됐습니다.
-> Diffable Snapshot 갱신과 이벤트 연결까지 ViewController가 맡으면서
-> 화면이 복잡해질수록 구체적인 Cell 타입과 상태 갱신 로직이 ViewController에 모였습니다.
-> Section을 추가하거나 같은 UI를 다른 화면에서 재사용할 때 수정 범위도 커졌습니다.
+> 하루한컷의 여러 화면은 `UICollectionView`로 구성되어 있어,
+> 화면을 만들 때마다 Delegate·Data Source 연결과 Cell 등록 로직을 반복해야 했습니다.
 >
 > **해결**
 >
 > 반복되는 Collection View 구성 책임을 `CollectionViewAdapter` 공용 모듈로 옮겼습니다.
 >
-> - `Component`는 `Identifiable & Equatable` Item과 `UIView`의 생성·렌더링 규칙을 연결합니다.
-> - `SectionModels`는 Header/Footer와 세로 목록, Grid, 가로 Carousel을 선언합니다.
-> - `CollectionViewAdapter`는 generic container 등록, Compositional Layout,
->   stable identity 기반 Snapshot, 재사용 생명주기, Prefetch/Pagination을 관리합니다.
+> - Adapter는 Diffable Data Source와 `UICollectionViewDelegate`·Prefetch 흐름을 관리해
+>   데이터 갱신과 이벤트 처리를 한곳으로 모읍니다.
+> - `ContainerCell`은 Component 타입에 맞는 generic container로 동적 등록되어,
+>   Adapter가 개별 Cell 타입을 직접 알 필요가 없습니다.
+> - `Component`는 `Identifiable & Equatable` Item과 `UIView`의 생성·렌더링 규칙을 연결하고,
+>   `SectionModels`는 Header/Footer와 세로 목록, Grid, 가로 Carousel을 선언합니다.
 >
-> Content는 `Touchable`, `Pressable`, `LongPressable`, `ContainsButton`,
-> `ContainsSwitch` 중 필요한 capability만 채택하고, 각 상호작용은 modifier로 연결합니다.
-> Component가 SwiftUI `View`도 채택하면 같은 UI를 SwiftUI에서 바로 재사용할 수 있습니다.
+> 새 UI는 Component를 정의하고 Section에 추가하는 방식으로 확장할 수 있어,
+> Adapter를 수정하지 않고도 화면 구성과 타입 의존성을 분리합니다.
 >
 > **성과**
 >
-> 🔸 ViewController에서 반복되던 Cell 등록과 Data Source 타입 분기 제거<br>
-> 🔸 세로 목록, Grid, 가로 Carousel을 같은 Section DSL로 선언<br>
-> 🔸 Snapshot 갱신, 재사용, 이벤트, Prefetch, Pagination을 Adapter에서 관리<br>
-> 🔸 같은 Component를 UIKit과 SwiftUI에서 재사용
+> 🔸 선언형 API로 Cell 등록·재사용과 데이터 갱신 코드를 줄여 새로운 Collection View 화면 구현 과정을 단순화<br>
+> 🔸 `UIView` 생성과 렌더링 계약을 분리한 Component를 설계해 `UIViewRepresentable` 기반의 SwiftUI 재사용 토대 마련
 
 #### CollectionViewAdapter 사용 예제
 
