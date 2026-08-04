@@ -58,19 +58,18 @@
 ### **1. 제네릭 기반 Firebase CRUD + 실시간 Observe 추상화**
 
 > **문제**  
-> Firebase Realtime Database를 사용할 때 엔티티마다
-> JSON 직렬화/역직렬화, 단건 조회, 부분 수정, 삭제, 실시간 구독 로직이 반복되어
-> Repository 계층이 쉽게 비대해지는 문제가 있었습니다.
+> Firebase Realtime Database에서 엔티티마다 JSON 직렬화·역직렬화, 단건 조회,
+> 부분 수정, 삭제, 실시간 구독 로직이 반복됐습니다. 그 결과 Repository 계층이 쉽게 비대해졌습니다.
 >
 > **해결**  
 > `Encodable / Decodable` 기반 제네릭 CRUD 메서드와
-> `observeValueStream(path:type:)` 실시간 구독 인터페이스를 공통화해
-> 모든 엔티티가 같은 방식으로 Firebase에 접근하도록 정리했습니다.
+> `observeValueStream(path:type:)` 실시간 구독 인터페이스를 공통으로 정의했습니다.
+> 모든 엔티티는 같은 방식으로 Firebase에 접근합니다.
 >
 > **성과**  
-> 🔸 단건 조회 / 저장 / 수정 / 삭제 / 실시간 감지를 하나의 패턴으로 통일  
-> 🔸 신규 DTO 추가 시 Firebase 접근 코드를 거의 복붙 없이 확장 가능  
-> 🔸 Feature / Repository 레이어가 비즈니스 로직에 집중할 수 있는 구조 확보
+> 🔸 단건 조회·저장·수정·삭제·실시간 감지 흐름을 하나의 패턴으로 통일  
+> 🔸 새 DTO를 추가할 때 Firebase 접근 로직을 복사·붙여넣기하지 않고 확장  
+> 🔸 Feature / Repository 레이어가 Firebase 접근 대신 비즈니스 로직에 집중할 수 있는 구조 마련
 
 ```swift
 // 공통 Firebase 인터페이스
@@ -86,30 +85,29 @@ func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<
 }
 ```
 
----
+<br/><br/>
 
 ### **2. WidgetKit + App Group + FileManager 기반 위젯 동기화 구조 설계**
 
 > **문제**  
-> 위젯은 앱과 다른 프로세스/샌드박스에서 실행되기 때문에
-> 앱 메모리나 일반 로컬 상태를 직접 참조할 수 없습니다.
-> 특히 "가족 그룹의 오늘 최신 사진 1장"을 홈 화면 위젯에 안정적으로 노출하려면
-> 앱과 위젯이 공통으로 읽을 수 있는 데이터 전달 경로가 필요했습니다.
+> 위젯은 앱과 다른 프로세스·샌드박스에서 실행돼 앱 메모리나 일반 로컬 상태를 직접 참조할 수 없습니다.
+> 특히 "가족 그룹의 오늘 최신 사진 1장"을 홈 화면 위젯에 안정적으로 표시하려면,
+> 앱과 위젯이 함께 읽을 수 있는 데이터 전달 경로가 필요했습니다.
 >
 > **해결**  
 > `App Group + FileManager` 기반 공유 컨테이너 구조를 설계했습니다.
 >
-> 1. 앱에서 현재 유저 세션을 `Session/user.json`으로 저장
-> 2. 오늘 최신 게시글 이미지를 `Photos/<groupId>/<yyyy-MM-dd>/<timestamp>-<postId>.jpg` 형식으로 저장
-> 3. 저장 전에 다운샘플링 + 리사이즈 + JPEG 압축을 적용해 위젯 메모리 사용량을 절감
-> 4. 위젯 Provider는 `user.json`에서 groupId를 읽고, 오늘 폴더의 파일 중 가장 최신 1장만 로드
-> 5. 홈 실시간 데이터가 바뀌면 `WidgetCenter.reloadTimelines`로 즉시 위젯 갱신
-> 6. 게시글 삭제 시 동일 `postId`를 가진 파일도 함께 정리
+> 1. 앱의 현재 사용자 세션을 `Session/user.json`으로 저장
+> 2. 오늘의 최신 게시글 이미지를 `Photos/<groupId>/<yyyy-MM-dd>/<timestamp>-<postId>.jpg` 형식으로 저장
+> 3. 저장 전에 다운샘플링·리사이즈·JPEG 압축을 적용해 위젯 메모리 사용량을 절감
+> 4. 위젯 Provider가 `user.json`에서 groupId를 읽고, 오늘 폴더의 최신 이미지 1장을 로드
+> 5. 홈의 실시간 데이터가 바뀌면 `WidgetCenter.reloadTimelines`로 위젯을 즉시 갱신
+> 6. 게시글을 삭제할 때 동일한 `postId`를 가진 파일도 함께 정리
 >
 > **성과**  
-> 🔸 앱과 위젯의 프로세스 분리 문제를 App Group 공유 파일 시스템으로 해결  
+> 🔸 App Group 공유 파일 시스템으로 앱과 위젯의 프로세스 분리 문제 해결  
 > 🔸 위젯 전용 경량 이미지 파이프라인으로 메모리 부담과 로딩 실패 가능성 완화  
-> 🔸 앱을 열지 않아도 홈 화면에서 "우리 그룹의 오늘 사진"을 바로 확인 가능
+> 🔸 앱을 열지 않아도 홈 화면에서 "우리 그룹의 오늘 사진"을 바로 확인
 
 ```swift
 public enum WidgetSessionStore {
@@ -134,23 +132,25 @@ guard let latest = files.sorted(by: {
 }).first else { return nil }
 ```
 
----
+<br/><br/>
 
 ### **3. Tuist 기반 멀티 모듈 구조로 앱/위젯/공용 코드 경계 분리**
 
 > **문제**  
-> 기능이 늘어날수록 앱 타깃 하나에 인증, 홈, 프로필, 위젯, 공용 유틸이 함께 섞이면
+> 기능이 늘어나면 앱 타깃 하나에 인증·홈·프로필·위젯·공용 유틸이 함께 섞여
 > 의존성 경계가 흐려지고 빌드 구성 관리와 책임 분리가 어려워집니다.
 >
 > **해결**  
 > `Tuist` 워크스페이스를 기준으로
-> `App / Coordinator / Features / Core / Domain / Shared / Widget` 모듈을 분리하고,
+> `App / Coordinator / Features / Core / Domain / Shared / Widget` 모듈을 분리했습니다.
 > 위젯 전용 공유 로직은 `WidgetSupport` 모듈로 별도 관리했습니다.
 >
 > **성과**  
-> 🔸 앱 본체와 위젯이 필요한 코드만 선택적으로 의존하는 구조 확보  
-> 🔸 기능 추가 시 수정 범위를 모듈 단위로 제한해 변경 영향도 파악이 쉬워짐  
-> 🔸 공용 코드와 기능 코드를 분리해 프로젝트 구조를 더 명확하게 정리
+> 🔸 앱 본체와 위젯이 필요한 코드에만 선택적으로 의존하도록 분리  
+> 🔸 기능을 추가할 때 수정 범위를 모듈 단위로 제한해 변경 영향 파악  
+> 🔸 공용 코드와 기능 코드를 나눠 프로젝트 구조를 명확히 정리
+
+대표 Workspace 구성과 앱·위젯의 경계를 보여 주는 주요 의존성은 다음과 같습니다.
 
 ```swift
 let workspace = Workspace(
@@ -174,37 +174,26 @@ dependencies: [
 ]
 ```
 
----
+<br/><br/>
 
 ### **4. Component + Section DSL 기반 Collection View 화면 구성 표준화**
 
-> **문제**
+> **문제**  
+> 하루한컷 대부분의 화면은 `UICollectionView`로 구성되어 있어,
+> 화면을 만들 때마다 Delegate·Data Source 연결과 Cell 등록 로직을 반복해야 했습니다.
 >
-> UIKit으로 Collection View 화면을 만들 때마다 Cell과 Header/Footer 등록,
-> Data Source 타입 분기, Section별 Layout 구성이 반복됐습니다.
-> Diffable Snapshot 갱신과 이벤트 연결까지 ViewController가 맡으면서
-> 화면이 복잡해질수록 구체적인 Cell 타입과 상태 갱신 로직이 ViewController에 모였습니다.
-> Section을 추가하거나 같은 UI를 다른 화면에서 재사용할 때 수정 범위도 커졌습니다.
->
-> **해결**
->
+> **해결**  
 > 반복되는 Collection View 구성 책임을 `CollectionViewAdapter` 공용 모듈로 옮겼습니다.
 >
-> - `Component`는 `Identifiable & Equatable` Item과 `UIView`의 생성·렌더링 규칙을 연결합니다.
-> - `SectionModels`는 Header/Footer와 세로 목록, Grid, 가로 Carousel을 선언합니다.
-> - `CollectionViewAdapter`는 generic container 등록, Compositional Layout,
->   stable identity 기반 Snapshot, 재사용 생명주기, Prefetch/Pagination을 관리합니다.
+> - Adapter가 Diffable Data Source와 `UICollectionViewDelegate` 이벤트 흐름을 관리합니다.
+> - `ContainerCell`을 공용으로 재사용해 개별 Cell 등록과 타입 의존성을 제거했습니다.
+> - 화면별 UI는 데이터와 `UIView` 생성·갱신 규칙을 묶은 `Component`로 정의합니다.
+> - `SectionModels`에서 Header/Footer와 레이아웃을 선언하고, Component만 추가해 UI를 확장합니다.
 >
-> Content는 `Touchable`, `Pressable`, `LongPressable`, `ContainsButton`,
-> `ContainsSwitch` 중 필요한 capability만 채택하고, 각 상호작용은 modifier로 연결합니다.
-> Component가 SwiftUI `View`도 채택하면 같은 UI를 SwiftUI에서 바로 재사용할 수 있습니다.
->
-> **성과**
->
-> 🔸 ViewController에서 반복되던 Cell 등록과 Data Source 타입 분기 제거<br>
-> 🔸 세로 목록, Grid, 가로 Carousel을 같은 Section DSL로 선언<br>
-> 🔸 Snapshot 갱신, 재사용, 이벤트, Prefetch, Pagination을 Adapter에서 관리<br>
-> 🔸 같은 Component를 UIKit과 SwiftUI에서 재사용
+> **성과**  
+> 🔸 선언형 API로 Cell 등록·재사용과 데이터 갱신 코드를 줄여 새 UI 구현을 단순화<br>
+> 🔸 `Component`의 `createContent()`와 `render`로 View 생성과 상태 갱신을 분리<br>
+> 🔸 `UIViewRepresentable`을 통해 같은 Component를 SwiftUI에 연결할 수 있는 기반 마련
 
 #### CollectionViewAdapter 사용 예제
 
