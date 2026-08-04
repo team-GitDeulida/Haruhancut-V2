@@ -180,13 +180,11 @@ dependencies: [
 
 ### **4. Component + Section DSL 기반 Collection View 화면 구성 표준화**
 
-> **문제**
->
+> **문제**  
 > 하루한컷의 여러 화면은 `UICollectionView`로 구성되어 있어,
 > 화면을 만들 때마다 Delegate·Data Source 연결과 Cell 등록 로직을 반복해야 했습니다.
 >
-> **해결**
->
+> **해결**  
 > 반복되는 Collection View 구성 책임을 `CollectionViewAdapter` 공용 모듈로 옮겼습니다.
 >
 > - Adapter는 Diffable Data Source와 `UICollectionViewDelegate`·Prefetch 흐름을 관리해
@@ -199,8 +197,7 @@ dependencies: [
 > 새 UI는 Component를 정의하고 Section에 추가하는 방식으로 확장할 수 있어,
 > Adapter를 수정하지 않고도 화면 구성과 타입 의존성을 분리합니다.
 >
-> **성과**
->
+> **성과**  
 > 🔸 선언형 API로 Cell 등록·재사용과 데이터 갱신 코드를 줄여 새로운 Collection View 화면 구현 과정을 단순화<br>
 > 🔸 `UIView` 생성과 렌더링 계약을 분리한 Component를 설계해 `UIViewRepresentable` 기반의 SwiftUI 재사용 토대 마련
 
