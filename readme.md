@@ -88,8 +88,6 @@ func observeValueStream<T: Decodable>(path: String, type: T.Type) -> Observable<
 
 <br/><br/>
 
----
-
 ### **2. WidgetKit + App Group + FileManager 기반 위젯 동기화 구조 설계**
 
 > **문제**  
@@ -138,8 +136,6 @@ guard let latest = files.sorted(by: {
 
 <br/><br/>
 
----
-
 ### **3. Tuist 기반 멀티 모듈 구조로 앱/위젯/공용 코드 경계 분리**
 
 > **문제**  
@@ -181,8 +177,6 @@ dependencies: [
 ```
 
 <br/><br/>
-
----
 
 ### **4. Component + Section DSL 기반 Collection View 화면 구성 표준화**
 
