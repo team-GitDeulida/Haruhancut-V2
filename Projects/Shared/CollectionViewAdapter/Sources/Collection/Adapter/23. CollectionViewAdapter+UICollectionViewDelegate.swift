@@ -1,5 +1,5 @@
 //
-//  CollectionViewAdapter+UICollectionViewDelegate.swift
+//  23. CollectionViewAdapter+UICollectionViewDelegate.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/26/26.
@@ -38,6 +38,11 @@ extension CollectionViewAdapter: UICollectionViewDelegate {
     }
 
     /// Cell의 render 수명을 다시 활성화하고 공개 callback을 전달합니다.
+    ///
+    /// - Parameters:
+    ///   - collectionView: Cell을 표시하는 collection view.
+    ///   - cell: 표시를 시작하는 Cell container.
+    ///   - indexPath: 표시를 시작한 Item의 위치.
     public func collectionView(
         _ collectionView: UICollectionView,
         willDisplay cell: UICollectionViewCell,
@@ -53,6 +58,11 @@ extension CollectionViewAdapter: UICollectionViewDelegate {
     }
 
     /// 화면에서 사라진 Cell의 render 단위 작업을 정리합니다.
+    ///
+    /// - Parameters:
+    ///   - collectionView: Cell이 사라진 collection view.
+    ///   - cell: 표시를 끝낸 Cell container.
+    ///   - indexPath: 표시를 끝낸 Item의 이전 위치.
     public func collectionView(
         _ collectionView: UICollectionView,
         didEndDisplaying cell: UICollectionViewCell,
@@ -63,6 +73,12 @@ extension CollectionViewAdapter: UICollectionViewDelegate {
     }
 
     /// 화면에 표시되는 supplementary view의 render 수명을 활성화합니다.
+    ///
+    /// - Parameters:
+    ///   - collectionView: Supplementary view를 표시하는 collection view.
+    ///   - view: 표시를 시작하는 supplementary container.
+    ///   - elementKind: 표시를 시작한 supplementary view의 UIKit element kind.
+    ///   - indexPath: supplementary view가 속한 Section 위치.
     public func collectionView(
         _ collectionView: UICollectionView,
         willDisplaySupplementaryView view: UICollectionReusableView,
@@ -74,6 +90,12 @@ extension CollectionViewAdapter: UICollectionViewDelegate {
     }
 
     /// 화면에서 사라진 supplementary view의 render 단위 작업을 정리합니다.
+    ///
+    /// - Parameters:
+    ///   - collectionView: Supplementary view가 사라진 collection view.
+    ///   - view: 표시를 끝낸 supplementary container.
+    ///   - elementKind: 표시를 끝낸 supplementary view의 UIKit element kind.
+    ///   - indexPath: supplementary view가 속한 Section의 이전 위치.
     public func collectionView(
         _ collectionView: UICollectionView,
         didEndDisplayingSupplementaryView view: UICollectionReusableView,

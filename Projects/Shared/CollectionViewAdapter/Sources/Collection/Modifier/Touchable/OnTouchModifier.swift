@@ -27,6 +27,10 @@ where Wrapped.Content: Touchable {
     }
 
     /// 원본을 렌더링한 뒤 터치 이벤트를 현재 render 수명에 연결합니다.
+    ///
+    /// - Parameters:
+    ///   - context: 이벤트 observation을 보관할 이번 render의 환경과 수명.
+    ///   - content: 터치 이벤트를 제공하는 원본 Component Content.
     @MainActor
     public func render(context: ComponentContext, content: Wrapped.Content) {
         // 원본 Component의 UI를 먼저 그립니다.

@@ -33,6 +33,11 @@ private final class ComponentPressedEffectGestureRecognizer:
     private var initialLocation: CGPoint?
     private var isPressed = false
 
+    /// Content View의 눌림 효과를 관리할 recognizer를 만듭니다.
+    ///
+    /// - Parameters:
+    ///   - contentView: 눌림 효과를 적용할 Component Content View.
+    ///   - pressedScale: 터치 중 적용할 축소 비율.
     init(contentView: UIView, pressedScale: CGFloat) {
         self.contentView = contentView
         self.pressedScale = pressedScale
@@ -44,16 +49,23 @@ private final class ComponentPressedEffectGestureRecognizer:
         delegate = self
     }
 
+    /// Storyboard와 nib 기반 초기화는 지원하지 않습니다.
+    ///
+    /// - Parameter coder: Storyboard 또는 nib이 전달하는 decoder. 이 initializer는 사용할 수 없습니다.
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:)는 지원하지 않습니다.")
     }
 
+    /// 눌림 효과에 사용할 축소 비율을 최신 값으로 변경합니다.
+    ///
+    /// - Parameter pressedScale: 터치 중 적용할 새 축소 비율.
     func updatePressedScale(_ pressedScale: CGFloat) {
         self.pressedScale = pressedScale
     }
 
     @objc
+    /// 제스처 상태에 따라 눌림 효과를 시작·취소·종료합니다.
     private func handlePress() {
         switch state {
         case .began:
@@ -86,6 +98,9 @@ private final class ComponentPressedEffectGestureRecognizer:
         }
     }
 
+    /// 현재 눌림 상태를 반영해 Content View의 scale transform을 애니메이션합니다.
+    ///
+    /// - Parameter pressed: 눌림 효과를 적용할지 여부.
     private func updatePressedState(_ pressed: Bool) {
         guard isPressed != pressed else {
             return
@@ -113,6 +128,12 @@ private final class ComponentPressedEffectGestureRecognizer:
         }
     }
 
+    /// UIControl에서 시작한 터치를 제외하고 Content 내부 터치만 수신합니다.
+    ///
+    /// - Parameters:
+    ///   - gestureRecognizer: 수신 여부를 판단하는 눌림 recognizer.
+    ///   - touch: 새로 시작된 터치.
+    /// - Returns: Content 전체 눌림 효과로 처리할지 여부.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldReceive touch: UITouch
@@ -127,6 +148,12 @@ private final class ComponentPressedEffectGestureRecognizer:
         )
     }
 
+    /// 탭, long press, scroll recognizer와 함께 동작할 수 있는지 판단합니다.
+    ///
+    /// - Parameters:
+    ///   - gestureRecognizer: 현재 눌림 recognizer.
+    ///   - otherGestureRecognizer: 동시에 인식할지 판단할 상대 recognizer.
+    /// - Returns: 두 recognizer의 동시 인식 허용 여부.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
@@ -143,6 +170,8 @@ private final class ComponentPressedEffectGestureRecognizer:
 
 extension Pressable where Self: UIView {
     /// 눌림 recognizer를 UIView 수명 동안 한 번만 설치하고 최신 scale을 반영합니다.
+    ///
+    /// - Parameter scale: 터치 중 Content에 적용할 0보다 크고 1보다 작은 축소 비율.
     func installPressedEffectIfNeeded(scale: CGFloat) {
         guard scale > 0, scale < 1 else {
             return

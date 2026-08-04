@@ -58,6 +58,9 @@ public struct AnyComponent: CompositionalLayoutSizeable {
     }
 
     /// 두 Component가 같은 Content 표시 상태와 내부 연결을 가지는지 비교합니다.
+    ///
+    /// - Parameter other: 현재 Component와 비교할 다른 type-erased Component.
+    /// - Returns: 재사용 key, Item 상태와 modifier 연결 상태가 모두 같으면 `true`.
     func isContentEqual(to other: AnyComponent) -> Bool {
         guard
             reuseKey == other.reuseKey,
@@ -69,6 +72,9 @@ public struct AnyComponent: CompositionalLayoutSizeable {
     }
     
     /// 원본 Component를 요청한 concrete 타입으로 복원합니다.
+    ///
+    /// - Parameter componentType: 복원할 원본 Component의 concrete 타입.
+    /// - Returns: 저장한 Component가 요청 타입과 같으면 복원된 값, 아니면 `nil`.
     func component<C: Component>(
         as componentType: C.Type
     ) -> C? {

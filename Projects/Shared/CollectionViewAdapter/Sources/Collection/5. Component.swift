@@ -51,6 +51,10 @@ public extension Component {
     ///
     /// 이 overload는 두 label 순서를 모두 지원하며 protocol 구현 계약은
     /// 원본 선언 순서를 유지합니다.
+    ///
+    /// - Parameters:
+    ///   - content: 현재 상태를 표시할 새로 생성했거나 재사용한 UIView.
+    ///   - context: 이번 render의 환경과 작업 수명.
     @MainActor
     func render(
         content: Content,

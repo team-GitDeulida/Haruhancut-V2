@@ -31,12 +31,18 @@ protocol ComponentContextBindable: AnyObject {
 /// cell binding과 분리된 adapter 내부 경로를 사용합니다.
 @MainActor
 protocol SupplementaryComponentBindable: AnyObject {
+    /// Type-erased Component를 supplementary container에 연결합니다.
+    ///
+    /// - Parameter component: Container에 표시할 type-erased Component.
     func bind(component: AnyComponent)
 }
 
 /// UIKit 표시 수명 이벤트를 container에 전달하는 내부 계약입니다.
 @MainActor
 protocol ComponentContainerLifecycle: AnyObject {
+    /// Container의 Content가 화면에 표시되기 직전에 호출됩니다.
     func contentWillDisplay()
+
+    /// Container의 Content가 화면에서 사라진 직후에 호출됩니다.
     func contentDidEndDisplay()
 }

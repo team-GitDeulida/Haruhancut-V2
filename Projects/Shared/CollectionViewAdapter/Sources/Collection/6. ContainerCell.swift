@@ -42,6 +42,9 @@ public final class ContainerCell<C: Component>:
     /// Grid가 제안한 열 너비는 그대로 유지하고 세로 크기만 Auto Layout으로
     /// 계산합니다. 따라서 추정 높이가 실제 Content보다 클 때 label 영역이
     /// 불필요하게 늘어나는 현상을 방지합니다.
+    ///
+    /// - Parameter layoutAttributes: Collection View가 제안한 Cell의 원래 layout 속성.
+    /// - Returns: 실제 Content 높이가 반영된 layout 속성.
     public override func preferredLayoutAttributesFitting(
         _ layoutAttributes:
             UICollectionViewLayoutAttributes
@@ -80,6 +83,7 @@ public final class ContainerCell<C: Component>:
         return attributes
     }
     
+    /// 화면 표시 직전에 아직 활성화되지 않은 Content를 다시 렌더링합니다.
     func contentWillDisplay() {
         guard
             !isContentActive,
@@ -97,6 +101,7 @@ public final class ContainerCell<C: Component>:
         isContentActive = true
     }
 
+    /// 화면에서 사라진 Content의 render 수명과 연결된 작업을 정리합니다.
     func contentDidEndDisplay() {
         guard isContentActive else {
             return

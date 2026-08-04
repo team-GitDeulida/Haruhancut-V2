@@ -1,5 +1,5 @@
 //
-//  CollectionViewAdapter+UICollectionViewDataSourcePrefetching.swift
+//  22. CollectionViewAdapter+UICollectionViewDataSourcePrefetching.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/26/26.
@@ -89,6 +89,10 @@ extension CollectionViewAdapter:
     }
 
     /// UIKit의 prefetch 요청을 안정적인 Item 정보로 변환해 전달합니다.
+    ///
+    /// - Parameters:
+    ///   - collectionView: Prefetch 요청을 전달한 collection view.
+    ///   - indexPaths: 미리 준비할 Item의 현재 위치 목록.
     public func collectionView(
         _ collectionView: UICollectionView,
         prefetchItemsAt indexPaths: [IndexPath]
@@ -103,6 +107,10 @@ extension CollectionViewAdapter:
     }
 
     /// UIKit의 prefetch 취소 요청을 안정적인 Item 정보로 변환해 전달합니다.
+    ///
+    /// - Parameters:
+    ///   - collectionView: Prefetch 취소 요청을 전달한 collection view.
+    ///   - indexPaths: 준비 작업을 취소할 Item의 현재 위치 목록.
     public func collectionView(
         _ collectionView: UICollectionView,
         cancelPrefetchingForItemsAt indexPaths: [IndexPath]
@@ -117,6 +125,9 @@ extension CollectionViewAdapter:
     }
 
     /// 현재 snapshot의 IndexPath를 Section 및 Item identifier와 결합합니다.
+    ///
+    /// - Parameter indexPaths: 안정적인 식별 정보로 변환할 Item 위치 목록.
+    /// - Returns: 현재 snapshot에서 찾은 prefetch Item 정보 목록.
     private func makePrefetchItems(
         from indexPaths: [IndexPath]
     ) -> [CollectionViewPrefetchItem] {

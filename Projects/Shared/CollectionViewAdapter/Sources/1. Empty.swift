@@ -1,3 +1,8 @@
+//
+//  1. Empty.swift
+//  CollectionViewAdapter
+//
+
 //import UIKit
 //
 //struct ComponentContext {

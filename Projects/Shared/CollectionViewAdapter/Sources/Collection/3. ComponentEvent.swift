@@ -16,6 +16,9 @@ public final class ComponentEventObservation {
     
     private var cancellation: (() -> Void)?
     
+    /// 관찰 취소 동작을 보관하는 토큰을 만듭니다.
+    ///
+    /// - Parameter cancellation: 토큰이 처음 취소될 때 한 번 실행할 동작.
     init(cancellation: @escaping () -> Void) {
         self.cancellation = cancellation
     }

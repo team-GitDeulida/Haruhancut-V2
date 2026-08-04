@@ -16,6 +16,9 @@ private struct CollectionLayoutInsetsSignature:
     let bottom: CGFloat
     let trailing: CGFloat
 
+    /// 방향별 inset을 비교 가능한 값 묶음으로 변환합니다.
+    ///
+    /// - Parameter insets: 보관할 방향성 inset.
     init(_ insets: NSDirectionalEdgeInsets) {
         top = insets.top
         leading = insets.leading
@@ -70,6 +73,11 @@ public struct CollectionSectionLayoutContext {
     /// 현재 section Component 중 가장 큰 추정 높이입니다.
     public let maximumEstimatedItemHeight: CGFloat
 
+    /// Custom layout 생성에 사용할 Section 정보를 만듭니다.
+    ///
+    /// - Parameters:
+    ///   - itemCount: 현재 Section에 포함된 item 수.
+    ///   - maximumEstimatedItemHeight: Item 중 가장 큰 추정 높이.
     init(
         itemCount: Int,
         maximumEstimatedItemHeight: CGFloat
@@ -131,6 +139,10 @@ public struct CollectionSectionLayout {
     }
 
     /// 비교 가능한 기본 layout 설정과 생성 동작을 함께 보관합니다.
+    ///
+    /// - Parameters:
+    ///   - kindSignature: Layout 동등성 비교에 사용할 기본 layout 설정 값.
+    ///   - makeLayout: Context를 받아 UIKit layout section을 만드는 동작.
     private init(
         kindSignature:
             CollectionSectionLayoutKindSignature,
@@ -360,6 +372,10 @@ public struct CollectionSectionLayout {
         }
     }
 
+    /// Context를 사용해 layout section을 만들고 공통 content inset을 적용합니다.
+    ///
+    /// - Parameter context: 현재 Section의 item 수와 추정 크기 정보.
+    /// - Returns: Boundary item을 추가하기 전의 Compositional Layout section.
     func makeSection(
         context: CollectionSectionLayoutContext
     ) -> NSCollectionLayoutSection {
@@ -377,6 +393,12 @@ public struct CollectionSectionLayout {
     /// 개수와 group 너비, 간격으로 전체 content 너비를 계산할 수 있습니다.
     /// Custom layout은 배치 규칙을 알 수 없어 Section 단위 거리 감지를
     /// 제공하지 않습니다.
+    ///
+    /// - Parameters:
+    ///   - itemCount: 현재 가로 Section에 배치된 Item 수.
+    ///   - viewportWidth: 현재 가로 viewport의 유효 너비.
+    ///   - contentOffsetX: 가로 스크롤의 현재 content offset.
+    /// - Returns: 끝 접근 판단에 사용할 거리 정보 또는 지원하지 않으면 `nil`.
     func makeOrthogonalScrollMetrics(
         itemCount: Int,
         viewportWidth: CGFloat,
@@ -424,6 +446,9 @@ public struct CollectionSectionLayout {
     }
 
     /// 두 Section layout이 같은 배치 결과를 만드는지 비교합니다.
+    ///
+    /// - Parameter other: 현재 layout과 배치 설정을 비교할 다른 layout.
+    /// - Returns: Layout 종류, inset과 header/footer 고정 설정이 같으면 `true`.
     func isLayoutEquivalent(
         to other: CollectionSectionLayout
     ) -> Bool {
@@ -440,6 +465,11 @@ public struct CollectionSectionLayout {
                 == other.footerPinToVisibleBounds
     }
 
+    /// Header와 footer boundary item에 고정 배치 설정을 적용합니다.
+    ///
+    /// - Parameters:
+    ///   - header: 설정할 header boundary item.
+    ///   - footer: 설정할 footer boundary item.
     func applyBoundaryConfiguration(
         header:
             NSCollectionLayoutBoundarySupplementaryItem?,

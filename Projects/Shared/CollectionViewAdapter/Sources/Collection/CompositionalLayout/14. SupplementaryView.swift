@@ -23,6 +23,15 @@ public struct SupplementaryView {
     let extendsBoundary: Bool
     let zIndex: Int
 
+    /// 일반 Component를 header 또는 footer의 supplementary 배치 값으로 감쌉니다.
+    ///
+    /// - Parameters:
+    ///   - component: Supplementary 영역에 표시할 Component.
+    ///   - kind: UIKit supplementary element kind.
+    ///   - alignment: Section 안에서의 배치 방향.
+    ///   - height: Supplementary 높이. `nil`이면 Component의 추정 높이를 사용합니다.
+    ///   - extendsBoundary: Section content 경계를 확장할지 여부.
+    ///   - zIndex: 다른 layout 요소와 겹칠 때의 순서.
     init<C: Component>(
         component: C,
         kind: String,
@@ -42,6 +51,9 @@ public struct SupplementaryView {
         self.zIndex = zIndex
     }
 
+    /// 저장한 배치 값으로 UIKit boundary supplementary item을 만듭니다.
+    ///
+    /// - Returns: Section layout에 추가할 boundary supplementary item.
     func makeLayoutItem() ->
         NSCollectionLayoutBoundarySupplementaryItem
     {

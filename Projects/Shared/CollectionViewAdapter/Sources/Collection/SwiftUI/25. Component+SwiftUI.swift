@@ -1,5 +1,5 @@
 //
-//  Component+SwiftUI.swift
+//  25. Component+SwiftUI.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/24/26.
@@ -43,6 +43,9 @@ public final class UIComponentView<C: Component>: UIView {
         update(component: component)
     }
 
+    /// Storyboard와 nib 기반 초기화는 지원하지 않습니다.
+    ///
+    /// - Parameter coder: Storyboard 또는 nib이 전달하는 decoder. 이 initializer는 사용할 수 없습니다.
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:)는 지원하지 않습니다.")
@@ -124,6 +127,9 @@ public struct ComponentRepresenting<C: Component>:
     }
 
     /// 최초 UIKit host view를 생성합니다.
+    ///
+    /// - Parameter context: SwiftUI가 제공하는 representable 생성 환경.
+    /// - Returns: Component를 표시할 새 UIKit host view.
     public func makeUIView(
         context: Context
     ) -> UIComponentView<C> {
@@ -133,6 +139,10 @@ public struct ComponentRepresenting<C: Component>:
     }
 
     /// SwiftUI 상태 변경을 기존 UIKit Content에 렌더링합니다.
+    ///
+    /// - Parameters:
+    ///   - uiView: 최신 Component 상태를 반영할 기존 UIKit host view.
+    ///   - context: SwiftUI가 제공하는 representable 갱신 환경.
     public func updateUIView(
         _ uiView: UIComponentView<C>,
         context: Context
@@ -142,6 +152,10 @@ public struct ComponentRepresenting<C: Component>:
     }
 
     /// SwiftUI hierarchy에서 제거된 host의 작업을 정리합니다.
+    ///
+    /// - Parameters:
+    ///   - uiView: Hierarchy에서 제거되는 UIKit host view.
+    ///   - coordinator: 이 representable이 사용하는 coordinator. 별도 상태가 없어 `Void`입니다.
     public static func dismantleUIView(
         _ uiView: UIComponentView<C>,
         coordinator: Void

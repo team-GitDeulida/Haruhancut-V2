@@ -122,6 +122,11 @@ public struct ConfiguredSection<Base: SectionModelType>:
     private let base: Base
     let sectionConfiguration: SectionConfiguration
 
+    /// 원본 Section과 합성할 설정을 보관하는 wrapper를 만듭니다.
+    ///
+    /// - Parameters:
+    ///   - base: Header, footer, layout 설정을 추가할 원본 Section.
+    ///   - configuration: 원본 Section에 적용할 설정 값.
     init(
         base: Base,
         configuration: SectionConfiguration
@@ -264,6 +269,9 @@ extension SectionModelType {
             .sectionConfiguration ?? SectionConfiguration()
     }
 
+    /// Section과 누적된 설정을 Adapter가 사용할 해석 결과로 변환합니다.
+    ///
+    /// - Returns: Layout, supplementary view와 끝 접근 설정을 포함한 Section 값.
     func resolve() -> ResolvedSection {
         let configuration = resolvedConfiguration
         return ResolvedSection(
@@ -285,6 +293,8 @@ extension SectionModelType {
 @MainActor
 public enum SectionModelsBuilder {
     /// Section model 하나를 builder 배열로 바꿉니다.
+    ///
+    /// - Parameter expression: Builder에 추가할 concrete Section model.
     public static func buildExpression<S: SectionModelType>(
         _ expression: S
     ) -> [any SectionModelType] {
@@ -292,6 +302,8 @@ public enum SectionModelsBuilder {
     }
 
     /// 여러 표현식을 선언 순서대로 합칩니다.
+    ///
+    /// - Parameter components: 선언 순서로 전달된 Section model 배열들.
     public static func buildBlock(
         _ components: [any SectionModelType]...
     ) -> [any SectionModelType] {
@@ -299,6 +311,8 @@ public enum SectionModelsBuilder {
     }
 
     /// `if`의 값이 없을 때 빈 section 배열을 사용합니다.
+    ///
+    /// - Parameter component: 조건 분기에서 선택적으로 생성된 Section 배열.
     public static func buildOptional(
         _ component: [any SectionModelType]?
     ) -> [any SectionModelType] {
@@ -306,6 +320,8 @@ public enum SectionModelsBuilder {
     }
 
     /// `if` 분기의 첫 번째 결과를 사용합니다.
+    ///
+    /// - Parameter component: `if` 조건이 참일 때 생성된 Section 배열.
     public static func buildEither(
         first component: [any SectionModelType]
     ) -> [any SectionModelType] {
@@ -313,6 +329,8 @@ public enum SectionModelsBuilder {
     }
 
     /// `else` 분기의 두 번째 결과를 사용합니다.
+    ///
+    /// - Parameter component: `else` 분기에서 생성된 Section 배열.
     public static func buildEither(
         second component: [any SectionModelType]
     ) -> [any SectionModelType] {
@@ -320,6 +338,8 @@ public enum SectionModelsBuilder {
     }
 
     /// Swift 표준 `for`가 만든 section 배열을 평탄화합니다.
+    ///
+    /// - Parameter components: 반복문 각 회차에서 생성된 Section 배열들.
     public static func buildArray(
         _ components: [[any SectionModelType]]
     ) -> [any SectionModelType] {
@@ -327,6 +347,8 @@ public enum SectionModelsBuilder {
     }
 
     /// Availability 분기의 section을 그대로 사용합니다.
+    ///
+    /// - Parameter component: 현재 플랫폼에서 사용할 Section 배열.
     public static func buildLimitedAvailability(
         _ component: [any SectionModelType]
     ) -> [any SectionModelType] {
@@ -334,6 +356,9 @@ public enum SectionModelsBuilder {
     }
 
     /// 최종 section 배열을 Adapter 입력 타입으로 감쌉니다.
+    ///
+    /// - Parameter component: Builder가 조립한 최종 Section 배열.
+    /// - Returns: Adapter bind에 전달할 `SectionModels` 값.
     public static func buildFinalResult(
         _ component: [any SectionModelType]
     ) -> SectionModels {
@@ -354,6 +379,9 @@ struct ResolvedSection {
         items.map(\.estimatedHeight).max() ?? 44
     }
 
+    /// Item과 supplementary 설정을 포함한 UIKit layout section을 만듭니다.
+    ///
+    /// - Returns: Collection view에 적용할 Compositional Layout section.
     func makeLayoutSection() -> NSCollectionLayoutSection {
         let context = CollectionSectionLayoutContext(
             itemCount: items.count,

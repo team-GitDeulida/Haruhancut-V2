@@ -1,5 +1,5 @@
 //
-//  CollectionViewAdapter+DiffableDataSource.swift
+//  20. CollectionViewAdapter+DiffableDataSource.swift
 //  CollectionViewAdapter
 //
 //  Created by 김동현 on 7/26/26.
@@ -51,6 +51,11 @@ private struct AdapterComponentSignature: Equatable {
     let component: AnyComponent
 
     /// Component의 ID, Item 상태와 modifier 연결 상태를 비교합니다.
+    ///
+    /// - Parameters:
+    ///   - lhs: 비교 기준이 되는 첫 번째 Component signature.
+    ///   - rhs: `lhs`와 비교할 두 번째 Component signature.
+    /// - Returns: 두 signature의 표시 상태와 연결 상태가 같으면 `true`.
     static func == (
         lhs: AdapterComponentSignature,
         rhs: AdapterComponentSignature
@@ -124,6 +129,12 @@ extension CollectionViewAdapter {
     }
 
     /// 새 Section tree로 snapshot을 만들고 변경된 기존 Content를 갱신합니다.
+    ///
+    /// - Parameters:
+    ///   - oldSections: 현재 화면에 적용된 이전 Section 배열.
+    ///   - newSections: 새 snapshot으로 반영할 최신 Section 배열.
+    ///   - animatingDifferences: Snapshot 변경 애니메이션 사용 여부.
+    ///   - completion: Snapshot 반영이 끝난 뒤 실행할 선택적 동작.
     func applySnapshot(
         oldSections: [ResolvedSection],
         newSections: [ResolvedSection],
@@ -154,6 +165,8 @@ extension CollectionViewAdapter {
     }
 
     /// Diffable Data Source에서 충돌하는 Section과 Item ID가 없는지 검사합니다.
+    ///
+    /// - Parameter sections: 식별자와 끝 접근 설정의 유효성을 검사할 Section 배열.
     func validate(
         _ sections: [ResolvedSection]
     ) {
@@ -183,6 +196,9 @@ extension CollectionViewAdapter {
     }
 
     /// 해석된 Section tree를 Diffable snapshot으로 변환합니다.
+    ///
+    /// - Parameter sections: Snapshot으로 변환할 해석된 Section 배열.
+    /// - Returns: Section과 Item 식별자가 추가된 새 Diffable snapshot.
     private func makeSnapshot(
         from sections: [ResolvedSection]
     ) -> AdapterSnapshot {
@@ -211,6 +227,11 @@ extension CollectionViewAdapter {
     ///
     /// Container 타입이 바뀐 Item은 reload하고, 같은 타입의 Content만 바뀐
     /// Item은 reconfigure합니다. Boundary 상태가 바뀌면 Section을 reload합니다.
+    ///
+    /// - Parameters:
+    ///   - oldSections: 변경 전 Content와 배치 상태를 담은 Section 배열.
+    ///   - newSections: 변경 후 Content와 배치 상태를 담은 Section 배열.
+    ///   - snapshot: Reload와 reconfigure 대상을 표시할 inout snapshot.
     private func markChangedExistingContent(
         oldSections: [ResolvedSection],
         newSections: [ResolvedSection],
@@ -297,6 +318,11 @@ extension CollectionViewAdapter {
     }
 
     /// Boundary container 또는 layout 변경에 Section reload가 필요한지 판단합니다.
+    ///
+    /// - Parameters:
+    ///   - oldSection: 현재 화면에 적용된 이전 Section.
+    ///   - newSection: 비교할 최신 Section.
+    /// - Returns: Boundary container 또는 배치 변경으로 reload가 필요하면 `true`.
     func boundaryLayoutRequiresSectionReload(
         oldSection: ResolvedSection,
         newSection: ResolvedSection
@@ -308,6 +334,11 @@ extension CollectionViewAdapter {
     }
 
     /// Section 배치가 실제로 달라져 layout 재계산이 필요한지 판단합니다.
+    ///
+    /// - Parameters:
+    ///   - oldSections: 현재 layout을 만들 때 사용한 이전 Section 배열.
+    ///   - newSections: 새 layout과 비교할 최신 Section 배열.
+    /// - Returns: 배치 또는 추정 크기 변경으로 layout 무효화가 필요하면 `true`.
     func layoutRequiresInvalidation(
         oldSections: [ResolvedSection],
         newSections: [ResolvedSection]
@@ -354,6 +385,9 @@ extension CollectionViewAdapter {
     ///
     /// 같은 container에서 표시 값만 달라진 경우에는 Section reload가
     /// 필요하지 않습니다.
+    ///
+    /// - Parameter section: Header와 footer 배치 signature를 만들 Section.
+    /// - Returns: Boundary container와 layout 상태를 나타내는 signature 목록.
     private func boundaryLayoutSignature(
         of section: ResolvedSection
     ) -> [AdapterBoundaryLayoutSignature] {
@@ -407,6 +441,11 @@ extension CollectionViewAdapter {
     }
 
     /// 내용만 바뀐 현재 표시 중 header와 footer를 제자리에서 다시 렌더링합니다.
+    ///
+    /// - Parameters:
+    ///   - oldSection: 현재 표시 중인 boundary Component를 담은 이전 Section.
+    ///   - newSection: 다시 렌더링할 boundary Component를 담은 최신 Section.
+    ///   - sectionID: 표시 중인 supplementary view를 찾는 Diffable Section ID.
     private func reconfigureChangedVisibleBoundaries(
         oldSection: ResolvedSection,
         newSection: ResolvedSection,
@@ -425,6 +464,11 @@ extension CollectionViewAdapter {
     }
 
     /// 같은 container를 유지하면서 Component 내용이 달라진 boundary를 갱신합니다.
+    ///
+    /// - Parameters:
+    ///   - old: 현재 표시 중인 이전 header 또는 footer 설정.
+    ///   - new: 비교하고 다시 렌더링할 최신 header 또는 footer 설정.
+    ///   - sectionID: 표시 중인 supplementary view를 찾는 Diffable Section ID.
     private func reconfigureChangedVisibleBoundary(
         old: SupplementaryView?,
         new: SupplementaryView?,
