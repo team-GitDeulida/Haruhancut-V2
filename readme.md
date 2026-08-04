@@ -185,21 +185,15 @@ dependencies: [
 > **해결**  
 > 반복되는 Collection View 구성 책임을 `CollectionViewAdapter` 공용 모듈로 옮겼습니다.
 >
-> - Adapter가 Diffable Data Source와 `UICollectionViewDelegate`·Prefetch 흐름을 관리해,
->   Collection View의 이벤트 처리와 데이터 갱신을 한곳에서 담당합니다.
-> - 초기 Adapter는 새 UI를 추가할 때마다 개별 `UICollectionViewCell` 클래스와 reuse identifier를
->   등록해야 했습니다. 이 때문에 Adapter가 모든 Cell 타입을 알아야 했습니다.
-> - 제네릭 `ContainerCell`이 Component의 Content를 담아 재사용하도록 바꿔,
->   개별 Cell 등록과 타입 의존성을 제거했습니다.
-> - 화면별 UI는 데이터와 `UIView`의 생성·업데이트 규칙을 묶은 `Component`로 정의하고,
->   `ContainerCell`은 전달받은 Component의 View를 재사용해 표시합니다.
-> - `SectionModels`는 Header/Footer와 세로 목록, Grid, 가로 Carousel을 선언하며,
->   새 UI는 Component를 Section에 추가하는 방식으로 확장합니다.
+> - Adapter가 Diffable Data Source와 `UICollectionViewDelegate` 이벤트 흐름을 관리합니다.
+> - `ContainerCell`을 공용으로 재사용해 개별 Cell 등록과 타입 의존성을 제거했습니다.
+> - 화면별 UI는 데이터와 `UIView` 생성·갱신 규칙을 묶은 `Component`로 정의합니다.
+> - `SectionModels`에서 Header/Footer와 레이아웃을 선언하고, Component만 추가해 UI를 확장합니다.
 >
 > **성과**  
-> 🔸 선언형 API로 `UICollectionViewCell` 등록·재사용과 데이터 갱신 코드를 줄여 새 UI 구현 과정을 단순화<br>
-> 🔸 `Component`가 `createContent()`로 `UIView`를 만들고 `render`로 상태를 갱신하도록 설계해,
->   `UIViewRepresentable`을 통해 SwiftUI에 연결할 수 있는 마이그레이션 경로 마련
+> 🔸 선언형 API로 Cell 등록·재사용과 데이터 갱신 코드를 줄여 새 UI 구현을 단순화<br>
+> 🔸 `Component`의 `createContent()`와 `render`로 View 생성과 상태 갱신을 분리<br>
+> 🔸 `UIViewRepresentable`을 통해 같은 Component를 SwiftUI에 연결할 수 있는 기반 마련
 
 #### CollectionViewAdapter 사용 예제
 
