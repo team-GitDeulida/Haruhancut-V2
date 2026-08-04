@@ -187,25 +187,25 @@ dependencies: [
 ### **4. Component + Section DSL 기반 Collection View 화면 구성 표준화**
 
 > **문제**  
-> 하루한컷의 여러 화면은 `UICollectionView`로 구성되어 있어,
-> 화면을 만들 때마다 Delegate·Data Source 연결과 Cell 등록 로직을 반복해야 했습니다.
+> 하루한컷 대부분의 화면은 `UICollectionView`로 구성되어 있어,
+> 화면을 만들 때마다 Delegate·Data Source 연결과 Cell 등록 로직을 반복 작성해야 했습니다.
 >
 > **해결**  
 > 반복되는 Collection View 구성 책임을 `CollectionViewAdapter` 공용 모듈로 옮겼습니다.
 >
-> - Adapter는 Diffable Data Source와 `UICollectionViewDelegate`·Prefetch 흐름을 관리해
->   데이터 갱신과 이벤트 처리를 한곳으로 모읍니다.
-> - `ContainerCell`은 Component 타입에 맞는 generic container로 동적 등록되어,
->   Adapter가 개별 Cell 타입을 직접 알 필요가 없습니다.
-> - `Component`는 `Identifiable & Equatable` Item과 `UIView`의 생성·렌더링 규칙을 연결하고,
->   `SectionModels`는 Header/Footer와 세로 목록, Grid, 가로 Carousel을 선언합니다.
->
-> 새 UI는 Component를 정의하고 Section에 추가하는 방식으로 확장할 수 있어,
-> Adapter를 수정하지 않고도 화면 구성과 타입 의존성을 분리합니다.
+> - Adapter가 Diffable Data Source와 `UICollectionViewDelegate`·Prefetch 흐름을 관리해,
+>   Collection View의 이벤트 처리와 데이터 갱신을 한곳에서 담당합니다.
+> - 새 UI를 추가할 때마다 개별 `UICollectionViewCell` 클래스와 reuse identifier를
+>   Adapter에 등록해야 하는 타입 의존성을 generic `ContainerCell`로 제거했습니다.
+> - 화면별 UI는 데이터와 `UIView`의 생성·업데이트 규칙을 묶은 `Component`로 정의하고,
+>   `ContainerCell`은 전달받은 Component의 View를 재사용해 표시합니다.
+> - `SectionModels`는 Header/Footer와 세로 목록, Grid, 가로 Carousel을 선언하며,
+>   새 UI는 Component를 Section에 추가하는 방식으로 확장합니다.
 >
 > **성과**  
-> 🔸 선언형 API로 Cell 등록·재사용과 데이터 갱신 코드를 줄여 새로운 Collection View 화면 구현 과정을 단순화<br>
-> 🔸 `UIView` 생성과 렌더링 계약을 분리한 Component를 설계해 `UIViewRepresentable` 기반의 SwiftUI 재사용 토대 마련
+> 🔸 선언형 API로 `UICollectionViewCell` 등록·재사용과 데이터 갱신 코드를 줄여 새로운 UI 구현 과정을 단순화<br>
+> 🔸 `UIView`를 처음 생성하는 `createContent()`와 이후 내용을 갱신하는 `render` 계약을 Component에 정의해,
+>   `UIViewRepresentable` 기반으로 SwiftUI에 연결할 수 있는 마이그레이션 토대 마련
 
 #### CollectionViewAdapter 사용 예제
 
