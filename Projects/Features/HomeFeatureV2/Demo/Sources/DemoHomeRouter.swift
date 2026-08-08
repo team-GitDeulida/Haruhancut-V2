@@ -5,10 +5,12 @@
 //  Created by 김동현 on 7/27/26.
 //
 
+import Core
 import Domain
 import Foundation
 import HomeFeatureV2
 import HomeFeatureV2Interface
+import RxSwift
 import UIKit
 
 final class DemoHomeRouter:
@@ -28,6 +30,9 @@ final class DemoHomeRouter:
 
     private weak var navigationController:
         UINavigationController?
+    @Dependency private var groupUsecase:
+        GroupUsecaseProtocol
+    private let disposeBag = DisposeBag()
 
     init(
         navigationController:
@@ -79,16 +84,16 @@ final class DemoHomeRouter:
         }
         onCameraTapped = {
             [weak self] source in
-            let title: String
             switch source {
             case .camera:
-                title = "카메라"
+                self?.presentImagePicker(
+                    sourceType: .camera
+                )
             case .album:
-                title = "앨범"
+                self?.presentImagePicker(
+                    sourceType: .photoLibrary
+                )
             }
-            self?.showDemoNotice(
-                title: title
-            )
         }
         onMemberTapped = {
             [weak self] in
@@ -243,6 +248,35 @@ final class DemoHomeRouter:
             )
     }
 
+    private func presentImagePicker(
+        sourceType:
+            UIImagePickerController.SourceType
+    ) {
+        guard
+            UIImagePickerController
+                .isSourceTypeAvailable(
+                    sourceType
+                )
+        else {
+            showDemoNotice(
+                title:
+                    "이 기기에서는 사용할 수 없습니다."
+            )
+            return
+        }
+
+        let picker =
+            UIImagePickerController()
+        picker.sourceType = sourceType
+        picker.allowsEditing = false
+        picker.delegate = self
+        navigationController?
+            .present(
+                picker,
+                animated: true
+            )
+    }
+
     @objc
     private func didTapMember() {
         onMemberTapped?()
@@ -251,6 +285,66 @@ final class DemoHomeRouter:
     @objc
     private func didTapProfile() {
         onProfileTapped?()
+    }
+}
+
+extension DemoHomeRouter:
+    UIImagePickerControllerDelegate,
+    UINavigationControllerDelegate
+{
+    func imagePickerController(
+        _ picker: UIImagePickerController,
+        didFinishPickingMediaWithInfo info:
+            [UIImagePickerController.InfoKey: Any]
+    ) {
+        guard
+            let image =
+                info[.originalImage]
+                as? UIImage
+        else {
+            picker.dismiss(
+                animated: true
+            )
+            return
+        }
+
+        groupUsecase
+            .uploadImageAndUploadPost(
+                image: image
+            )
+            .observe(
+                on:
+                    MainScheduler.instance
+            )
+            .subscribe(
+                onNext: {
+                    picker.dismiss(
+                        animated: true
+                    )
+                },
+                onError: {
+                    [weak self] _ in
+                    picker.dismiss(
+                        animated: true
+                    ) {
+                        self?.showDemoNotice(
+                            title:
+                                "업로드에 실패했습니다."
+                        )
+                    }
+                }
+            )
+            .disposed(
+                by: disposeBag
+            )
+    }
+
+    func imagePickerControllerDidCancel(
+        _ picker: UIImagePickerController
+    ) {
+        picker.dismiss(
+            animated: true
+        )
     }
 }
 
