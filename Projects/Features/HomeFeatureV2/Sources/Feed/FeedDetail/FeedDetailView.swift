@@ -79,8 +79,11 @@ final class FeedDetailView: UIView {
 
         imageView.kf.cancelDownloadTask()
         currentImageURL = imageURL
+        
+        // 1. 프로필 그리드에서 넘겨받은 이미지 즉시 표시
         imageView.image = initialImage
 
+        // 2. 같은 URL로 원본 이미지 요청
         imageView.kf.setImage(
             with: url,
             options: [
@@ -96,5 +99,6 @@ final class FeedDetailView: UIView {
             }
             self?.currentImageURL = nil
         }
+        
     }
 }
