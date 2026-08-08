@@ -41,6 +41,12 @@ permissions:
   issues: write
   pull-requests: write
 
+# 같은 PR/브랜치에 새 커밋이 올라오면 이전 CI를 취소하고 최신 실행만 검사한다.
+# PR 댓글 명령어로 실행한 경우에는 입력된 PR 번호를 같은 그룹 키로 사용한다.
+concurrency:
+  group: haruhancut-build-and-test-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 env:
   XCODE_VERSION: "26.3"
   SIMULATOR_NAME: "iPhone 16"

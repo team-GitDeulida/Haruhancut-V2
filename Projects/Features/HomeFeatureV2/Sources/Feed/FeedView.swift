@@ -17,7 +17,7 @@ final class FeedView: UIView {
             collectionViewLayout:
                 UICollectionViewFlowLayout()
         )
-        collectionView.backgroundColor = .background
+        collectionView.backgroundColor = .clear
         collectionView.showsVerticalScrollIndicator = false
         collectionView.alwaysBounceVertical = true
         collectionView.accessibilityIdentifier = UITestID.Feed.collectionView
@@ -60,10 +60,31 @@ final class FeedView: UIView {
 
     private func setupUI() {
         backgroundColor = .background
-        [collectionView, cameraBtn, bubbleView, emptyLabel].forEach {
+        [cameraBtn, bubbleView, collectionView, emptyLabel].forEach {
             addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
+    }
+
+    override func hitTest(
+        _ point: CGPoint,
+        with event: UIEvent?
+    ) -> UIView? {
+        let cameraButtonPoint = convert(
+            point,
+            to: cameraBtn
+        )
+        if let hitView = cameraBtn.hitTest(
+            cameraButtonPoint,
+            with: event
+        ) {
+            return hitView
+        }
+
+        return super.hitTest(
+            point,
+            with: event
+        )
     }
 
     private func setupConstraints() {

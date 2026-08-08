@@ -7,6 +7,7 @@
 
 import Core
 import Domain
+import Kingfisher
 import RxSwift
 import UIKit
 
@@ -347,6 +348,13 @@ private final class DemoGroupUsecase:
         }
 
         let postID = UUID().uuidString
+        let imageURL =
+            "https://demo.haruhancut.local/uploads/\(postID)"
+        ImageCache.default.store(
+            image,
+            forKey: imageURL,
+            toDisk: false
+        )
         upsert(
             Post(
                 postId: postID,
@@ -354,10 +362,7 @@ private final class DemoGroupUsecase:
                 nickname: user.nickname,
                 profileImageURL:
                     user.profileImageURL,
-                imageURL:
-                    DemoContent.imageURL(
-                        seed: postID
-                    ),
+                imageURL: imageURL,
                 createdAt: .now,
                 likeCount: 0,
                 comments: [:]
@@ -484,7 +489,8 @@ private enum DemoContent {
             makePost(
                 id: "today-morning",
                 user: user,
-                nickname: "하루",
+                authorID: "demo-family-one",
+                nickname: "가족 1",
                 seed: "morning",
                 date: now.addingTimeInterval(
                     -60 * 8
@@ -493,7 +499,8 @@ private enum DemoContent {
             makePost(
                 id: "today-walk",
                 user: user,
-                nickname: "하루",
+                authorID: "demo-family-one",
+                nickname: "가족 1",
                 seed: "walk",
                 date: now.addingTimeInterval(
                     -60 * 35
@@ -502,7 +509,8 @@ private enum DemoContent {
             makePost(
                 id: "today-coffee",
                 user: user,
-                nickname: "한컷",
+                authorID: "demo-family-two",
+                nickname: "가족 2",
                 seed: "coffee",
                 date: now.addingTimeInterval(
                     -60 * 90
@@ -511,7 +519,8 @@ private enum DemoContent {
             makePost(
                 id: "today-sunset",
                 user: user,
-                nickname: "한컷",
+                authorID: "demo-family-two",
+                nickname: "가족 2",
                 seed: "sunset",
                 date: now.addingTimeInterval(
                     -60 * 180
@@ -558,6 +567,10 @@ private enum DemoContent {
             members: [
                 user.uid:
                     user.nickname,
+                "demo-family-one":
+                    "가족 1",
+                "demo-family-two":
+                    "가족 2",
             ],
             postsByDate: postsByDate
         )
@@ -572,6 +585,7 @@ private enum DemoContent {
     private static func makePost(
         id: String,
         user: User,
+        authorID: String? = nil,
         nickname: String,
         seed: String,
         date: Date
@@ -587,7 +601,7 @@ private enum DemoContent {
 
         return Post(
             postId: id,
-            userId: user.uid,
+            userId: authorID ?? user.uid,
             nickname: nickname,
             profileImageURL:
                 user.profileImageURL,

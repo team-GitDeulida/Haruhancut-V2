@@ -29,13 +29,17 @@ final class FeedReactor: Reactor {
     enum Mutation {
         case setUser(User)
         case setLoading(Bool)
-        case setComponents([FeedComponent])
+        case setFeed(
+            components: [FeedComponent],
+            didTodayUpload: Bool
+        )
     }
 
     struct State {
         var user: User?
         var isLoading: Bool = false
         var components: [FeedComponent] = []
+        var didTodayUpload: Bool = false
     }
 
     let initialState = State()
@@ -76,8 +80,9 @@ final class FeedReactor: Reactor {
             state.user = user
         case .setLoading(let isLoading):
             state.isLoading = isLoading
-        case .setComponents(let components):
+        case .setFeed(let components, let didTodayUpload):
             state.components = components
+            state.didTodayUpload = didTodayUpload
         }
         return state
     }
@@ -99,9 +104,14 @@ private extension FeedReactor {
             return .empty()
         }
         let previousComponents = currentState.components
+        let previousDidTodayUpload = currentState.didTodayUpload
         let remainingComponents = previousComponents.filter {
             $0.post.postId != post.postId
         }
+        let remainingDidTodayUpload = Self.didTodayUpload(
+            in: remainingComponents,
+            currentUserID: userSession.userId
+        )
 
         let synchronizeDeletion = groupUsecase
             .deletePostAndReload(post: post)
@@ -109,10 +119,8 @@ private extension FeedReactor {
             .flatMap { [weak self] _ -> Observable<Mutation> in
                 guard let self else { return .empty() }
                 return .just(
-                    .setComponents(
-                        self.makeComponents(
-                            from: self.groupSession.postsByDate
-                        )
+                    self.makeFeedMutation(
+                        from: self.groupSession.postsByDate
                     )
                 )
             }
@@ -121,13 +129,21 @@ private extension FeedReactor {
                     "FeedReactor deletePostAndReload failed: \(error)"
                 )
                 return .just(
-                    .setComponents(previousComponents)
+                    .setFeed(
+                        components: previousComponents,
+                        didTodayUpload: previousDidTodayUpload
+                    )
                 )
             }
 
         return Observable.concat([
             .just(.setLoading(true)),
-            .just(.setComponents(remainingComponents)),
+            .just(
+                .setFeed(
+                    components: remainingComponents,
+                    didTodayUpload: remainingDidTodayUpload
+                )
+            ),
             synchronizeDeletion,
             .just(.setLoading(false))
         ])
@@ -146,7 +162,7 @@ private extension FeedReactor {
         let loadGroup: Observable<Mutation> =
             loadGroup()
             .map { group -> Mutation in
-                Mutation.setComponents(self.makeComponents(from: group.postsByDate))
+                self.makeFeedMutation(from: group.postsByDate)
             }
             .catch { error in
                 Logger.e("FeedReactor loadAndFetchGroup failed: \(error)")
@@ -157,11 +173,36 @@ private extension FeedReactor {
         return Observable.merge([loadUser, loadGroup])
     }
 
-    func makeComponents(from postsByDate: [String: [Post]]) -> [FeedComponent] {
+    func makeFeedMutation(from postsByDate: [String: [Post]]) -> Mutation {
+        let components = Self.makeComponents(from: postsByDate)
+        return .setFeed(
+            components: components,
+            didTodayUpload: Self.didTodayUpload(
+                in: components,
+                currentUserID: userSession.userId
+            )
+        )
+    }
+}
+
+extension FeedReactor {
+    static func makeComponents(
+        from postsByDate: [String: [Post]]
+    ) -> [FeedComponent] {
         postsByDate.values
             .flatMap { $0 }
             .sorted { $0.createdAt > $1.createdAt }
             .filter { $0.isToday }
             .map { FeedComponent(post: $0) }
+    }
+
+    static func didTodayUpload(
+        in components: [FeedComponent],
+        currentUserID: String?
+    ) -> Bool {
+        guard let currentUserID else { return false }
+        return components.contains {
+            $0.post.userId == currentUserID
+        }
     }
 }
