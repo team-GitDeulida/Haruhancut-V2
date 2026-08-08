@@ -1,4 +1,5 @@
 import Kingfisher
+import MachO
 import ProfileFeatureV2
 import UIKit
 
@@ -88,6 +89,12 @@ final class ProfileImageCacheDemoViewController:
 
     private func configureNavigationItems() {
         navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(
+                title: "측정",
+                style: .plain,
+                target: self,
+                action: #selector(observeCacheClearMemory)
+            ),
             UIBarButtonItem(
                 title: "디스크",
                 style: .plain,
@@ -204,6 +211,48 @@ final class ProfileImageCacheDemoViewController:
         navigationItem.prompt = "메모리 캐시를 비웠습니다"
     }
 
+    /// 캐시 삭제가 즉시 프로세스 메모리 감소로 이어지지 않는 현상을 관찰합니다.
+    ///
+    /// 뷰에 표시 중인 이미지, allocator가 유지하는 힙 페이지, OS 메모리 회수 시점은
+    /// ImageCache와 별개입니다. 따라서 이 동작은 누수를 판정하지 않고,
+    /// 캐시 참조 삭제 전후의 `phys_footprint` 변화를 확인하는 데만 사용합니다.
+    @objc
+    private func observeCacheClearMemory() {
+        let footprintBefore = ProcessMemoryFootprint.current
+        imagePrefetchSession.stop()
+        ImageCache.default.clearMemoryCache()
+        navigationItem.prompt =
+            "캐시 삭제 후 메모리를 관찰하고 있습니다"
+
+        ImageCache.default.clearDiskCache {
+            [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else {
+                    return
+                }
+                let footprintImmediatelyAfter =
+                    ProcessMemoryFootprint.current
+
+                DispatchQueue.main.asyncAfter(
+                    deadline: .now() + 1
+                ) {
+                    [weak self] in
+                    guard let self else {
+                        return
+                    }
+                    self.presentMemoryObservation(
+                        before: footprintBefore,
+                        immediatelyAfter:
+                            footprintImmediatelyAfter,
+                        delayedAfter:
+                            ProcessMemoryFootprint.current
+                    )
+                    self.collectionView.reloadData()
+                }
+            }
+        }
+    }
+
     @objc
     private func clearDiskCache() {
         imagePrefetchSession.stop()
@@ -215,6 +264,36 @@ final class ProfileImageCacheDemoViewController:
                     "디스크 캐시를 비웠습니다"
             }
         }
+    }
+
+    private func presentMemoryObservation(
+        before: UInt64,
+        immediatelyAfter: UInt64,
+        delayedAfter: UInt64
+    ) {
+        navigationItem.prompt =
+            "캐시 삭제 전후 footprint를 확인했습니다"
+        let alert = UIAlertController(
+            title: "캐시 삭제 메모리 관찰",
+            message: [
+                "삭제 전: \(before.memoryString)",
+                "삭제 직후: \(immediatelyAfter.memoryString)",
+                "1초 후: \(delayedAfter.memoryString)",
+                "",
+                "ImageCache 참조를 지워도 visible 이미지, allocator, OS 회수 시점 때문에 footprint가 바로 줄지 않거나 변동할 수 있습니다.",
+            ].joined(separator: "\n"),
+            preferredStyle: .alert
+        )
+        alert.addAction(
+            UIAlertAction(
+                title: "확인",
+                style: .default
+            )
+        )
+        present(
+            alert,
+            animated: true
+        )
     }
 }
 
@@ -370,4 +449,43 @@ private final class ImageCell: UICollectionViewCell {
 private struct ProfileImageCacheDemoItem: Hashable {
     let id: String
     let imageURL: URL
+}
+
+private enum ProcessMemoryFootprint {
+    static var current: UInt64 {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(
+            MemoryLayout<task_vm_info_data_t>.stride
+                / MemoryLayout<natural_t>.stride
+        )
+        let result = withUnsafeMutablePointer(
+            to: &info
+        ) {
+            pointer in
+            pointer.withMemoryRebound(
+                to: integer_t.self,
+                capacity: Int(count)
+            ) {
+                task_info(
+                    mach_task_self_,
+                    task_flavor_t(TASK_VM_INFO),
+                    $0,
+                    &count
+                )
+            }
+        }
+        guard result == KERN_SUCCESS else {
+            return 0
+        }
+        return info.phys_footprint
+    }
+}
+
+private extension UInt64 {
+    var memoryString: String {
+        ByteCountFormatter.string(
+            fromByteCount: Int64(self),
+            countStyle: .memory
+        )
+    }
 }
