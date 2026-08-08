@@ -90,12 +90,21 @@ final class FeedViewController: UIViewController, View {
             .distinctUntilChanged()
             .asDriver(onErrorDriveWith: .empty())
             .drive(with: self) { owner, components in
-                owner.render(components: components)
+                owner.renderFeed(components: components)
+            }
+            .disposed(by: disposeBag)
+
+        reactor.state
+            .map(\.didTodayUpload)
+            .distinctUntilChanged()
+            .asDriver(onErrorDriveWith: .empty())
+            .drive(with: self) { owner, didTodayUpload in
+                owner.renderUploadState(didTodayUpload: didTodayUpload)
             }
             .disposed(by: disposeBag)
     }
 
-    private func render(components: [FeedComponent]) {
+    private func renderFeed(components: [FeedComponent]) {
         let shouldAnimate = !currentComponents.isEmpty
         currentComponents = components
 
@@ -129,11 +138,14 @@ final class FeedViewController: UIViewController, View {
             ? LocalizationKey.adminPreviewEmpty.localized
             : LocalizationKey.homeDescription.localized
         customView.emptyLabel.isHidden = hasContent
-        customView.bubbleView.text = hasContent
+    }
+
+    private func renderUploadState(didTodayUpload: Bool) {
+        customView.bubbleView.text = didTodayUpload
             ? LocalizationKey.homeFeedBubbleDoneToday.localized
             : LocalizationKey.homeFeedBubbleAddPhoto.localized
 
-        let canAddPhoto = !hasContent || ProcessInfo.processInfo.arguments.contains("-UITest")
+        let canAddPhoto = !didTodayUpload || ProcessInfo.processInfo.arguments.contains("-UITest")
         customView.cameraBtn.isEnabled = !isReadOnly && canAddPhoto
         customView.cameraBtn.alpha = canAddPhoto ? 1.0 : 0.3
     }
