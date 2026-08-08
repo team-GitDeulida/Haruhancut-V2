@@ -24,32 +24,6 @@ final class ProfileImageCacheDemoViewController:
     private var isAppendingPage = false
     private var lastTargetWidth: CGFloat = 0
 
-    private lazy var cacheControlStack: UIStackView = {
-        let stackView = UIStackView(
-            arrangedSubviews: [
-                makeCacheControlButton(
-                    title: "측정",
-                    imageName: "gauge.with.dots.needle.33percent",
-                    action: #selector(observeCacheClearMemory)
-                ),
-                makeCacheControlButton(
-                    title: "디스크",
-                    imageName: "externaldrive",
-                    action: #selector(clearDiskCache)
-                ),
-                makeCacheControlButton(
-                    title: "메모리",
-                    imageName: "memorychip",
-                    action: #selector(clearMemoryCache)
-                ),
-            ]
-        )
-        stackView.axis = .horizontal
-        stackView.spacing = 8
-        stackView.distribution = .fillEqually
-        return stackView
-    }()
-
     private lazy var collectionView: UICollectionView = {
         let collectionView = UICollectionView(
             frame: .zero,
@@ -73,7 +47,7 @@ final class ProfileImageCacheDemoViewController:
         title = "이미지 캐시 실험"
         view.backgroundColor = .systemBackground
         configureCollectionView()
-        updatePaginationPrompt()
+        configureNavigationItems()
         appendNextPage()
     }
 
@@ -95,32 +69,11 @@ final class ProfileImageCacheDemoViewController:
     }
 
     private func configureCollectionView() {
-        [
-            cacheControlStack,
-            collectionView,
-        ].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview($0)
-        }
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(collectionView)
         NSLayoutConstraint.activate([
-            cacheControlStack.topAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.topAnchor,
-                constant: 8
-            ),
-            cacheControlStack.leadingAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: 16
-            ),
-            cacheControlStack.trailingAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -16
-            ),
-            cacheControlStack.heightAnchor.constraint(
-                equalToConstant: 40
-            ),
             collectionView.topAnchor.constraint(
-                equalTo: cacheControlStack.bottomAnchor,
-                constant: 12
+                equalTo: view.safeAreaLayoutGuide.topAnchor
             ),
             collectionView.leadingAnchor.constraint(
                 equalTo: view.leadingAnchor
@@ -134,32 +87,29 @@ final class ProfileImageCacheDemoViewController:
         ])
     }
 
-    private func makeCacheControlButton(
-        title: String,
-        imageName: String,
-        action: Selector
-    ) -> UIButton {
-        var configuration = UIButton.Configuration.tinted()
-        configuration.title = title
-        configuration.image = UIImage(
-            systemName: imageName
-        )
-        configuration.imagePadding = 4
-        configuration.cornerStyle = .medium
-
-        let button = UIButton(
-            configuration: configuration
-        )
-        button.titleLabel?.font = .systemFont(
-            ofSize: 13,
-            weight: .semibold
-        )
-        button.addTarget(
-            self,
-            action: action,
-            for: .touchUpInside
-        )
-        return button
+    private func configureNavigationItems() {
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(
+                title: "측정",
+                style: .plain,
+                target: self,
+                action: #selector(observeCacheClearMemory)
+            ),
+            UIBarButtonItem(
+                title: "디스크",
+                style: .plain,
+                target: self,
+                action: #selector(clearDiskCache)
+            ),
+            UIBarButtonItem(
+                title: "메모리",
+                style: .plain,
+                target: self,
+                action: #selector(clearMemoryCache)
+            ),
+        ]
+        navigationItem.prompt =
+            "Picsum 무한 스크롤 · 프리패치 6개/동시 1개"
     }
 
     private func appendNextPage() {
@@ -199,7 +149,6 @@ final class ProfileImageCacheDemoViewController:
         } completion: {
             [weak self] _ in
             self?.isAppendingPage = false
-            self?.updatePaginationPrompt()
         }
     }
 
@@ -210,28 +159,6 @@ final class ProfileImageCacheDemoViewController:
             return
         }
         appendNextPage()
-    }
-
-    private func appendNextPageIfNeeded(
-        for scrollView: UIScrollView
-    ) {
-        let remainingScrollDistance =
-            scrollView.contentSize.height
-                - scrollView.contentOffset.y
-                - scrollView.bounds.height
-        let threshold = max(
-            gridItemWidth * 3,
-            300
-        )
-        guard remainingScrollDistance <= threshold else {
-            return
-        }
-        appendNextPage()
-    }
-
-    private func updatePaginationPrompt() {
-        navigationItem.prompt =
-            "Picsum \(items.count)장 · 아래로 스크롤하면 다음 24장 추가"
     }
 
     private var gridItemWidth: CGFloat {
@@ -414,14 +341,6 @@ extension ProfileImageCacheDemoViewController:
     ) {
         appendNextPageIfNeeded(
             for: indexPath.item
-        )
-    }
-
-    func scrollViewDidScroll(
-        _ scrollView: UIScrollView
-    ) {
-        appendNextPageIfNeeded(
-            for: scrollView
         )
     }
 }
