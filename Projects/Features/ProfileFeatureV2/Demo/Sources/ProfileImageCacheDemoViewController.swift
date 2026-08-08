@@ -131,21 +131,24 @@ final class ProfileImageCacheDemoViewController:
             )
         }
         let startIndex = items.count
-        items.append(
-            contentsOf: newItems
-        )
-        nextPage += 1
-        isAppendingPage = false
+        let indexPaths = newItems.indices.map {
+            IndexPath(
+                item: startIndex + $0,
+                section: 0
+            )
+        }
 
         collectionView.performBatchUpdates {
-            collectionView.insertItems(
-                at: newItems.indices.map {
-                    IndexPath(
-                        item: startIndex + $0,
-                        section: 0
-                    )
-                }
+            self.items.append(
+                contentsOf: newItems
             )
+            self.nextPage += 1
+            self.collectionView.insertItems(
+                at: indexPaths
+            )
+        } completion: {
+            [weak self] _ in
+            self?.isAppendingPage = false
         }
     }
 
