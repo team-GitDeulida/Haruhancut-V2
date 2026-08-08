@@ -237,7 +237,11 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let storagePath = "groups/\(groupId)/images/\(postId).jpg"         // storage  저장 위치
         let dbPath = "groups/\(groupId)/postsByDate/\(dateKey)/\(postId)"  // realtime 저장 위치
         
-        return groupRepository.uploadImage(image: image, path: storagePath)
+        return groupRepository.uploadImage(
+            image: image,
+            path: storagePath,
+            compressionQuality: 1.0
+        )
             .asObservable()
             .flatMap { url -> Observable<Void> in
                 let post = Post(postId: postId,

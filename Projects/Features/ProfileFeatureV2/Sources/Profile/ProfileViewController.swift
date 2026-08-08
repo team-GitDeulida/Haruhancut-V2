@@ -20,11 +20,6 @@ final class ProfileViewController:
         static let itemSpacing: CGFloat = 1
     }
 
-    private struct ActiveImagePrefetch {
-        let id: UUID
-        let prefetcher: ImagePrefetcher
-    }
-
     private let customView =
         ProfileView()
     private let viewModel:
@@ -34,15 +29,15 @@ final class ProfileViewController:
     private let reloadRelay =
         PublishRelay<Void>()
     private let imageTappedRelay =
-        PublishRelay<Post>()
+        PublishRelay<ProfilePostSelection>()
     private let nicknameEditTappedRelay =
         PublishRelay<Void>()
     private let birthdayEditTappedRelay =
         PublishRelay<Void>()
     private var imageURLsByPostID:
         [String: URL] = [:]
-    private var activeImagePrefetches:
-        [String: ActiveImagePrefetch] = [:]
+    private let imagePrefetchSession =
+        ProfileGridImagePrefetchSession()
 
     private lazy var adapter:
         CollectionViewAdapter = {
@@ -97,11 +92,7 @@ final class ProfileViewController:
     }
 
     deinit {
-        activeImagePrefetches
-            .values
-            .forEach {
-                $0.prefetcher.stop()
-            }
+        imagePrefetchSession.stop()
     }
 
     override func loadView() {
@@ -338,10 +329,17 @@ final class ProfileViewController:
                         )
                         .pressedEffect(scale: 0.98)
                         .onTouch {
-                            [weak self] in
+                            [weak self] content in
                             self?
                                 .imageTappedRelay
-                                .accept(post)
+                                .accept(
+                                    ProfilePostSelection(
+                                        post: post,
+                                        previewImage:
+                                            content
+                                                .renderedImage
+                                    )
+                                )
                         }
                     }
                 }
@@ -442,7 +440,8 @@ final class ProfileViewController:
     private func updateImageURLLookup(
         _ posts: [Post]
     ) {
-        imageURLsByPostID =
+        let previousImageURLs = imageURLsByPostID
+        let updatedImageURLs: [String: URL] =
             posts.reduce(into: [:]) {
                 result, post in
                 guard
@@ -456,103 +455,53 @@ final class ProfileViewController:
                 result[post.postId] =
                     url
             }
+        imageURLsByPostID = updatedImageURLs
 
-        let currentPostIDs =
-            Set(
-                imageURLsByPostID.keys
-            )
-        let removedPostIDs =
-            activeImagePrefetches
-                .keys
-                .filter {
-                    !currentPostIDs
-                        .contains($0)
-                }
-        cancelImagePrefetching(
-            forPostIDs:
-                removedPostIDs
+        let invalidatedPostIDs: [String] = Set(
+            previousImageURLs.keys
         )
+        .union(
+            Set(updatedImageURLs.keys)
+        )
+        .filter {
+            previousImageURLs[$0] != updatedImageURLs[$0]
+        }
+        imagePrefetchSession.cancelPrefetching(
+            postIDs: invalidatedPostIDs
+        )
+
     }
 
     private func prefetchImages(
         for items:
             [CollectionViewPrefetchItem]
     ) {
-        for postID in profilePostIDs(
+        let requests = profilePostIDs(
             from: items
-        ) {
-            guard
-                activeImagePrefetches[
-                    postID
-                ] == nil,
-                let imageURL =
-                    imageURLsByPostID[
-                        postID
-                    ]
-            else {
-                continue
-            }
-
-            let requestID = UUID()
-            let prefetcher =
-                ImagePrefetcher(
-                    urls: [imageURL],
-                    options:
-                        ProfilePostImageRequest
-                            .options(
-                                targetWidth:
-                                    profilePostTargetWidth
-                            ),
-                    completionHandler: {
-                        [weak self] _, _, _ in
-                        guard
-                            self?
-                                .activeImagePrefetches[
-                                    postID
-                                ]?.id
-                                == requestID
-                        else {
-                            return
-                        }
-                        self?
-                            .activeImagePrefetches[
-                                postID
-                            ] = nil
-                    }
+        )
+        .compactMap { postID in
+            imageURLsByPostID[postID].map {
+                ProfileGridImagePrefetchRequest(
+                    postID: postID,
+                    imageURL: $0
                 )
-            activeImagePrefetches[
-                postID
-            ] = ActiveImagePrefetch(
-                id: requestID,
-                prefetcher: prefetcher
-            )
-            prefetcher.start()
+            }
         }
+        imagePrefetchSession.prefetch(
+            requests,
+            targetWidth: profilePostTargetWidth
+        )
     }
 
     private func cancelImagePrefetching(
         for items:
             [CollectionViewPrefetchItem]
     ) {
-        cancelImagePrefetching(
-            forPostIDs:
-                profilePostIDs(
-                    from: items
-                )
+        imagePrefetchSession.cancelPrefetching(
+            postIDs: profilePostIDs(
+                from: items
+            )
         )
-    }
-
-    private func cancelImagePrefetching(
-        forPostIDs postIDs: [String]
-    ) {
-        for postID in postIDs {
-            activeImagePrefetches
-                .removeValue(
-                    forKey: postID
-                )?
-                .prefetcher
-                .stop()
-        }
     }
 
     private func profilePostIDs(

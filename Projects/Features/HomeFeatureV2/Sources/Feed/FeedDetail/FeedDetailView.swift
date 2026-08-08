@@ -64,7 +64,10 @@ final class FeedDetailView: UIView {
         ])
     }
 
-    func configure(imageURL: String) {
+    func configure(
+        imageURL: String,
+        initialImage: UIImage?
+    ) {
         guard currentImageURL != imageURL else { return }
 
         guard let url = URL(string: imageURL) else {
@@ -76,6 +79,7 @@ final class FeedDetailView: UIView {
 
         imageView.kf.cancelDownloadTask()
         currentImageURL = imageURL
+        imageView.image = initialImage
 
         imageView.kf.setImage(
             with: url,
