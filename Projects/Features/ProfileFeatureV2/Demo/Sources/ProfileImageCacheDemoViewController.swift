@@ -182,7 +182,9 @@ final class ProfileImageCacheDemoViewController:
             let targetWidth = self?.gridItemWidth ?? 1
             let item = NSCollectionLayoutItem(
                 layoutSize: NSCollectionLayoutSize(
-                    widthDimension: .fractionalWidth(1),
+                    widthDimension: .fractionalWidth(
+                        1 / CGFloat(Constant.columnCount)
+                    ),
                     heightDimension: .fractionalHeight(1)
                 )
             )
