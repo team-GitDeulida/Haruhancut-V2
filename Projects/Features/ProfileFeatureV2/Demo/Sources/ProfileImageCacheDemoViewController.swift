@@ -15,14 +15,18 @@ final class ProfileImageCacheDemoViewController:
         static let itemSpacing: CGFloat = 1
         static let pageSize = 24
         static let paginationThreshold = 9
+        static let scrollPrefetchViewportCount: CGFloat = 1
     }
 
+    private let prefetchStrategy: ProfileImageCacheDemoPrefetchStrategy
     private let imagePrefetchSession =
         ProfileGridImagePrefetchSession()
     private var items: [ProfileImageCacheDemoItem] = []
     private var nextPage = 0
     private var isAppendingPage = false
     private var lastTargetWidth: CGFloat = 0
+    private var lastScrollOffsetY: CGFloat?
+    private var scrollPrefetchedPostIDs: Set<String> = []
 
     private lazy var collectionView: UICollectionView = {
         let collectionView = UICollectionView(
@@ -31,10 +35,13 @@ final class ProfileImageCacheDemoViewController:
         )
         collectionView.backgroundColor = .systemBackground
         collectionView.alwaysBounceVertical = true
-        collectionView.isPrefetchingEnabled = true
+        collectionView.isPrefetchingEnabled =
+            prefetchStrategy == .collectionViewDelegate
         collectionView.dataSource = self
         collectionView.delegate = self
-        collectionView.prefetchDataSource = self
+        if prefetchStrategy == .collectionViewDelegate {
+            collectionView.prefetchDataSource = self
+        }
         collectionView.register(
             ImageCell.self,
             forCellWithReuseIdentifier: ImageCell.reuseIdentifier
@@ -42,9 +49,24 @@ final class ProfileImageCacheDemoViewController:
         return collectionView
     }()
 
+    init(
+        prefetchStrategy: ProfileImageCacheDemoPrefetchStrategy
+    ) {
+        self.prefetchStrategy = prefetchStrategy
+        super.init(
+            nibName: nil,
+            bundle: nil
+        )
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:)는 지원하지 않습니다.")
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "이미지 캐시 실험"
+        title = prefetchStrategy.title
         view.backgroundColor = .systemBackground
         configureCollectionView()
         configureNavigationItems()
@@ -108,8 +130,7 @@ final class ProfileImageCacheDemoViewController:
                 action: #selector(clearMemoryCache)
             ),
         ]
-        navigationItem.prompt =
-            "Picsum 무한 스크롤 · 프리패치 6개/동시 1개"
+        navigationItem.prompt = prefetchStrategy.prompt
     }
 
     private func appendNextPage() {
@@ -159,6 +180,112 @@ final class ProfileImageCacheDemoViewController:
             return
         }
         appendNextPage()
+    }
+
+    /// 스크롤 방향의 다음 한 화면을 프리패치합니다.
+    ///
+    /// `UICollectionViewDataSourcePrefetching`을 사용하지 않고, 현재 보이는 영역의
+    /// 높이를 기준으로 다음 화면 영역을 계산해 같은 세션에 전달합니다.
+    private func prefetchNextViewport(
+        for scrollView: UIScrollView
+    ) {
+        let adjustedInsets = collectionView.adjustedContentInset
+        let viewportHeight = max(
+            collectionView.bounds.height
+                - adjustedInsets.top
+                - adjustedInsets.bottom,
+            0
+        )
+        guard viewportHeight > 0 else {
+            return
+        }
+
+        let currentOffsetY = scrollView.contentOffset.y
+        let isScrollingDown = currentOffsetY >= (lastScrollOffsetY ?? currentOffsetY)
+        lastScrollOffsetY = currentOffsetY
+
+        let visibleRect = CGRect(
+            x: 0,
+            y: currentOffsetY + adjustedInsets.top,
+            width: collectionView.bounds.width,
+            height: viewportHeight
+        )
+        let targetRect = visibleRect.offsetBy(
+            dx: 0,
+            dy: viewportHeight
+                * Constant.scrollPrefetchViewportCount
+                * (isScrollingDown ? 1 : -1)
+        ).intersection(
+            CGRect(
+                origin: .zero,
+                size: collectionView.contentSize
+            )
+        )
+        guard !targetRect.isNull,
+              !targetRect.isEmpty
+        else {
+            return
+        }
+
+        let indexPaths = collectionView.collectionViewLayout
+            .layoutAttributesForElements(
+                in: targetRect
+            )?
+            .map(\.indexPath)
+            .filter {
+                items.indices.contains($0.item)
+            }
+            .sorted {
+                $0.item < $1.item
+            }
+            ?? []
+        prefetchScrollViewportItems(
+            at: indexPaths
+        )
+    }
+
+    private func prefetchScrollViewportItems(
+        at indexPaths: [IndexPath]
+    ) {
+        let requests = prefetchRequests(
+            at: indexPaths
+        )
+        let nextPostIDs = Set(
+            requests.map(\.postID)
+        )
+        let cancelledPostIDs = scrollPrefetchedPostIDs.subtracting(
+            nextPostIDs
+        )
+        imagePrefetchSession.cancelPrefetching(
+            postIDs: Array(cancelledPostIDs)
+        )
+        imagePrefetchSession.prefetch(
+            requests,
+            targetWidth: gridItemWidth
+        )
+        scrollPrefetchedPostIDs = nextPostIDs
+
+        if let furthestIndex = indexPaths.map(\.item).max() {
+            appendNextPageIfNeeded(
+                for: furthestIndex
+            )
+        }
+    }
+
+    private func prefetchRequests(
+        at indexPaths: [IndexPath]
+    ) -> [ProfileGridImagePrefetchRequest] {
+        indexPaths.compactMap {
+            indexPath in
+            guard items.indices.contains(indexPath.item) else {
+                return nil
+            }
+            let item = items[indexPath.item]
+            return ProfileGridImagePrefetchRequest(
+                postID: item.id,
+                imageURL: item.imageURL
+            )
+        }
     }
 
     private var gridItemWidth: CGFloat {
@@ -345,6 +472,17 @@ extension ProfileImageCacheDemoViewController:
             for: indexPath.item
         )
     }
+
+    func scrollViewDidScroll(
+        _ scrollView: UIScrollView
+    ) {
+        guard prefetchStrategy == .scrollViewport else {
+            return
+        }
+        prefetchNextViewport(
+            for: scrollView
+        )
+    }
 }
 
 extension ProfileImageCacheDemoViewController:
@@ -354,17 +492,12 @@ extension ProfileImageCacheDemoViewController:
         _ collectionView: UICollectionView,
         prefetchItemsAt indexPaths: [IndexPath]
     ) {
-        let requests: [ProfileGridImagePrefetchRequest] = indexPaths.compactMap {
-            indexPath in
-            guard items.indices.contains(indexPath.item) else {
-                return nil
-            }
-            let item = items[indexPath.item]
-            return ProfileGridImagePrefetchRequest(
-                postID: item.id,
-                imageURL: item.imageURL
-            )
+        guard prefetchStrategy == .collectionViewDelegate else {
+            return
         }
+        let requests = prefetchRequests(
+            at: indexPaths
+        )
         imagePrefetchSession.prefetch(
             requests,
             targetWidth: gridItemWidth
@@ -381,13 +514,12 @@ extension ProfileImageCacheDemoViewController:
         _ collectionView: UICollectionView,
         cancelPrefetchingForItemsAt indexPaths: [IndexPath]
     ) {
-        let postIDs: [String] = indexPaths.compactMap {
-            indexPath in
-            guard items.indices.contains(indexPath.item) else {
-                return nil
-            }
-            return items[indexPath.item].id
+        guard prefetchStrategy == .collectionViewDelegate else {
+            return
         }
+        let postIDs = prefetchRequests(
+            at: indexPaths
+        ).map(\.postID)
         imagePrefetchSession.cancelPrefetching(
             postIDs: postIDs
         )
@@ -448,6 +580,29 @@ private final class ImageCell: UICollectionViewCell {
                 targetWidth: targetWidth
             )
         )
+    }
+}
+
+enum ProfileImageCacheDemoPrefetchStrategy {
+    case collectionViewDelegate
+    case scrollViewport
+
+    var title: String {
+        switch self {
+        case .collectionViewDelegate:
+            "이미지 캐시 실험"
+        case .scrollViewport:
+            "이미지 캐시 실험 2"
+        }
+    }
+
+    var prompt: String {
+        switch self {
+        case .collectionViewDelegate:
+            "Picsum 무한 스크롤 · UIKit 프리패치 · 6개/동시 6개"
+        case .scrollViewport:
+            "Picsum 무한 스크롤 · 다음 한 화면 스크롤 프리패치 · 6개/동시 6개"
+        }
     }
 }
 

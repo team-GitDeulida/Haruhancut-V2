@@ -33,17 +33,32 @@ final class SceneDelegate:
             )
         profile.vc.title =
             "Profile V2"
-        profile.vc.navigationItem.leftBarButtonItem =
+        profile.vc.navigationItem.leftBarButtonItems = [
             UIBarButtonItem(
                 title: "이미지 실험",
                 primaryAction: UIAction {
                     [weak navigationController] _ in
                     navigationController?.pushViewController(
-                        ProfileImageCacheDemoViewController(),
+                        ProfileImageCacheDemoViewController(
+                            prefetchStrategy: .collectionViewDelegate
+                        ),
                         animated: true
                     )
                 }
-            )
+            ),
+            UIBarButtonItem(
+                title: "이미지 실험 2",
+                primaryAction: UIAction {
+                    [weak navigationController] _ in
+                    navigationController?.pushViewController(
+                        ProfileImageCacheDemoViewController(
+                            prefetchStrategy: .scrollViewport
+                        ),
+                        animated: true
+                    )
+                }
+            ),
+        ]
 
         profile.vm
             .onProfileImageTapped = {

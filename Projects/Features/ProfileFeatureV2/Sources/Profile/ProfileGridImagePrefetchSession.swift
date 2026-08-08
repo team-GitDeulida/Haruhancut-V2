@@ -15,7 +15,7 @@ public struct ProfileGridImagePrefetchRequest: Hashable {
     }
 }
 
-/// UIKit의 프리패치 이벤트를 작은 순차 배치로 조절합니다.
+/// 그리드 프리패치 요청을 작은 순차 배치로 조절합니다.
 ///
 /// `ImagePrefetcher`는 인스턴스별로 동시 다운로드 제한을 관리하므로,
 /// 게시물마다 인스턴스를 만들면 전체 요청 수를 제한할 수 없습니다.
@@ -107,7 +107,7 @@ public final class ProfileGridImagePrefetchSession {
 
     public init(
         batchSize: Int = 6,
-        maxConcurrentDownloads: Int = 1
+        maxConcurrentDownloads: Int = 6
     ) {
         queue = ProfileGridImagePrefetchQueue(
             batchSize: batchSize
@@ -122,7 +122,7 @@ public final class ProfileGridImagePrefetchSession {
         stop()
     }
 
-    /// UIKit prefetch 이벤트가 전달한 가까운 그리드 이미지를 등록합니다.
+    /// 가까운 그리드 이미지를 프리패치 후보로 등록합니다.
     public func prefetch(
         _ requests: [ProfileGridImagePrefetchRequest],
         targetWidth: CGFloat
@@ -138,7 +138,7 @@ public final class ProfileGridImagePrefetchSession {
         startNextBatchIfNeeded()
     }
 
-    /// UIKit이 더 이상 필요하지 않다고 알린 이미지 후보를 제거합니다.
+    /// 더 이상 필요하지 않은 이미지 후보를 제거합니다.
     public func cancelPrefetching(
         postIDs: [String]
     ) {
