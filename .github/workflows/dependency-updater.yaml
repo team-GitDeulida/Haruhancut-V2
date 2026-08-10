@@ -99,7 +99,7 @@ jobs:
           set -euo pipefail
           UDID=$(xcrun simctl list devices available | \
             grep "iOS ${SIMULATOR_OS}" -A 20 | \
-            grep "^ *${SIMULATOR_NAME} (" | head -n 1 | sed -E 's/.*\\(([A-F0-9-]+)\\).*/\\1/')
+            grep "^ *${SIMULATOR_NAME} (" | head -n 1 | sed -nE 's/.*\(([A-F0-9-]+)\).*/\1/p')
           if [[ -z "$UDID" ]]; then
             echo "::error::${SIMULATOR_NAME} (iOS ${SIMULATOR_OS}) simulator not found."
             exit 1
