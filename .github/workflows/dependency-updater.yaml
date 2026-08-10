@@ -86,7 +86,7 @@ jobs:
           set -euo pipefail
           tuist install
           tuist generate --no-open
-          git diff --exit-code --check
+          git diff --check
           if git diff --quiet -- Tuist/Package.swift Tuist/Package.resolved; then
             echo "::error::The updater selected a version but Tuist did not change a tracked dependency file."
             exit 1
