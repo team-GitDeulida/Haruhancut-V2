@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 
+# Finds an available simulator UUID and writes `SIM_UDID=<UUID>` to GITHUB_ENV.
+#
+# Required variables:
+# - SIMULATOR_NAME: device name, for example "iPhone 16"
+# - SIMULATOR_OS: iOS runtime version, for example "26.2"
+# - GITHUB_ENV: destination file for SIM_UDID (GitHub Actions provides this)
+#
+# GitHub Actions:
+#   run: scripts/resolve_simulator_udid.sh
+#
+# Local macOS usage (with the selected Simulator runtime installed):
+#   ENV_FILE="$(mktemp)"
+#   SIMULATOR_NAME="iPhone 16" SIMULATOR_OS="26.2" GITHUB_ENV="$ENV_FILE" scripts/resolve_simulator_udid.sh
+#   source "$ENV_FILE" && export SIM_UDID
+#   rm "$ENV_FILE"
+
 set -euo pipefail
 
 : "${SIMULATOR_NAME:?SIMULATOR_NAME must be set}"
