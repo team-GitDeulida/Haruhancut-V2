@@ -94,17 +94,7 @@ jobs:
 
       - name: Resolve Simulator UUID
         if: steps.update.outputs.has_changes == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
-        shell: bash
-        run: |
-          set -euo pipefail
-          UDID=$(xcrun simctl list devices available | \
-            grep "iOS ${SIMULATOR_OS}" -A 20 | \
-            grep "^ *${SIMULATOR_NAME} (" | head -n 1 | sed -nE 's/.*\(([A-F0-9-]+)\).*/\1/p')
-          if [[ -z "$UDID" ]]; then
-            echo "::error::${SIMULATOR_NAME} (iOS ${SIMULATOR_OS}) simulator not found."
-            exit 1
-          fi
-          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+        run: scripts/resolve_simulator_udid.sh
 
       - name: Build and test Core, Data, and App
         if: steps.update.outputs.has_changes == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)

@@ -78,13 +78,14 @@ jobs:
           sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
           xcodebuild -version
 
+      # Exact-key-only caches prevent artifacts from a different dependency graph
+      # from being restored after Tuist/Package.resolved changes.
       # SwiftPM Cache
       - name: Cache SwiftPM
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/org.swift.swiftpm
-          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
-          restore-keys: spm-${{ runner.os }}-
+          key: spm-v2-${{ runner.os }}-${{ hashFiles('Tuist/Package.swift', 'Tuist/Package.resolved') }}
 
       # Tuist Cache
       - name: Cache Tuist
@@ -94,17 +95,14 @@ jobs:
             ~/.tuist/Dependencies
             ~/.tuist/Cache
             Tuist/Dependencies/.build
-          key: tuist-${{ runner.os }}-${{ hashFiles('Tuist/Dependencies.swift') }}
-          restore-keys: tuist-${{ runner.os }}-
+          key: tuist-v2-${{ runner.os }}-${{ hashFiles('Tuist/Package.swift', 'Tuist/Package.resolved') }}
 
       # DerivedData Cache
       - name: Cache DerivedData
         uses: actions/cache@v4
         with:
           path: DerivedData
-          key: deriveddata-${{ runner.os }}-xcode${{ env.XCODE_VERSION }}-${{ matrix.module }}-${{ hashFiles('Tuist.swift', 'Workspace.swift', 'Tuist/Package.swift', 'Projects/**/Project.swift') }}
-          restore-keys: |
-            deriveddata-${{ runner.os }}-xcode${{ env.XCODE_VERSION }}-${{ matrix.module }}-
+          key: deriveddata-v2-${{ runner.os }}-xcode${{ env.XCODE_VERSION }}-${{ matrix.module }}-${{ hashFiles('Tuist.swift', 'Workspace.swift', 'Tuist/Package.swift', 'Tuist/Package.resolved', 'Projects/**/Project.swift') }}
 
       - name: Set up Mise and Tuist
         uses: jdx/mise-action@v4
@@ -118,15 +116,7 @@ jobs:
 
       # Simulator UUID Resolve
       - name: Resolve Simulator UUID
-        run: |
-          UDID=$(xcrun simctl list devices available | \
-            grep "iOS ${SIMULATOR_OS}" -A 20 | \
-            grep "^ *${SIMULATOR_NAME} (" | head -n 1 | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
-          if [ -z "$UDID" ]; then
-            echo "${SIMULATOR_NAME} (iOS ${SIMULATOR_OS}) simulator not found"
-            exit 1
-          fi
-          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+        run: scripts/resolve_simulator_udid.sh
 
       # 1. Build For Testing (VM 내부)
       - name: Build For Testing
