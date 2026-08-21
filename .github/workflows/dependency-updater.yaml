@@ -86,7 +86,7 @@ jobs:
           set -euo pipefail
           tuist install
           tuist generate --no-open
-          git diff --exit-code --check
+          git diff --check
           if git diff --quiet -- Tuist/Package.swift Tuist/Package.resolved; then
             echo "::error::The updater selected a version but Tuist did not change a tracked dependency file."
             exit 1
@@ -94,17 +94,7 @@ jobs:
 
       - name: Resolve Simulator UUID
         if: steps.update.outputs.has_changes == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
-        shell: bash
-        run: |
-          set -euo pipefail
-          UDID=$(xcrun simctl list devices available | \
-            grep "iOS ${SIMULATOR_OS}" -A 20 | \
-            grep "^ *${SIMULATOR_NAME} (" | head -n 1 | sed -E 's/.*\\(([A-F0-9-]+)\\).*/\\1/')
-          if [[ -z "$UDID" ]]; then
-            echo "::error::${SIMULATOR_NAME} (iOS ${SIMULATOR_OS}) simulator not found."
-            exit 1
-          fi
-          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+        run: scripts/resolve_simulator_udid.sh
 
       - name: Build and test Core, Data, and App
         if: steps.update.outputs.has_changes == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
