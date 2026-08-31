@@ -48,10 +48,13 @@ public final class ProfileCoordinatorV2: NSObject, Coordinator {
             profilePresentImagePicker(completion: completion)
         }
         
-        profile.vm.onImageTapped = { [weak self] post in
+        profile.vm.onImageTapped = { [weak self] selection in
             guard let self = self else { return }
             let builder = HomeFeatureV2.FeedDetailBuilder()
-            var feedDetail = builder.makeFeed(post: post)
+            var feedDetail = builder.makeFeed(
+                post: selection.post,
+                initialImage: selection.previewImage
+            )
             let feedDetailViewController: UIViewController & RefreshableViewController = feedDetail.vc
             profileViewController?.navigationItem.backButtonDisplayMode = .minimal
             self.navigationController.pushViewController(feedDetailViewController, animated: true)

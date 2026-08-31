@@ -19,7 +19,7 @@ final class ProfileViewModel:
     var onSettingButtonTapped:
         (() -> Void)?
     var onImageTapped:
-        ((Post) -> Void)?
+        ((ProfilePostSelection) -> Void)?
 
     struct Input {
         let profileImageTapped:
@@ -33,7 +33,7 @@ final class ProfileViewModel:
         let settingTapped:
             Observable<Void>
         let imageTapped:
-            Observable<Post>
+            Observable<ProfilePostSelection>
         let reload:
             Observable<Void>
         let viewWillAppear:
@@ -203,8 +203,8 @@ final class ProfileViewModel:
 
         input.imageTapped
             .bind(with: self) {
-                owner, post in
-                owner.onImageTapped?(post)
+                owner, selection in
+                owner.onImageTapped?(selection)
             }
             .disposed(by: disposeBag)
 

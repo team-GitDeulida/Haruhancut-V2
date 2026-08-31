@@ -23,16 +23,19 @@ final class FeedDetailViewController: UIViewController, RefreshableViewControlle
     private let reloadRelay = PublishRelay<Void>()
     private let isReadOnly:
         Bool
+    private let initialImage: UIImage?
 
     init(
         viewModel: FeedDetailViewModel,
         isReadOnly:
-            Bool = false
+            Bool = false,
+        initialImage: UIImage? = nil
     ) {
         self.viewModel = viewModel
         self.customView = FeedDetailView()
         self.isReadOnly =
             isReadOnly
+        self.initialImage = initialImage
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -83,7 +86,10 @@ final class FeedDetailViewController: UIViewController, RefreshableViewControlle
 
         output.imageURL
             .drive(with: self, onNext: { owner, imageURL in
-                owner.customView.configure(imageURL: imageURL)
+                owner.customView.configure(
+                    imageURL: imageURL,
+                    initialImage: owner.initialImage
+                )
             })
             .disposed(by: disposeBag)
 
