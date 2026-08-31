@@ -122,7 +122,7 @@ let package = Package(
 
         .package(
             url: "https://github.com/onevcat/Kingfisher.git",
-            from: "8.11.0"
+            from: "8.12.0"
         ),
 
         .package(
