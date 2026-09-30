@@ -137,3 +137,6 @@ firebase/*.tgz
 firebase/.yarn-integrity
 firebase/functions-typescript/*.local
 firebase/functions-javascript/*.local
+
+# 프로젝트 문서 키트의 개인용 git hook
+.githooks/
