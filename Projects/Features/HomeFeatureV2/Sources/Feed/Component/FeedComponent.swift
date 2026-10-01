@@ -118,9 +118,9 @@ final class FeedRowView: UIView, Touchable, Pressable, LongPressable {
         ])
     }
 
-    override func sizeThatFits(_ size: CGSize) -> CGSize {
-        autoLayoutFittingSize(for: size)
-    }
+//    override func sizeThatFits(_ size: CGSize) -> CGSize {
+//        autoLayoutFittingSize(for: size)
+//    }
 
     private func applyItem() {
         imageView.kf.cancelDownloadTask()
