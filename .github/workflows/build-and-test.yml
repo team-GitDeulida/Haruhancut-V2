@@ -118,21 +118,6 @@ jobs:
           path: DerivedData
           key: deriveddata-v3-p${{ env.PACKAGE_CACHE_VERSION }}-${{ runner.os }}-xcode${{ env.XCODE_VERSION }}-${{ matrix.module }}-${{ hashFiles('mise.toml', 'Tuist/Package.swift', 'Tuist/Package.resolved') }}
 
-      # 새 러너는 시뮬레이터를 처음 부팅하고 앱을 설치하는 데 70~180초가 걸린다.
-      # 캐시 복원이 끝난 뒤 대상 시뮬레이터를 백그라운드로 부팅해 Generate Project와 시간을 겹치게 한다.
-      # job 시작에 부팅하면 캐시 다운로드·압축 해제와 빌드가 함께 느려졌다(#103).
-      # 백그라운드 프로세스는 이 단계의 GITHUB_ENV에 쓸 수 없으므로 UUID를 RUNNER_TEMP 파일로 넘긴다.
-      - name: Boot Simulator
-        run: |
-          nohup bash -c '
-            GITHUB_ENV="$RUNNER_TEMP/simulator.env" scripts/resolve_simulator_udid.sh || exit 1
-            source "$RUNNER_TEMP/simulator.env"
-            echo "$(date +%H:%M:%S) boot $SIM_UDID"
-            xcrun simctl boot "$SIM_UDID"
-            echo "$(date +%H:%M:%S) boot requested"
-          ' > "$RUNNER_TEMP/simulator-boot.log" 2>&1 &
-          echo $! > "$RUNNER_TEMP/simulator-boot.pid"
-
       - name: Set up Mise and Tuist
         uses: jdx/mise-action@v4
         with:
@@ -156,21 +141,10 @@ jobs:
             tuist generate --no-open --cache-profile none
           fi
 
-      # Boot Simulator 단계에서 백그라운드로 찾은 시뮬레이터 UUID를 SIM_UDID로 등록한다.
+      # 시뮬레이터는 미리 부팅하지 않는다. 부팅 직후 몇 분 동안 함께 돌던 캐시 복원·프로젝트 생성·빌드가
+      # 크게 느려져 테스트 단계에서 줄인 시간보다 더 잃었다(#103). 부팅은 test-without-building이 맡는다.
       - name: Resolve Simulator UUID
-        run: |
-          pid="$(cat "$RUNNER_TEMP/simulator-boot.pid")"
-          for _ in $(seq 1 180); do
-            [ -s "$RUNNER_TEMP/simulator.env" ] && break
-            kill -0 "$pid" 2>/dev/null || break
-            sleep 1
-          done
-          cat "$RUNNER_TEMP/simulator-boot.log"
-          if [ ! -s "$RUNNER_TEMP/simulator.env" ]; then
-            echo "::error::Simulator UUID를 찾지 못했습니다."
-            exit 1
-          fi
-          cat "$RUNNER_TEMP/simulator.env" >> "$GITHUB_ENV"
+        run: scripts/resolve_simulator_udid.sh
 
       # 1. Build For Testing (VM 내부)
       # CI에서는 인덱스를 쓰지 않으므로 빌드 중 인덱스 생성(COMPILER_INDEX_STORE_ENABLE)을 끈다.
@@ -191,17 +165,6 @@ jobs:
         with:
           path: DerivedData
           key: ${{ steps.deriveddata_cache.outputs.cache-primary-key }}
-
-      # 부팅되지 않았다면 여기서 부팅하고, 백그라운드 부팅이 진행 중이면 끝날 때까지 기다린다.
-      # 이미 부팅 중인 기기에 -b를 주면 "Unable to boot device in current state"로 실패하므로 -b 없이 다시 기다린다.
-      - name: Wait for Simulator Boot
-        timeout-minutes: 10
-        run: |
-          cat "$RUNNER_TEMP/simulator-boot.log"
-          if ! xcrun simctl bootstatus "$SIM_UDID" -b; then
-            echo "이미 부팅 중이라 부팅이 끝날 때까지 기다립니다."
-            xcrun simctl bootstatus "$SIM_UDID"
-          fi
 
       # 2. Test Without Building (같은 DerivedData 사용)
       - name: Test Without Building
