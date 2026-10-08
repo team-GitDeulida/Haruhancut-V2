@@ -60,7 +60,7 @@ light-reset:
 	rm -rf ~/Library/Developer/Xcode/DerivedData
 	tuist generate
 
-# 4.115.0
+# 4.210.0
 reset:
 	tuist clean
 	rm -rf .tuist
