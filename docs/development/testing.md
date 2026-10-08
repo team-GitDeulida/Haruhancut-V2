@@ -9,7 +9,7 @@
 | 테스트 프레임워크 | XCTest (`@testable import`). RxTest·RxBlocking·Swift Testing은 사용하지 않아요. | 각 `Tests/` 소스 |
 | CI 필수 체크 | `Test / App`, `Test / Core`, `Test / Data` | `main` 브랜치 보호 규칙 |
 | CI 환경 | `macos-15`, Xcode 26.3, iPhone 16 / iOS 26.2 | `.github/workflows/build-and-test.yml` |
-| Tuist 버전 | 4.115.0 | `mise.toml` |
+| Tuist 버전 | 4.210.0 | `mise.toml` |
 | 배포 대상 | iOS 17.0 | 각 `Project.swift` |
 
 ## 테스트 타깃
@@ -38,7 +38,9 @@ mise exec -- tuist install
 mise exec -- tuist generate --no-open
 ```
 
-- 비대화형 셸이나 에이전트 환경에서는 PATH의 다른 Tuist 버전이 실행될 수 있어요. `mise exec -- tuist version`이 `4.115.0`인지 확인해요.
+- 비대화형 셸이나 에이전트 환경에서는 PATH의 다른 Tuist 버전이 실행될 수 있어요. `mise exec -- tuist version`이 `4.210.0`인지 확인해요.
+- Xcode 27은 배포 타깃으로 iOS 15.0 이상만 지원해요. Tuist 4.115.0은 외부 패키지 타깃을 패키지가 선언한 iOS 12.0·13.0으로 만들어서 Xcode 27 빌드가 실패해요. 4.210.0은 iOS 15.0으로 만들어요.
+- Tuist 버전을 바꿨다면 다른 버전이 만든 패키지 프로젝트가 섞이지 않도록 `rm -rf Tuist/.build`로 지운 뒤 `tuist install`부터 다시 실행해요.
 - `Projects/Shared/Configs/Shared.xcconfig`가 있어야 빌드돼요. `.gitignore` 대상이며 CI는 `SHARED_XCCONFIG` secret으로 만들어요. 로컬 파일이 없으면 팀에 요청해요.
 
 ### 2. 시뮬레이터 ID를 확인해요
@@ -115,7 +117,7 @@ python3 -m unittest scripts/tests/test_update_ios_dependencies.py
 | 동시 실행 | 같은 PR의 이전 실행을 취소해요. |
 | 매트릭스 | `module: [Core, Data, App]`, `fail-fast: false` |
 | 단계 | `Shared.xcconfig` 생성 → Xcode 26.3 선택 → SwiftPM·Tuist·DerivedData 캐시 복원 → `tuist install` → `tuist generate --no-open` → `scripts/resolve_simulator_udid.sh` → `xcodebuild build-for-testing` → `xcodebuild test-without-building` |
-| 캐시 키 | `Tuist/Package.swift`, `Tuist/Package.resolved`, `Projects/**/Project.swift` 등의 해시. 의존성이 바뀌면 캐시를 새로 만들어요. |
+| 캐시 키 | `Tuist/Package.swift`, `Tuist/Package.resolved`, `Projects/**/Project.swift` 등의 해시. 의존성이 바뀌면 캐시를 새로 만들어요. Tuist·DerivedData 캐시 키에는 `mise.toml`도 넣어서 Tuist 버전이 바뀌면 새로 만들어요. |
 | 결과 알림 | PR 댓글과 메일 |
 
 CI의 테스트 명령은 모듈마다 다음과 같아요.
