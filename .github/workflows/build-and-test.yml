@@ -80,6 +80,8 @@ jobs:
 
       # Exact-key-only caches prevent artifacts from a different dependency graph
       # from being restored after Tuist/Package.resolved changes.
+      # Tuist and DerivedData keys also include mise.toml so that artifacts generated
+      # by a different Tuist version are not restored after a Tuist upgrade.
       # SwiftPM Cache
       - name: Cache SwiftPM
         uses: actions/cache@v4
@@ -95,14 +97,14 @@ jobs:
             ~/.tuist/Dependencies
             ~/.tuist/Cache
             Tuist/Dependencies/.build
-          key: tuist-v2-${{ runner.os }}-${{ hashFiles('Tuist/Package.swift', 'Tuist/Package.resolved') }}
+          key: tuist-v2-${{ runner.os }}-${{ hashFiles('mise.toml', 'Tuist/Package.swift', 'Tuist/Package.resolved') }}
 
       # DerivedData Cache
       - name: Cache DerivedData
         uses: actions/cache@v4
         with:
           path: DerivedData
-          key: deriveddata-v2-${{ runner.os }}-xcode${{ env.XCODE_VERSION }}-${{ matrix.module }}-${{ hashFiles('Tuist.swift', 'Workspace.swift', 'Tuist/Package.swift', 'Tuist/Package.resolved', 'Projects/**/Project.swift') }}
+          key: deriveddata-v2-${{ runner.os }}-xcode${{ env.XCODE_VERSION }}-${{ matrix.module }}-${{ hashFiles('mise.toml', 'Tuist.swift', 'Workspace.swift', 'Tuist/Package.swift', 'Tuist/Package.resolved', 'Projects/**/Project.swift') }}
 
       - name: Set up Mise and Tuist
         uses: jdx/mise-action@v4
