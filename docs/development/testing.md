@@ -116,14 +116,14 @@ python3 -m unittest scripts/tests/test_update_ios_dependencies.py
 | 실행 조건 | `main` 대상 PR, 매일 07:00 KST(`0 22 * * *`), 수동 실행, PR 댓글 명령 |
 | 동시 실행 | 같은 PR의 이전 실행을 취소해요. |
 | 매트릭스 | `module: [Core, Data, App]`, `fail-fast: false` |
-| 단계 | Xcode 26.3 선택 → `Shared.xcconfig` 생성 → 패키지·Tuist·DerivedData 캐시 복원 → 시뮬레이터 백그라운드 부팅 시작 → `tuist install`(패키지 캐시가 키와 정확히 맞으면 건너뜀) → `tuist generate --no-open --cache-profile none` → Simulator UUID 등록 → `xcodebuild build-for-testing` → DerivedData 저장 → 시뮬레이터 부팅 대기 → `xcodebuild test-without-building` |
+| 단계 | Xcode 26.3 선택 → `Shared.xcconfig` 생성 → 패키지·Tuist·DerivedData 캐시 복원 → `tuist install`(패키지 캐시가 키와 정확히 맞으면 건너뜀) → `tuist generate --no-open --cache-profile none` → `scripts/resolve_simulator_udid.sh` → `xcodebuild build-for-testing` → DerivedData 저장 → `xcodebuild test-without-building` |
 | 결과 알림 | PR 댓글과 메일. 같은 PR에 새 커밋이 올라와 취소된 실행에는 실패 알림을 보내지 않아요. 알림 job은 Ubuntu 러너에서 실행해요. |
 
-새 러너는 시뮬레이터를 처음 부팅하는 데 오래 걸려요. 그래서 캐시 복원이 끝나면 백그라운드로 부팅을 시작해, 프로젝트 생성과 시간을 겹치게 해요. job을 시작하자마자 부팅하면 캐시 다운로드·압축 해제와 빌드가 함께 느려졌어요(PR #103). 시뮬레이터 UUID는 `scripts/resolve_simulator_udid.sh`로 찾아요.
+시뮬레이터는 미리 부팅하지 않고 `test-without-building`이 부팅해요. PR #103에서 백그라운드로 미리 부팅해 봤는데, 부팅 직후 몇 분 동안 함께 돌던 캐시 복원·프로젝트 생성·빌드가 크게 느려져 테스트 단계에서 줄인 시간보다 더 잃었어요.
 
 | 캐시 | 보관하는 경로 | 키 | 동작 |
 | --- | --- | --- | --- |
-| Tuist 패키지 | `Tuist/.build/*`(git 미러 `repositories` 제외), `~/.cache/swifterpm/sources`, `~/.cache/swifterpm/manifests` | `PACKAGE_CACHE_VERSION`, `mise.toml`, `Tuist/Package.swift`, `Tuist/Package.resolved` | 키가 정확히 맞으면 `tuist install`을 건너뛰어요. 이때 생성에 실패하면 `install` 후 다시 생성해요. 다른 의존성 그래프의 캐시가 섞이지 않도록 fallback은 두지 않아요. `actions/cache`는 폴더를 통째로 지정하면 그 아래 제외 규칙을 무시해서 `Tuist/.build/*`로 지정해요. |
+| Tuist 패키지 | `Tuist/.build/*`(git 미러 `repositories`와 `.lock` 제외), `~/.cache/swifterpm/sources`, `~/.cache/swifterpm/manifests` | `PACKAGE_CACHE_VERSION`, `mise.toml`, `Tuist/Package.swift`, `Tuist/Package.resolved` | 키가 정확히 맞으면 `tuist install`을 건너뛰어요. 이때 생성에 실패하면 `install` 후 다시 생성해요. 다른 의존성 그래프의 캐시가 섞이지 않도록 fallback은 두지 않아요. `actions/cache`는 폴더를 통째로 지정하면 그 아래 제외 규칙을 무시해서 `Tuist/.build/*`로 지정해요. |
 | Tuist 설정 | `~/.cache/tuist` | `mise.toml`, `Tuist.swift`, `Workspace.swift`, `Tuist/Package.swift`, `Projects/**/Project.swift` | 내용 기준 캐시라 같은 Tuist 버전의 이전 캐시를 fallback으로 받아요. |
 | DerivedData | `DerivedData` (모듈별) | `PACKAGE_CACHE_VERSION`, Xcode 버전, 모듈, `mise.toml`, `Tuist/Package.swift`, `Tuist/Package.resolved` | 패키지 캐시를 그대로 받은 실행에서 만든 것만 저장해요. 외부 라이브러리 빌드 결과는 패키지 파일의 수정 시각이 같아야 다시 쓰이기 때문이에요. |
 
