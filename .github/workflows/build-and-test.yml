@@ -69,10 +69,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode
+      # 새 러너에서는 Xcode와 시뮬레이터(CoreSimulator)를 처음 부를 때 시뮬레이터 런타임 디스크 이미지를 붙이느라 오래 걸린다.
+      # 캐시를 받는 동안 백그라운드로 SDK와 런타임 목록만 미리 조회해 Resolve Simulator UUID를 짧게 한다(PopPang 방식).
+      # 기기는 부팅하지 않는다. 부팅하면 함께 도는 캐시 복원·프로젝트 생성·빌드가 크게 느려졌다(#103).
+      - name: Select Xcode and warm up simulators
         run: |
           sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
           xcodebuild -version
+          nohup sh -c '
+            for sdk in iphoneos iphonesimulator macosx appletvos appletvsimulator watchos watchsimulator xros xrsimulator; do
+              xcrun --sdk "$sdk" --show-sdk-platform-version
+            done
+            xcrun simctl list runtimes
+            date "+warm-up done %H:%M:%S"
+          ' > "$RUNNER_TEMP/xcode-warmup.log" 2>&1 &
 
       - name: Create Shared.xcconfig
         run: |
@@ -144,7 +154,10 @@ jobs:
       # 시뮬레이터는 미리 부팅하지 않는다. 부팅 직후 몇 분 동안 함께 돌던 캐시 복원·프로젝트 생성·빌드가
       # 크게 느려져 테스트 단계에서 줄인 시간보다 더 잃었다(#103). 부팅은 test-without-building이 맡는다.
       - name: Resolve Simulator UUID
-        run: scripts/resolve_simulator_udid.sh
+        run: |
+          cat "$RUNNER_TEMP/xcode-warmup.log" || true
+          date "+resolve start %H:%M:%S"
+          scripts/resolve_simulator_udid.sh
 
       # 1. Build For Testing (VM 내부)
       # CI에서는 인덱스를 쓰지 않으므로 빌드 중 인덱스 생성(COMPILER_INDEX_STORE_ENABLE)을 끈다.
