@@ -17,8 +17,8 @@
 | 스킴 | 테스트 타깃 | 대상 | 외부 의존 | CI 실행 |
 | --- | --- | --- | --- | --- |
 | `Core` | `CoreTests` | `SessionContext`, `UserDefaultsStorage` | 없음 | 실행 |
-| `Data` | `DataTests` | Firebase Manager, DTO 변환, 통합 테스트 | **실제 Firebase** (App을 test host로 사용) | 실행 |
-| `App` | `AppTests`, `AppUITests` | FCM 토큰 동기화, 홈 업로드·삭제 UI 흐름 | **실제 Firebase** | 실행 |
+| `Data` | `DataTests` | `FirebaseAuthManager`의 FCM 토큰 생성(토큰 제공자 주입), DTO 변환 | 없음 | 실행 |
+| `App` | `AppTests`, `AppUITests` | FCM 토큰 동기화, Firebase 사용자 조회 통합 테스트(`DataIntegrationTests`), 홈 업로드·삭제 UI 흐름 | **실제 Firebase** | 실행 |
 | `HomeFeatureV2` | `HomeFeatureV2Tests` | 오늘 업로드 상태, Feed 레이어, 상세 새로고침 | 없음 | 실행하지 않음 |
 | `MemberFeatureV2` | `MemberFeatureV2Tests` | 멤버 화면 ViewModel | 없음 | 실행하지 않음 |
 | `ProfileFeatureV2` | `ProfileFeatureV2Tests` | 프로필 화면 | 없음 | 실행하지 않음 |
@@ -27,6 +27,7 @@
 
 - Domain, WidgetSupport, V1 Feature(Auth, Home, Image, Member, Onboarding, Profile)의 테스트 타깃은 `Project.swift`에서 주석 처리돼 있어요. `Tests/Sources/Empty.swift`만 있어요.
 - `DSKitTests`, `RxLabTests`는 타깃만 있고 테스트가 없어요.
+- `DataTests`는 App을 test host로 쓰지 않아요. 실제 Firebase를 쓰는 테스트는 App이 필요하므로 `AppTests`에 둬요. (이슈 #104 전까지는 같은 통합 테스트가 `DataTests`에도 있어, Data job이 App을 빌드·설치했어요.)
 - **Feature와 CollectionViewAdapter 테스트는 CI에서 실행하지 않아요.** 해당 모듈을 바꿨다면 로컬에서 실행하고 결과를 PR의 `🔥 추가 설명`에 적어요.
 
 ## 로컬에서 실행해요
@@ -70,14 +71,15 @@ xcodebuild test \
 | `MemberFeatureV2` | 9개 테스트 통과 |
 | `ProfileFeatureV2` | 3개 테스트 통과 |
 | `AdminFeature` | 5개 테스트 통과 |
+| `Data` | 4개 테스트 통과 (2026-10-09, Xcode 27.0, iPhone 17 / iOS 27.0) |
 
 과거 PR에서는 같은 스킴을 `tuist test <스킴>`으로도 실행했어요. (예: PR #80의 `tuist test HomeFeatureV2`, PR #76의 `tuist test CollectionViewAdapter`) 이 경우에도 `mise exec -- tuist test <스킴>`으로 버전을 맞춰요.
 
-### 4. App·Data 테스트는 실행 전에 확인해요
+### 4. App 테스트는 실행 전에 확인해요
 
-`App`과 `Data` 스킴은 실제 Firebase 프로젝트에 연결해요. 특히 `AppUITests`는 테스트 사용자(`UITestID.User.userId`) 그룹의 게시물과 Storage 이미지를 **삭제**한 뒤 시작해요.
+`App` 스킴은 실제 Firebase 프로젝트에 연결해요. 특히 `AppUITests`는 테스트 사용자(`UITestID.User.userId`) 그룹의 게시물과 Storage 이미지를 **삭제**한 뒤 시작해요.
 
-- AI 에이전트는 사용자 확인 없이 로컬에서 `App`·`Data` 스킴 테스트를 실행하지 않아요. PR CI의 `Test / App`, `Test / Data` 결과로 확인해요.
+- AI 에이전트는 사용자 확인 없이 로컬에서 `App` 스킴 테스트를 실행하지 않아요. PR CI의 `Test / App` 결과로 확인해요.
 - 앱 빌드만 확인하려면 테스트 없이 빌드해요. PR #80에서 사용한 명령이에요.
 
 ```bash
