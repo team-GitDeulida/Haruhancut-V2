@@ -64,6 +64,137 @@ private struct FittingTestComponent:
     ) {}
 }
 
+/// Content를 Auto Layout으로 직접 측정한 횟수를 기록하는 Content입니다.
+private final class MeasuringTestContentView:
+    UIView
+{
+    static var fittingCount = 0
+
+    var height: CGFloat = 0 {
+        didSet {
+            invalidateIntrinsicContentSize()
+        }
+    }
+
+    override var intrinsicContentSize:
+        CGSize
+    {
+        CGSize(
+            width:
+                UIView.noIntrinsicMetric,
+            height: height
+        )
+    }
+
+    override func systemLayoutSizeFitting(
+        _ targetSize: CGSize,
+        withHorizontalFittingPriority
+            horizontalFittingPriority: UILayoutPriority,
+        verticalFittingPriority: UILayoutPriority
+    ) -> CGSize {
+        Self.fittingCount += 1
+        return super.systemLayoutSizeFitting(
+            targetSize,
+            withHorizontalFittingPriority:
+                horizontalFittingPriority,
+            verticalFittingPriority:
+                verticalFittingPriority
+        )
+    }
+}
+
+private struct MeasuringTestItem:
+    Identifiable,
+    Equatable
+{
+    let id: Int
+    let height: CGFloat
+}
+
+private struct MeasuringTestComponent:
+    Component
+{
+    let item: MeasuringTestItem
+
+    var estimatedHeight: CGFloat {
+        240
+    }
+
+    func createContent()
+        -> MeasuringTestContentView
+    {
+        MeasuringTestContentView()
+    }
+
+    func render(
+        context _: ComponentContext,
+        content: MeasuringTestContentView
+    ) {
+        content.height = item.height
+    }
+}
+
+/// Window에 붙인 collection view에서 self-sizing을 거친 Item 높이를 반환합니다.
+///
+/// - Parameters:
+///   - items: 표시할 Item 목록.
+///   - layout: Section에 적용할 layout.
+/// - Returns: Item 순서대로 배치된 높이.
+@MainActor
+private func selfSizedItemHeights(
+    of items: [MeasuringTestItem],
+    layout: CollectionSectionLayout
+) -> [CGFloat] {
+    let window = UIWindow(
+        frame: CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        )
+    )
+    let collectionView = UICollectionView(
+        frame: window.bounds,
+        collectionViewLayout:
+            UICollectionViewFlowLayout()
+    )
+    window.addSubview(collectionView)
+    window.isHidden = false
+    defer {
+        window.isHidden = true
+    }
+
+    let adapter = CollectionViewAdapter(
+        collectionView: collectionView
+    )
+    adapter.bind(
+        SectionModels {
+            LazySection(identifier: "sizing") {
+                For(of: items) {
+                    MeasuringTestComponent(item: $0)
+                }
+            }
+            .withSectionLayout(layout)
+        },
+        animatingDifferences: false
+    )
+
+    return withExtendedLifetime(adapter) {
+        collectionView.layoutIfNeeded()
+        return items.indices.compactMap {
+            collectionView
+                .collectionViewLayout
+                .layoutAttributesForItem(
+                    at: IndexPath(
+                        item: $0,
+                        section: 0
+                    )
+                )?
+                .frame.height
+        }
+    }
+}
+
 final class CollectionViewAdapterTests: XCTestCase {
     func testAnyComponentUsesItemID() {
         let component = AnyComponent(
@@ -492,6 +623,45 @@ final class CollectionViewAdapterTests: XCTestCase {
             73,
             accuracy: 0.5
         )
+    }
+
+    @MainActor
+    func testContainerCellSelfSizesWithoutMeasuringContentAgain() {
+        MeasuringTestContentView.fittingCount = 0
+
+        let heights = selfSizedItemHeights(
+            of: [
+                MeasuringTestItem(id: 0, height: 73),
+                MeasuringTestItem(id: 1, height: 120),
+            ],
+            layout: .grid(
+                columns: 2,
+                estimatedRowHeight: 240,
+                interItemSpacing: 0,
+                lineSpacing: 0,
+                contentInsets: .zero
+            )
+        )
+
+        XCTAssertEqual(heights, [73, 120])
+        // 크기 측정은 UIKit self-sizing에 맡기고 Content를 다시 측정하지 않습니다.
+        XCTAssertEqual(
+            MeasuringTestContentView.fittingCount,
+            0
+        )
+    }
+
+    @MainActor
+    func testContainerCellRoundsUpFractionalSelfSizingHeight() {
+        let heights = selfSizedItemHeights(
+            of: [
+                MeasuringTestItem(id: 0, height: 72.4),
+                MeasuringTestItem(id: 1, height: 33.9),
+            ],
+            layout: .verticalList()
+        )
+
+        XCTAssertEqual(heights, [73, 34])
     }
 
     @MainActor
