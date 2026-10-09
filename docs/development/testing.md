@@ -116,14 +116,23 @@ python3 -m unittest scripts/tests/test_update_ios_dependencies.py
 | 실행 조건 | `main` 대상 PR, 매일 07:00 KST(`0 22 * * *`), 수동 실행, PR 댓글 명령 |
 | 동시 실행 | 같은 PR의 이전 실행을 취소해요. |
 | 매트릭스 | `module: [Core, Data, App]`, `fail-fast: false` |
-| 단계 | `Shared.xcconfig` 생성 → Xcode 26.3 선택 → SwiftPM·Tuist·DerivedData 캐시 복원 → `tuist install` → `tuist generate --no-open` → `scripts/resolve_simulator_udid.sh` → `xcodebuild build-for-testing` → `xcodebuild test-without-building` |
-| 캐시 키 | `Tuist/Package.swift`, `Tuist/Package.resolved`, `Projects/**/Project.swift` 등의 해시. 의존성이 바뀌면 캐시를 새로 만들어요. Tuist·DerivedData 캐시 키에는 `mise.toml`도 넣어서 Tuist 버전이 바뀌면 새로 만들어요. |
-| 결과 알림 | PR 댓글과 메일 |
+| 단계 | Xcode 26.3 선택 → `Shared.xcconfig` 생성 → 패키지·Tuist·DerivedData 캐시 복원 → `tuist install`(패키지 캐시가 키와 정확히 맞으면 건너뜀) → `tuist generate --no-open --cache-profile none` → `scripts/resolve_simulator_udid.sh` → `xcodebuild build-for-testing` → DerivedData 저장 → `xcodebuild test-without-building` |
+| 결과 알림 | PR 댓글과 메일. 같은 PR에 새 커밋이 올라와 취소된 실행에는 실패 알림을 보내지 않아요. 알림 job은 Ubuntu 러너에서 실행해요. |
 
-CI의 테스트 명령은 모듈마다 다음과 같아요.
+시뮬레이터는 미리 부팅하지 않고 `test-without-building`이 부팅해요. PR #103에서 백그라운드로 미리 부팅해 봤는데, 부팅 직후 몇 분 동안 함께 돌던 캐시 복원·프로젝트 생성·빌드가 크게 느려져 테스트 단계에서 줄인 시간보다 더 잃었어요.
+
+| 캐시 | 보관하는 경로 | 키 | 동작 |
+| --- | --- | --- | --- |
+| Tuist 패키지 | `Tuist/.build/*`(git 미러 `repositories`와 `.lock` 제외), `~/.cache/swifterpm/sources`, `~/.cache/swifterpm/manifests` | `PACKAGE_CACHE_VERSION`, `mise.toml`, `Tuist/Package.swift`, `Tuist/Package.resolved` | 키가 정확히 맞으면 `tuist install`을 건너뛰어요. 이때 생성에 실패하면 `install` 후 다시 생성해요. 다른 의존성 그래프의 캐시가 섞이지 않도록 fallback은 두지 않아요. `actions/cache`는 폴더를 통째로 지정하면 그 아래 제외 규칙을 무시해서 `Tuist/.build/*`로 지정해요. |
+| Tuist 설정 | `~/.cache/tuist` | `mise.toml`, `Tuist.swift`, `Workspace.swift`, `Tuist/Package.swift`, `Projects/**/Project.swift` | 내용 기준 캐시라 같은 Tuist 버전의 이전 캐시를 fallback으로 받아요. |
+| DerivedData | `DerivedData` (모듈별) | `PACKAGE_CACHE_VERSION`, Xcode 버전, 모듈, `mise.toml`, `Tuist/Package.swift`, `Tuist/Package.resolved` | 패키지 캐시를 그대로 받은 실행에서 만든 것만 저장해요. 외부 라이브러리 빌드 결과는 패키지 파일의 수정 시각이 같아야 다시 쓰이기 때문이에요. |
+
+패키지 캐시를 새로 만들어야 하면 workflow의 `PACKAGE_CACHE_VERSION`을 올려요. DerivedData 키도 같이 바뀌어요. 의존성이나 Tuist 버전이 바뀌어도 캐시 키가 바뀌어요. 첫 실행에서 패키지 캐시를, 다음 실행에서 DerivedData 캐시를 저장하므로 세 번째 실행부터 캐시를 모두 써요. PR 실행은 `main`의 캐시도 받으므로, `main`에서 예약 실행이 두 번 돌면 새 PR도 첫 실행부터 캐시를 써요.
+
+CI의 테스트 명령은 모듈마다 다음과 같아요. CI에서는 인덱스를 쓰지 않아 빌드할 때 인덱스 생성을 꺼요.
 
 ```bash
-xcodebuild build-for-testing -workspace Haruhancut.xcworkspace -scheme <Core|Data|App> -configuration Debug -destination "id=$SIM_UDID" -derivedDataPath DerivedData
+xcodebuild build-for-testing -workspace Haruhancut.xcworkspace -scheme <Core|Data|App> -configuration Debug -destination "id=$SIM_UDID" -derivedDataPath DerivedData COMPILER_INDEX_STORE_ENABLE=NO
 xcodebuild test-without-building -workspace Haruhancut.xcworkspace -scheme <Core|Data|App> -configuration Debug -destination "id=$SIM_UDID" -derivedDataPath DerivedData
 ```
 
