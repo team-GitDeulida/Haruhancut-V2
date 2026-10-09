@@ -192,6 +192,8 @@ jobs:
     steps:
       # 같은 PR에 새 커밋이 올라오면 진행 중이던 실행은 cancelled로 끝난다. 이 경우에만 실패 댓글과 메일을 보내지 않는다.
       # 손으로 취소한 실행도 cancelled로 끝나므로, 같은 PR 브랜치에 더 새로운 실행이 있는지로 구분한다.
+      # 다른 fork가 같은 브랜치 이름을 쓸 수 있어 head 저장소도 비교한다. fork에서 온 실행은 pull_requests가
+      # 비어 있어 PR 번호로는 비교할 수 없다. 이 workflow는 main 대상 PR에서만 돌아 저장소와 브랜치가 같으면 같은 PR이다.
       # 조회가 실패해도 다음 단계가 건너뛰어지지 않게 해서, 확인하지 못하면 실패 알림을 보낸다.
       - name: Check replaced by a newer run
         id: replaced
@@ -200,13 +202,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID")
           created=$(jq -r .created_at <<< "$run")
           workflow_id=$(jq -r .workflow_id <<< "$run")
           newer=$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_id/runs" \
             -f event=pull_request -f branch="$HEAD_REF" -f per_page=20 \
-            --jq "[.workflow_runs[] | select(.id != $GITHUB_RUN_ID and .created_at > \"$created\")] | length")
+            --jq "[.workflow_runs[] | select(.id != $GITHUB_RUN_ID and .created_at > \"$created\" and .head_repository.full_name == \"$HEAD_REPO\")] | length")
           if [ "$newer" -gt 0 ]; then
             echo "value=true" >> "$GITHUB_OUTPUT"
           fi
