@@ -49,7 +49,7 @@ Projects/
 | `App` (`productName: Haruhancut`) | app | Coordinator, Data, ThirdPartyLibs, WidgetSupport, HaruhancutWidget | `AppTests`, `AppUITests` |
 | `Coordinator` | staticFramework | 모든 Feature(+Interface), DSKit, Core, ThirdPartyLibs | 없음 |
 | `Domain` | framework | Core | 테스트 타깃 주석 처리 |
-| `Data` | framework | Domain, ThirdPartyLibs | `DataTests` (App을 `TEST_HOST`로 사용) |
+| `Data` | framework | Domain, ThirdPartyLibs | `DataTests` |
 | `Core` | framework | ThirdPartyLibs | `CoreTests` |
 | `Shared/ThirdPartyLibs` | framework | 외부 패키지(RxCocoa, RxDataSources, ReactorKit, RxKakaoSDK, Firebase, Kingfisher, Lottie, ScaleKit, FSCalendar 등) | 없음 |
 | `Shared/DSKit` | framework (리소스 포함) | Core, ThirdPartyLibs | `DSKitTests`, `DSKitDemo` |
@@ -157,7 +157,7 @@ flowchart LR
 | Feature Interface | Domain (V2·Admin은 Core도) | Feature 구현, Data |
 | Data | Domain, ThirdPartyLibs | Feature, Coordinator |
 | Coordinator | Feature와 Interface, DSKit, Core | Data |
-| App | 조립에 필요한 모든 모듈 | 다른 모듈이 App을 참조하지 않아요. (예외: `DataTests`의 `TEST_HOST`) |
+| App | 조립에 필요한 모든 모듈 | 다른 모듈이 App을 참조하지 않아요. |
 
 Repository 프로토콜은 Domain에, 구현은 Data에 있어요. Feature는 `AuthUsecaseProtocol` 같은 Domain 프로토콜만 알고, 구현체는 App이 등록해요.
 

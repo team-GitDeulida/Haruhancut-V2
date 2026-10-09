@@ -12,7 +12,7 @@
 | 화면 패턴 (ReactorKit 기본) | [View·Reactor·ViewModel 계약](docs/architecture/view-viewmodel-protocols.md) | 새 화면은 ReactorKit으로 작성해요. 기존 Input/Output 화면은 유지하고, 전환은 한 화면씩 `🔨 refactor` 이슈로 진행해요. |
 | 목록·화면 그리기 | [화면 그리기](docs/architecture/view-rendering.md) | 목록·반복 UI는 CollectionViewAdapter로 그리고, Reactor State에는 Component가 아니라 모델·표시 값을 둬요. |
 | Swift 코드 작성 규칙 | [Swift 스타일](docs/development/swiftstyle.md) | 기존 파일은 그 파일의 스타일(A·B)을 유지해요. |
-| 테스트 타깃과 실행 명령 | [테스트](docs/development/testing.md) | App·Data 테스트와 UI 테스트는 실제 Firebase를 사용하니 사용자 확인 없이 로컬에서 실행하지 않아요. |
+| 테스트 타깃과 실행 명령 | [테스트](docs/development/testing.md) | App 테스트와 UI 테스트는 실제 Firebase를 사용하니 사용자 확인 없이 로컬에서 실행하지 않아요. |
 | 한국어 문서 윤문 | [한국어 윤문 원칙](docs/development/korean-editing.md) · [문서 윤문 예시](docs/development/examples/korean-editing-examples.md) | 독자의 목적과 작업 범위를 정하고 원문의 의미·사실·보호 구간을 유지한다. |
 | PR 제목·본문 작성 | [한국어 윤문 원칙](docs/development/korean-editing.md) · [PR 작성 예시](docs/development/examples/pr-writing-examples.md) | PR 템플릿 섹션을 유지하고 본문은 합쇼체(`-습니다`)로 쓴다. 변경 규모에 맞는 이유·결과·검증만 적는다. |
 | 이슈·브랜치·커밋·PR 규칙 | [Git 작업 흐름](docs/development/gitflow.md) | 브랜치 `<유형>/#<이슈>`, 커밋 `<type>: 요약`, PR `[#<이슈>] 요약`, squash merge를 따라요. |
