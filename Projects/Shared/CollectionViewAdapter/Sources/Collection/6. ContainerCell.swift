@@ -37,14 +37,15 @@ public final class ContainerCell<C: Component>:
         component = nil
     }
 
-    /// Content가 요구하는 실제 높이로 estimated layout 값을 보정합니다.
+    /// Self-sizing 결과 높이를 pt 단위로 올림합니다.
     ///
-    /// Grid가 제안한 열 너비는 그대로 유지하고 세로 크기만 Auto Layout으로
-    /// 계산합니다. 따라서 추정 높이가 실제 Content보다 클 때 label 영역이
-    /// 불필요하게 늘어나는 현상을 방지합니다.
+    /// 크기 측정은 UIKit 기본 구현(`super`)에 맡깁니다. Compositional
+    /// Layout의 self-sizing은 이미 제안한 너비를 고정하고 높이를 최소로
+    /// 측정하므로, Content를 다시 측정해도 결과가 같고 비용만 두 배가
+    /// 됩니다. 높이가 고정된 layout에서는 UIKit이 측정을 건너뜁니다.
     ///
     /// - Parameter layoutAttributes: Collection View가 제안한 Cell의 원래 layout 속성.
-    /// - Returns: 실제 Content 높이가 반영된 layout 속성.
+    /// - Returns: 측정한 높이를 올림한 layout 속성.
     public override func preferredLayoutAttributesFitting(
         _ layoutAttributes:
             UICollectionViewLayoutAttributes
@@ -53,33 +54,8 @@ public final class ContainerCell<C: Component>:
             super.preferredLayoutAttributesFitting(
                 layoutAttributes
             )
-        guard
-            let content,
-            attributes.size.width > 0
-        else {
-            return attributes
-        }
-
-        let fittingSize = CGSize(
-            width: attributes.size.width,
-            height:
-                UIView.layoutFittingCompressedSize
-                    .height
-        )
-        let fittedSize =
-            content.systemLayoutSizeFitting(
-                fittingSize,
-                withHorizontalFittingPriority:
-                    .required,
-                verticalFittingPriority:
-                    .fittingSizeLevel
-            )
-        guard fittedSize.height > 0 else {
-            return attributes
-        }
-
         attributes.size.height =
-            ceil(fittedSize.height)
+            ceil(attributes.size.height)
         return attributes
     }
     
