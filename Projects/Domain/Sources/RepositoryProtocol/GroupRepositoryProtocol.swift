@@ -22,7 +22,11 @@ public protocol GroupRepositoryProtocol {
     func fetchGroup(groupId: String) -> Single<HCGroup>
     
     // Image
-    func uploadImage(image: UIImage, path: String) -> Single<URL>
+    func uploadImage(
+        image: UIImage,
+        path: String,
+        compressionQuality: CGFloat
+    ) -> Single<URL>
     func deleteImage(path: String) -> Single<Void>
     
     // Comment

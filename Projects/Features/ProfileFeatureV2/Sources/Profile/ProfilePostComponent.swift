@@ -4,8 +4,8 @@ import DSKit
 import Kingfisher
 import UIKit
 
-enum ProfilePostImageRequest {
-    static func options(
+public enum ProfileGridImageRequest {
+    public static func options(
         targetWidth: CGFloat
     ) -> KingfisherOptionsInfo {
         let width = max(
@@ -27,6 +27,16 @@ enum ProfilePostImageRequest {
                 UIScreen.main.scale
             ),
             .cacheOriginalImage,
+        ]
+    }
+
+    static func prefetchOptions(
+        targetWidth: CGFloat
+    ) -> KingfisherOptionsInfo {
+        options(
+            targetWidth: targetWidth
+        ) + [
+            .alsoPrefetchToMemory,
         ]
     }
 }
@@ -167,11 +177,15 @@ final class ProfilePostContentView:
         imageView.kf.setImage(
             with: url,
             options:
-                ProfilePostImageRequest
+                ProfileGridImageRequest
                     .options(
                         targetWidth:
                             item.targetWidth
                     )
         )
+    }
+
+    var renderedImage: UIImage? {
+        imageView.image
     }
 }

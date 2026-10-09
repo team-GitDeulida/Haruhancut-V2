@@ -2,6 +2,19 @@ import Core
 import Domain
 import UIKit
 
+public struct ProfilePostSelection {
+    public let post: Post
+    public let previewImage: UIImage?
+
+    public init(
+        post: Post,
+        previewImage: UIImage?
+    ) {
+        self.post = post
+        self.previewImage = previewImage
+    }
+}
+
 public protocol ProfileRouteTrigger {
     var onProfileImageTapped:
         ((String) -> Void)? { get set }
@@ -16,7 +29,7 @@ public protocol ProfileRouteTrigger {
     var onBirthdayEditButtonTapped:
         (() -> Void)? { get set }
     var onImageTapped:
-        ((Post) -> Void)? { get set }
+        ((ProfilePostSelection) -> Void)? { get set }
 }
 
 public typealias ProfileViewModelType =

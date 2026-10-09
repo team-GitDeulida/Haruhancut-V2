@@ -65,8 +65,16 @@ public final class GroupRepositoryImpl: GroupRepositoryProtocol {
     
     
     // Image
-    public func uploadImage(image: UIImage, path: String) -> Single<URL> {
-        return firebaseStorageManager.uploadImage(image: image, path: path)
+    public func uploadImage(
+        image: UIImage,
+        path: String,
+        compressionQuality: CGFloat
+    ) -> Single<URL> {
+        return firebaseStorageManager.uploadImage(
+            image: image,
+            path: path,
+            compressionQuality: compressionQuality
+        )
     }
     
     public func deleteImage(path: String) -> Single<Void> {

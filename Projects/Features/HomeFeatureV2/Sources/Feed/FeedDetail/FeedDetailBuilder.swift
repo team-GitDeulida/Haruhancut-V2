@@ -29,7 +29,19 @@ extension FeedDetailBuilder: FeedDetailBuildable {
     public func makeFeed(post: Post) -> FeedDetailPresentable {
         makeFeed(
             post: post,
-            mode: .currentGroup
+            mode: .currentGroup,
+            initialImage: nil
+        )
+    }
+
+    public func makeFeed(
+        post: Post,
+        initialImage: UIImage?
+    ) -> FeedDetailPresentable {
+        makeFeed(
+            post: post,
+            mode: .currentGroup,
+            initialImage: initialImage
         )
     }
 
@@ -37,6 +49,19 @@ extension FeedDetailBuilder: FeedDetailBuildable {
         post: Post,
         mode:
             HomePresentationMode
+    ) -> FeedDetailPresentable {
+        makeFeed(
+            post: post,
+            mode: mode,
+            initialImage: nil
+        )
+    }
+
+    private func makeFeed(
+        post: Post,
+        mode:
+            HomePresentationMode,
+        initialImage: UIImage?
     ) -> FeedDetailPresentable {
         @Dependency var groupUsecase: GroupUsecaseProtocol
         let loadGroup =
@@ -55,7 +80,8 @@ extension FeedDetailBuilder: FeedDetailBuildable {
             FeedDetailViewController(
                 viewModel: vm,
                 isReadOnly:
-                    mode.isReadOnly
+                    mode.isReadOnly,
+                initialImage: initialImage
             )
         return (vc, vm)
     }

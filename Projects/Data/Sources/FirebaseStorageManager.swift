@@ -10,7 +10,11 @@ import FirebaseStorage
 import RxSwift
 
 public protocol FirebaseStorageManagerProtocol {
-    func uploadImage(image: UIImage, path: String) -> Single<URL>
+    func uploadImage(
+        image: UIImage,
+        path: String,
+        compressionQuality: CGFloat
+    ) -> Single<URL>
     func deleteImage(path: String) -> Single<Void>
 }
 
@@ -19,9 +23,17 @@ public final class FirebaseStorageManager: FirebaseStorageManagerProtocol {
 }
 
 extension FirebaseStorageManager {
-    public func uploadImage(image: UIImage, path: String) -> Single<URL> {
+    public func uploadImage(
+        image: UIImage,
+        path: String,
+        compressionQuality: CGFloat
+    ) -> Single<URL> {
         return Single.create { single in
-            guard let data = image.jpegData(compressionQuality: 0.8) else {
+            let quality = min(
+                max(compressionQuality, 0),
+                1
+            )
+            guard let data = image.jpegData(compressionQuality: quality) else {
                 print("❌ JPEG 변환 실패")
                 single(.failure(FirebaseError.encodingFailed))
                 return Disposables.create()
