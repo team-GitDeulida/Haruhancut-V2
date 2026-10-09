@@ -39,6 +39,7 @@ let project = Project(
         // ),
 
         // MARK: - Unit Tests
+        // App을 test host로 쓰지 않는다. 실제 Firebase를 쓰는 통합 테스트는 AppTests(DataIntegrationTests)에 둔다.
         .target(
             name: "DataTests",
             destinations: .iOS,
@@ -48,16 +49,8 @@ let project = Project(
             sources: ["Tests/**"],
             dependencies: [
                 .target(name: "Data"),
-                .project(target: "App", path: "../App"),
-                .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs") 
-            ],
-            settings: .settings(
-                base: [
-                    // Firebase 필요하니까 App Host 유지
-                    "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/Haruhancut.app/Haruhancut",
-                    "BUNDLE_LOADER": "$(TEST_HOST)"
-                ]
-            )
+                .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs")
+            ]
         )
     ],
     schemes: [
