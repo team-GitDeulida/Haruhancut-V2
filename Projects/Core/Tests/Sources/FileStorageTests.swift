@@ -112,6 +112,20 @@ final class FileStorageTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: outside), Data("outside".utf8))
     }
 
+    func test_emptyPath_doesNotTouchBaseFolder() throws {
+        try sut.write(Data("keep".utf8), to: "Photos/keep.jpg")
+
+        for path in ["", "/", "//"] {
+            XCTAssertThrowsError(try sut.write(Data(), to: path))
+            XCTAssertNil(sut.read(path) as Data?)
+            XCTAssertFalse(sut.exists(path))
+            XCTAssertEqual(sut.contentsOfDirectory(path), [])
+            sut.remove(path)
+        }
+
+        XCTAssertEqual(sut.read("Photos/keep.jpg"), Data("keep".utf8))
+    }
+
     func test_locationInit_findsSandboxDirectories() {
         // App Group은 시뮬레이터가 권한 없이도 경로를 돌려줄 수 있어 검사하지 않습니다.
         XCTAssertNotNil(FileStorage(location: .documents))
