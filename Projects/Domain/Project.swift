@@ -19,18 +19,20 @@ let project = Project(
         ),
         
         // MARK: - Domain Tests
-        // .target(
-        //     name: "DomainTests",
-        //     destinations: .iOS,
-        //     product: .unitTests,
-        //     bundleId: "com.indextrown.Haruhancut.domain.tests",
-        //     sources: ["Tests/Sources/**"],
-        //     resources: [],
-        //     dependencies: [
-        //         .target(name: "Domain"),
-        //         .target(name: "DomainTesting")
-        //     ]
-        // ),
+        .target(
+            name: "DomainTests",
+            destinations: .iOS,
+            product: .unitTests,
+            bundleId: "com.indextrown.Haruhancut.domain.tests",
+            deploymentTargets: .iOS("17.0"),
+            sources: ["Tests/Sources/**"],
+            resources: [],
+            dependencies: [
+                .target(name: "Domain"),
+                .project(target: "Core", path: "../Core"),
+                .project(target: "ThirdPartyLibs", path: "../Shared/ThirdPartyLibs")
+            ]
+        ),
 
         // MARK: - Domain Testing
         // .target(
@@ -44,6 +46,13 @@ let project = Project(
         //         .target(name: "Domain"),
         //     ]
         // ),
+    ],
+    schemes: [
+        .scheme(
+            name: "Domain",
+            shared: true,
+            buildAction: .buildAction(targets: ["Domain"]),
+            testAction: .targets(["DomainTests"], configuration: "Debug")
+        )
     ]
 )
-

@@ -87,6 +87,17 @@ final class WidgetPhotoStoreTests: XCTestCase {
         XCTAssertFalse(storage.exists("Photos/family/\(dateKey)"))
     }
 
+    func test_deleteImage_keepsPhotoWhoseIdentifierOnlyEndsTheSame() throws {
+        try sut.saveImage(data: makeImageData(), groupId: "family", identifier: "abc-photo")
+        now = now.addingTimeInterval(1)
+        try sut.saveImage(data: makeImageData(), groupId: "family", identifier: "photo")
+        let dateKey = now.widgetDateKey()
+
+        sut.deleteImage(groupId: "family", dateKey: dateKey, identifier: "photo")
+
+        XCTAssertEqual(sut.photoIdentifiers(groupId: "family", dateKey: dateKey), ["abc-photo"])
+    }
+
     func test_saveImage_throwsInvalidPath_withoutStorage() {
         let sut = WidgetPhotoStore(storage: nil)
 
