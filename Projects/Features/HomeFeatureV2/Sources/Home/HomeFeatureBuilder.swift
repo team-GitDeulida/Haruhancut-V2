@@ -53,7 +53,11 @@ extension HomeFeatureBuilder: HomeFeatureBuildable {
                 groupUsecase:
                     mode.isReadOnly
                     ? nil
-                    : groupUsecase
+                    : groupUsecase,
+                widgetSynchronizer:
+                    FeedWidgetSynchronizer.make(
+                        for: mode
+                    )
             )
         let calendarReactor =
             CalendarReactor(
