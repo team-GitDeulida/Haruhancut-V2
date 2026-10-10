@@ -1,6 +1,6 @@
 # Haruhancut 시뮬레이터 메모리 줄이기
 
-> 로컬에서 개발할 때 [simslim](https://github.com/MobAI-App/simslim)으로 시뮬레이터 안의 백그라운드 서비스를 꺼서 RAM 사용량을 줄여요. 선택 사항이에요. 바뀌는 것은 지정한 시뮬레이터의 서비스 설정뿐이고, Mac 본체와 CI에는 영향이 없어요.
+> 로컬에서 개발할 때 [simslim](https://github.com/MobAI-App/simslim)으로 시뮬레이터 안의 백그라운드 서비스를 꺼서 RAM 사용량을 줄여요. 로컬에서는 선택 사항이에요. 바뀌는 것은 지정한 시뮬레이터의 서비스 설정뿐이고, Mac 본체에는 영향이 없어요. CI(`build-and-test.yml`)도 같은 `dev.json` 프로필로 시뮬레이터를 부팅해요. 자세한 내용은 [테스트](testing.md#build-and-testyml)를 참고해요.
 
 ## 요약
 

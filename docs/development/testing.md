@@ -120,10 +120,12 @@ python3 -m unittest scripts/tests/test_update_ios_dependencies.py
 | 실행 조건 | `main` 대상 PR, 매일 07:00 KST(`0 22 * * *`), 수동 실행, PR 댓글 명령 |
 | 동시 실행 | 같은 PR의 이전 실행을 취소해요. |
 | 매트릭스 | `module: [Core, Data, App]`, `fail-fast: false` |
-| 단계 | Xcode 26.3 선택 → `Shared.xcconfig` 생성 → 패키지·Tuist·DerivedData 캐시 복원 → `tuist install`(패키지 캐시가 키와 정확히 맞으면 건너뜀) → `tuist generate --no-open --cache-profile none` → `scripts/resolve_simulator_udid.sh` → `xcodebuild build-for-testing` → DerivedData 저장 → `xcodebuild test-without-building` |
+| 단계 | Xcode 26.3 선택 → `Shared.xcconfig` 생성 → 패키지·Tuist·DerivedData 캐시 복원 → `tuist install`(패키지 캐시가 키와 정확히 맞으면 건너뜀) → `tuist generate --no-open --cache-profile none` → `scripts/resolve_simulator_udid.sh` → `xcodebuild build-for-testing` → DerivedData 저장 → simslim으로 시뮬레이터 부팅(`scripts/simslim/dev.json`) → `xcodebuild test-without-building` |
 | 결과 알림 | PR 댓글과 메일. 같은 PR에 새 커밋이 올라와 취소된 실행에는 실패 알림을 보내지 않아요. 알림 job은 Ubuntu 러너에서 실행해요. |
 
-시뮬레이터는 미리 부팅하지 않고 `test-without-building`이 부팅해요. PR #103에서 백그라운드로 미리 부팅해 봤는데, 부팅 직후 몇 분 동안 함께 돌던 캐시 복원·프로젝트 생성·빌드가 크게 느려져 테스트 단계에서 줄인 시간보다 더 잃었어요.
+시뮬레이터는 빌드 전에 부팅하지 않아요. PR #103에서 백그라운드로 미리 부팅해 봤는데, 부팅 직후 몇 분 동안 함께 돌던 캐시 복원·프로젝트 생성·빌드가 크게 느려져 테스트 단계에서 줄인 시간보다 더 잃었어요.
+
+빌드가 끝나면 `Slim Simulator` 단계가 로컬 개발과 같은 `scripts/simslim/dev.json` 프로필로 위젯·Siri·Spotlight 같은 백그라운드 서비스를 끄고 시뮬레이터를 부팅해요(이슈 #111). simslim은 버전과 SHA-256을 고정한 릴리스 바이너리(0.12.2)를 받아 실행해요. 이 단계가 실패하거나 5분을 넘기면 건너뛰고, `test-without-building`이 기존처럼 시뮬레이터를 부팅해요. 프로필과 simslim 동작은 [시뮬레이터 메모리 줄이기](simulator-memory.md)를 참고해요. (확인 필요: 적용 전후 `Test Without Building` 시간 비교)
 
 | 캐시 | 보관하는 경로 | 키 | 동작 |
 | --- | --- | --- | --- |
