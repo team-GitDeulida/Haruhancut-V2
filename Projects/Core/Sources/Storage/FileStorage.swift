@@ -25,6 +25,8 @@ import Foundation
 ///
 /// 키는 기준 폴더에서 시작하는 상대 경로입니다. (예: `Photos/family/2026-10-10/photo.jpg`)
 /// 기준 폴더는 App Group·Documents·Caches 중에서 고르거나 직접 넘깁니다.
+/// `..`가 들어 있어 기준 폴더 밖을 가리킬 수 있는 경로는 거부합니다. `write`는 오류를 던지고,
+/// 나머지는 값이 없는 것처럼 동작합니다.(`nil`, `false`, 빈 배열, 아무 일도 하지 않음)
 public final class FileStorage {
 
     private let baseURL: URL
@@ -92,8 +94,10 @@ public extension FileStorage {
 extension FileStorage: StorageProtocol {
     /// 파일을 원자적으로 저장합니다. 중간 폴더가 없으면 만듭니다.
     public func write<T: Encodable>(_ value: T, to path: String) throws {
+        guard let fileURL = url(for: path) else {
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
         let data = try encode(value)
-        let fileURL = url(for: path)
         try fileManager.createDirectory(
             at: fileURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
@@ -104,13 +108,17 @@ extension FileStorage: StorageProtocol {
 
     /// 파일을 읽습니다. 파일이 없거나 타입이 맞지 않으면 `nil`입니다.
     public func read<T: Decodable>(_ path: String) -> T? {
-        guard let data = try? Data(contentsOf: url(for: path)) else { return nil }
+        guard
+            let fileURL = url(for: path),
+            let data = try? Data(contentsOf: fileURL)
+        else { return nil }
         return decode(data)
     }
 
     /// 파일이나 폴더를 지웁니다. 없으면 아무 일도 하지 않습니다.
     public func remove(_ path: String) {
-        try? fileManager.removeItem(at: url(for: path))
+        guard let fileURL = url(for: path) else { return }
+        try? fileManager.removeItem(at: fileURL)
     }
 }
 
@@ -118,8 +126,9 @@ extension FileStorage: StorageProtocol {
 public extension FileStorage {
     /// 폴더 안 항목의 이름입니다. 숨김 파일은 빼고, 폴더가 없으면 빈 배열입니다.
     func contentsOfDirectory(_ path: String) -> [String] {
+        guard let directoryURL = url(for: path) else { return [] }
         let urls = try? fileManager.contentsOfDirectory(
-            at: url(for: path),
+            at: directoryURL,
             includingPropertiesForKeys: nil,
             options: .skipsHiddenFiles
         )
@@ -128,18 +137,19 @@ public extension FileStorage {
 
     /// 파일이나 폴더가 있는지 확인합니다.
     func exists(_ path: String) -> Bool {
-        fileManager.fileExists(atPath: url(for: path).path)
+        guard let fileURL = url(for: path) else { return false }
+        return fileManager.fileExists(atPath: fileURL.path)
     }
 }
 
 // MARK: - Private
 private extension FileStorage {
-    /// 상대 경로를 기준 폴더 아래의 URL로 바꿉니다.
-    func url(for path: String) -> URL {
-        path
-            .split(separator: "/")
-            .reduce(baseURL) { url, component in
-                url.appendingPathComponent(String(component))
-            }
+    /// 상대 경로를 기준 폴더 아래의 URL로 바꿉니다. `..`가 있으면 기준 폴더 밖일 수 있어 `nil`입니다.
+    func url(for path: String) -> URL? {
+        let components = path.split(separator: "/").map(String.init)
+        guard !components.contains("..") else { return nil }
+        return components.reduce(baseURL) { url, component in
+            url.appendingPathComponent(component)
+        }
     }
 }
