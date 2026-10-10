@@ -109,12 +109,33 @@ simslim on 7AD2920B-36F6-4B7A-B3B9-14DEE96A5F74 --profile scripts/simslim/dev.js
 simslim off 7AD2920B-36F6-4B7A-B3B9-14DEE96A5F74
 ```
 
+## 위젯 작업할 때
+
+여기서 끄고 켜는 위젯 서비스는 우리 앱의 위젯 코드가 아니에요. 시뮬레이터의 iOS가 홈 화면 위젯을 그리고 갱신하는 서비스(`widgets` 범주의 `chronod` 등 4개)예요. `dev.json`은 이 서비스를 꺼요. 그래서 앱 화면을 개발하는 데는 지장이 없지만, 홈 화면에 붙인 하루한컷 위젯(`PhotoWidget`)은 갱신되지 않아요. 위젯을 만들거나 확인할 때만 `widget.json`으로 바꿔요.
+
+1. 위젯 서비스를 켜요. 시뮬레이터가 한 번 재부팅돼요.
+
+   ```bash
+   simslim on <UDID> --profile scripts/simslim/widget.json
+   ```
+
+2. Xcode에서 `App` 스킴을 실행해요. 위젯 익스텐션(`HaruhancutWidget`)은 앱에 포함돼 있어서 함께 설치돼요.
+3. 시뮬레이터 홈 화면의 빈 곳을 길게 누르고, 왼쪽 위 **편집**(Edit) → **위젯 추가**(Add Widget)를 눌러요. "하루한컷"을 찾아 위젯을 추가해요.
+4. 위젯이 표시되는지, 고친 내용이 반영되는지 확인해요. 위젯은 자정에 스스로 갱신돼요(`PhotoWidget`의 `.after(nextMidnight)`). V2 홈 화면은 사진을 올려도 위젯 갱신을 요청하지 않아요.
+5. 작업이 끝나면 위젯 서비스를 다시 꺼요.
+
+   ```bash
+   simslim on <UDID> --profile scripts/simslim/dev.json
+   ```
+
+위젯 코드를 고치지 않는 날에는 `dev.json`만 써요.
+
 ## 평소에 써요
 
 | 상황 | 할 일 |
 | --- | --- |
 | 개발 | Xcode에서 그 시뮬레이터를 골라 평소처럼 실행해요. 줄인 상태는 재부팅해도 유지돼요. |
-| 위젯 작업 | `simslim on <UDID> --profile scripts/simslim/widget.json`으로 바꾸고, 끝나면 `dev.json`으로 되돌려요. 바꿀 때마다 재부팅해요. |
+| 위젯 작업 | `widget.json`으로 바꾸고, 끝나면 `dev.json`으로 되돌려요. 바꿀 때마다 재부팅해요. 순서는 [위젯 작업할 때](#위젯-작업할-때)를 참고해요. |
 | 앱 기능이 동작하지 않아요. | 프로필의 `except`에 범주를, `keep`에 서비스 이름을 추가하고 `simslim on`을 다시 실행해요. 팀 모두에게 필요한 변경이면 프로필 파일을 고쳐 PR로 올려요. |
 | RAM이 여전히 부족해요. | Xcode는 실행이 끝나도 시뮬레이터를 켜 둬요. 쓰지 않는 시뮬레이터는 `xcrun simctl shutdown all`로 꺼요. |
 | 시뮬레이터를 초기화했거나 Xcode·런타임을 업데이트했어요. | 기본 상태로 돌아갈 수 있어요. `verify`가 실패하면 `simslim on`을 다시 실행해요. |
