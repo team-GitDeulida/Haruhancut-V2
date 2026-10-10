@@ -54,7 +54,7 @@ Projects/
 | `Shared/ThirdPartyLibs` | framework | 외부 패키지(RxCocoa, RxDataSources, ReactorKit, RxKakaoSDK, Firebase, Kingfisher, Lottie, ScaleKit, FSCalendar 등) | 없음 |
 | `Shared/DSKit` | framework (리소스 포함) | Core, ThirdPartyLibs | `DSKitTests`, `DSKitDemo` |
 | `Shared/CollectionViewAdapter` | framework | 없음 | Tests, Demo |
-| `Shared/WidgetSupport` | staticFramework | Domain | 없음 |
+| `Shared/WidgetSupport` | staticFramework | Domain, Core | `WidgetSupportTests` |
 | `Shared/RxLab` | framework | 학습용 샌드박스. 예제는 Demo에만 있어요. | Tests, Demo |
 | `Widget/HaruhancutWidget` | appExtension | WidgetSupport | 없음 |
 
@@ -119,11 +119,11 @@ Projects/
 
 ### Core와 Shared
 
-- Core: `DIContainer`·`@Dependency`, `SessionContext<Model>`·`UserDefaultsStorage`, `ViewModelType`, `RefreshableViewController`, `Logger`, `Constants`, `UITestID`, `Extensions+/`
+- Core: `DIContainer`·`@Dependency`, `SessionContext<Model>`·`UserDefaultsStorage`, `FileStorageProtocol`·`FileStorage`(App Group·Documents·Caches 파일 CRUD), `ViewModelType`, `RefreshableViewController`, `Logger`, `Constants`, `UITestID`, `Extensions+/`
 - DSKit: 공통 UI 컴포넌트, 색상·폰트 리소스, `ImagePreViewController` 등
 - CollectionViewAdapter: 외부 의존성 없이 `UICollectionView`의 섹션·셀 구성을 선언형으로 다루는 사내 모듈이에요. V2 Feature와 AdminFeature가 사용해요. 화면에서 쓰는 방법은 [화면 그리기](view-rendering.md)를 확인해요.
 - ThirdPartyLibs: 외부 패키지를 한곳에서 링크하는 모듈이에요. 소스의 `@_exported import`는 주석 처리돼 있어 각 파일에서 필요한 라이브러리를 직접 import해요.
-- WidgetSupport: 앱과 위젯이 공유하는 `WidgetSessionStore`, `WidgetPhotoStore`, `WidgetPaths`
+- WidgetSupport: 앱과 위젯이 공유하는 `WidgetSessionStore`, `WidgetPhotoStore`, `WidgetPaths`. 파일은 Core의 `FileStorage`로 App Group 컨테이너에 읽고 써요. 사진 파일 이름 규칙(`<저장 시각>-<식별자>.jpg`)은 `WidgetPhotoStore`만 알고, 앱과 위젯은 `photoIdentifiers`·`latestPhotoData` 같은 API로 읽어요.
 
 ## 의존성 방향과 데이터 흐름
 
@@ -145,6 +145,7 @@ flowchart LR
     FeatureInterface --> Domain
     Data --> Domain
     WidgetSupport --> Domain
+    WidgetSupport --> Core
     Domain --> Core
     DSKit --> Core
     Core --> ThirdPartyLibs
