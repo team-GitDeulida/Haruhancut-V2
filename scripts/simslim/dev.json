@@ -1,0 +1,6 @@
+{
+  "name": "haruhancut-dev",
+  "description": "평소 개발용. 사진 선택(photos), Apple 로그인(icloud), FCM 푸시(apsd)는 켜 두고 위젯은 끈다.",
+  "except": ["photos", "icloud"],
+  "keep": ["com.apple.apsd"]
+}

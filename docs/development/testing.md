@@ -52,6 +52,8 @@ xcrun simctl list devices available
 
 CI와 같은 방식으로 찾으려면 `scripts/resolve_simulator_udid.sh`를 사용해요. 이 스크립트는 `SIMULATOR_NAME`, `SIMULATOR_OS`, `GITHUB_ENV` 환경 변수가 필요해요. 로컬 사용법은 스크립트 상단 주석에 있어요.
 
+시뮬레이터가 RAM을 많이 쓰면 [시뮬레이터 메모리 줄이기](simulator-memory.md)를 참고해요.
+
 ### 3. 외부 의존이 없는 스킴을 테스트해요
 
 ```bash

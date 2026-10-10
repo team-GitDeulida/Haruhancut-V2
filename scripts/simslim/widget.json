@@ -1,0 +1,6 @@
+{
+  "name": "haruhancut-widget",
+  "description": "위젯 작업용. dev 프로필에 위젯(widgets) 서비스를 더 켠다.",
+  "except": ["photos", "icloud", "widgets"],
+  "keep": ["com.apple.apsd"]
+}
