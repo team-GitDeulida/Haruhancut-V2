@@ -14,7 +14,7 @@ public protocol SessionProtocol {
     /// 세션에 담는 값의 타입입니다. 저장소에 JSON으로 저장할 수 있어야 합니다.
     associatedtype Model: Codable & Equatable & CustomStringConvertible
 
-    /// 값이 바뀔 때 새 값(지워지면 `nil`)을 받는 클로저입니다.
+    /// `update`·`clear`가 불릴 때 새 값(지우면 `nil`)을 받는 클로저입니다.
     typealias SessionChangeHandler = (Model?) -> Void
 
     /// 현재 값입니다. 없으면 `nil`입니다.
@@ -23,12 +23,12 @@ public protocol SessionProtocol {
     /// 현재 값이 있는지 나타냅니다.
     var hasSession: Bool { get }
 
-    /// 현재 값으로 한 번 바로 호출한 뒤, 값이 바뀔 때마다 호출합니다.
+    /// 현재 값으로 한 번 바로 호출하고, 이후 `update`·`clear`가 불릴 때마다 호출합니다. 값이 같아도 호출합니다.
     ///
     /// - Returns: `removeObserver(_:)`에 넘길 구독 ID.
     func bind(_ handler: @escaping SessionChangeHandler) -> UUID
 
-    /// 값이 바뀔 때마다 호출합니다. 등록할 때는 호출하지 않습니다.
+    /// `update`·`clear`가 불릴 때마다 호출합니다. 값이 같아도 호출하고, 등록할 때는 호출하지 않습니다.
     ///
     /// - Returns: `removeObserver(_:)`에 넘길 구독 ID.
     func observe(_ handler: @escaping SessionChangeHandler) -> UUID
