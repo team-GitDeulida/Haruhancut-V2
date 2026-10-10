@@ -38,6 +38,9 @@ extension HomeFeatureBuilder: HomeFeatureBuildable {
         @Dependency
         var groupUsecase:
             GroupUsecaseProtocol
+        @Dependency
+        var widgetUsecase:
+            WidgetUsecaseProtocol
 
         let loadGroup =
             HomeGroupLoaderFactory
@@ -53,7 +56,12 @@ extension HomeFeatureBuilder: HomeFeatureBuildable {
                 groupUsecase:
                     mode.isReadOnly
                     ? nil
-                    : groupUsecase
+                    : groupUsecase,
+                // 관리자 미리보기는 다른 그룹을 표시하므로 내 위젯을 덮어쓰지 않습니다.
+                widgetUsecase:
+                    mode.isReadOnly
+                    ? nil
+                    : widgetUsecase
             )
         let calendarReactor =
             CalendarReactor(

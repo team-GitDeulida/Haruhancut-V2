@@ -18,6 +18,8 @@ final class FeedReactor: Reactor {
         () -> Observable<HCGroup>
     private let groupUsecase:
         GroupUsecaseProtocol?
+    private let widgetUsecase:
+        WidgetUsecaseProtocol?
 
     enum Action {
         case viewDidLoad
@@ -44,15 +46,23 @@ final class FeedReactor: Reactor {
 
     let initialState = State()
 
+    /// - Parameters:
+    ///   - loadGroup: 표시할 그룹을 불러오는 동작.
+    ///   - groupUsecase: 게시물 삭제에 쓰는 Usecase. 읽기 전용 화면에서는 `nil`입니다.
+    ///   - widgetUsecase: 홈 화면 위젯 저장소를 맞추는 Usecase. 내 그룹을 표시할 때만 전달합니다.
     init(
         loadGroup:
             @escaping () -> Observable<HCGroup>,
         groupUsecase:
-            GroupUsecaseProtocol?
+            GroupUsecaseProtocol?,
+        widgetUsecase:
+            WidgetUsecaseProtocol? = nil
     ) {
         self.loadGroup = loadGroup
         self.groupUsecase =
             groupUsecase
+        self.widgetUsecase =
+            widgetUsecase
     }
 
     func mutate(action: Action) -> Observable<Mutation> {
@@ -117,7 +127,12 @@ private extension FeedReactor {
             .deletePostAndReload(post: post)
             .takeLast(1)
             .flatMap { [weak self] _ -> Observable<Mutation> in
-                guard let self else { return .empty() }
+                guard let self = self else { return .empty() }
+                // 서버에서 삭제된 뒤에만 위젯 사진을 지우고, 남은 오늘 사진으로 다시 맞춥니다.
+                self.widgetUsecase?.removePhoto(of: post)
+                self.widgetUsecase?.synchronize(
+                    postsByDate: self.groupSession.postsByDate
+                )
                 return .just(
                     self.makeFeedMutation(
                         from: self.groupSession.postsByDate
@@ -161,6 +176,11 @@ private extension FeedReactor {
 
         let loadGroup: Observable<Mutation> =
             loadGroup()
+            .do(onNext: { [weak self] group in
+                self?.widgetUsecase?.synchronize(
+                    postsByDate: group.postsByDate
+                )
+            })
             .map { group -> Mutation in
                 self.makeFeedMutation(from: group.postsByDate)
             }

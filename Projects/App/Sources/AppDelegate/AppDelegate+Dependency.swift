@@ -9,6 +9,7 @@ import Core
 import Data
 import Domain
 import FirebaseDatabase
+import WidgetSupport
 
 extension AppDelegate {
     var container: DIContainer {
@@ -44,6 +45,7 @@ extension AppDelegate {
                 firebaseAuthManager:
                     firebaseAuthManager
             )
+        let widgetRepository = WidgetRepositoryImpl()
         
         
         // usecase
@@ -69,5 +71,9 @@ extension AppDelegate {
             AdminUsecaseProtocol.self,
             dependency: adminUseCase
         )
+
+        let widgetUseCase = WidgetUsecaseImpl(repository: widgetRepository,
+                                              userSession: userSession)
+        DIContainer.shared.register(WidgetUsecaseProtocol.self, dependency: widgetUseCase)
     }
 }

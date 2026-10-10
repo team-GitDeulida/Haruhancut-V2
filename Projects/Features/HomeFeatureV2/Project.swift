@@ -29,10 +29,6 @@ let project = Project(
                     target: "ThirdPartyLibs",
                     path: "../../Shared/ThirdPartyLibs"
                 ),
-                .project(
-                    target: "WidgetSupport",
-                    path: "../../Shared/WidgetSupport"
-                ),
             ]
         ),
         .target(
