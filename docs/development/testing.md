@@ -68,7 +68,7 @@ xcodebuild test \
 | 스킴 | 로컬 확인 (2026-09-30, Xcode 26.4, iPhone 16 Pro Max / iOS 26.0) |
 | --- | --- |
 | `Core` | 8개 테스트 통과 |
-| `HomeFeatureV2` | 23개 테스트 통과 (2026-10-10, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `HomeFeatureV2` | 24개 테스트 통과 (2026-10-10, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `CollectionViewAdapter` | 42개 테스트 통과 (2026-10-09, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `MemberFeatureV2` | 9개 테스트 통과 |
 | `ProfileFeatureV2` | 3개 테스트 통과 |
