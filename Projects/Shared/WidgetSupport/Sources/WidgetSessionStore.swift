@@ -5,39 +5,33 @@
 //  Created by 김동현 on 3/9/26.
 //
 
-import Foundation
+import Core
 import Domain
+import Foundation
 
-public enum WidgetSessionStore {
-    
-    private static func sessionFile() -> URL? {
-        return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: WidgetPaths.appGroupId)?
-            .appendingPathComponent("Session", isDirectory: true)
-            .appendingPathComponent("user.json")
+/// 위젯이 그룹을 찾을 때 쓰는 사용자 정보를 App Group 저장소에 저장합니다.
+public struct WidgetSessionStore {
+
+    private let storage: FileStorageProtocol?
+
+    /// - Parameter storage: 사용자 정보를 저장할 저장소. 기본값은 위젯과 공유하는 App Group 저장소입니다.
+    public init(storage: FileStorageProtocol? = WidgetPaths.appGroupStorage()) {
+        self.storage = storage
     }
-    
-    public static func saveUser(_ user: User) {
 
-        guard let url = sessionFile() else { return }
+    public func saveUser(_ user: User) {
+        guard
+            let storage,
+            let data = try? JSONEncoder().encode(user)
+        else { return }
 
-        let folder = url.deletingLastPathComponent()
-
-        try? FileManager.default.createDirectory(
-            at: folder,
-            withIntermediateDirectories: true
-        )
-
-        guard let data = try? JSONEncoder().encode(user) else { return }
-
-        try? data.write(to: url, options: .atomic)
+        try? storage.write(data, to: WidgetPaths.sessionFile)
 
         print("[📦] [WidgetSession saved]", user.groupId ?? "nil")
     }
-    
-    public static func loadUser() -> User? {
-        guard let url = sessionFile(),
-              let data = try? Data(contentsOf: url
-              ) else {
+
+    public func loadUser() -> User? {
+        guard let data = storage?.read(WidgetPaths.sessionFile) else {
             return nil
         }
         return try? JSONDecoder().decode(User.self, from: data)
