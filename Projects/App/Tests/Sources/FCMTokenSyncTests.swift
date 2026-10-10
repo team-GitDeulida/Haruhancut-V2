@@ -142,14 +142,14 @@ private enum FCMTokenSyncTestError: Error {
     case unavailable
 }
 
-private final class FCMTokenSyncTestStorage: UserDefaultsStorageProtocol {
+private final class FCMTokenSyncTestStorage: StorageProtocol {
     private var values: [String: Any] = [:]
 
-    func set<T>(_ value: T?, forKey key: String) {
+    func write<T: Encodable>(_ value: T, to key: String) {
         values[key] = value
     }
 
-    func get<T>(forKey key: String) -> T? {
+    func read<T: Decodable>(_ key: String) -> T? {
         values[key] as? T
     }
 

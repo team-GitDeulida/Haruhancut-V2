@@ -58,8 +58,8 @@ public class Dependency<T> {
 | --- | --- | --- |
 | 1. session | `UserDefaultsStorage`, `UserSession(storageKey: "session.user")`, `GroupSession(storageKey: "session.group")`, `FCMTokenStore` | `UserSession`, `GroupSession`, `FCMTokenStore` 등록 |
 | 2. manager | `KakaoLoginManager`, `AppleLoginManager`, `FirebaseAuthManager`, `FirebaseStorageManager` | 등록하지 않고 Repository 생성자로 넘겨요. |
-| 3. repository | `AuthRepositoryImpl`, `GroupRepositoryImpl`, `AdminRepositoryImpl` | 등록하지 않고 Usecase 생성자로 넘겨요. |
-| 4. usecase | `AuthUsecaseImpl`, `GroupUsecaseImpl`, `AdminUsecaseImpl` | `AuthUsecaseProtocol`, `GroupUsecaseProtocol`, `AdminUsecaseProtocol`로 등록 |
+| 3. repository | `AuthRepositoryImpl`, `GroupRepositoryImpl`, `AdminRepositoryImpl`, `WidgetRepositoryImpl`(WidgetSupport) | 등록하지 않고 Usecase 생성자로 넘겨요. |
+| 4. usecase | `AuthUsecaseImpl`, `GroupUsecaseImpl`, `AdminUsecaseImpl`, `WidgetUsecaseImpl` | `AuthUsecaseProtocol`, `GroupUsecaseProtocol`, `AdminUsecaseProtocol`, `WidgetUsecaseProtocol`로 등록 |
 
 ```swift
 // usecase
@@ -72,7 +72,7 @@ DIContainer.shared.register(AuthUsecaseProtocol.self, dependency: authUseCase)
 
 - Manager와 Repository는 컨테이너에 넣지 않고 생성자 주입으로만 연결해요. Feature가 Repository를 직접 꺼낼 수 없게 하려는 구조예요.
 - 새 의존성은 같은 파일에서 `// session`, `// repository`, `// usecase` 구역 순서를 지켜 추가해요.
-- 등록 키는 위 6개(`UserSession`, `GroupSession`, `FCMTokenStore`, `AuthUsecaseProtocol`, `GroupUsecaseProtocol`, `AdminUsecaseProtocol`)예요. 늘어나면 이 표를 갱신해요.
+- 등록 키는 위 7개(`UserSession`, `GroupSession`, `FCMTokenStore`, `AuthUsecaseProtocol`, `GroupUsecaseProtocol`, `AdminUsecaseProtocol`, `WidgetUsecaseProtocol`)예요. 늘어나면 이 표를 갱신해요.
 
 ## 사용: 어디서 resolve하나요
 
@@ -84,9 +84,14 @@ Builder의 `make...()` 메서드 안에서 지역 `@Dependency`로 꺼내고, Re
 // HomeFeatureV2/Sources/Home/HomeFeatureBuilder.swift (요약, ReactorKit 화면)
 public func makeHome(mode: HomePresentationMode, routeTrigger: HomeRouteTrigger? = nil) -> HomePresentable {
     @Dependency var groupUsecase: GroupUsecaseProtocol
+    @Dependency var widgetUsecase: WidgetUsecaseProtocol
 
     let loadGroup = HomeGroupLoaderFactory.make(mode: mode, groupUsecase: groupUsecase)
-    let feedReactor = FeedReactor(loadGroup: loadGroup, groupUsecase: mode.isReadOnly ? nil : groupUsecase)
+    let feedReactor = FeedReactor(
+        loadGroup: loadGroup,
+        groupUsecase: mode.isReadOnly ? nil : groupUsecase,
+        widgetUsecase: mode.isReadOnly ? nil : widgetUsecase
+    )
     let calendarReactor = CalendarReactor(loadGroup: loadGroup)
     let vc = HomeViewController(feedReactor: feedReactor, calendarReactor: calendarReactor, mode: mode)
     vc.routeTrigger = routeTrigger
@@ -142,6 +147,7 @@ DIContainer.shared.register(UserSession.self, dependency: userSession)   // Demo
 DIContainer.shared.register(GroupSession.self, dependency: groupSession)
 DIContainer.shared.register(AuthUsecaseProtocol.self, dependency: DemoAuthUsecase())
 DIContainer.shared.register(GroupUsecaseProtocol.self, dependency: DemoGroupUsecase())
+DIContainer.shared.register(WidgetUsecaseProtocol.self, dependency: DemoWidgetUsecase()) // 아무것도 하지 않음
 ```
 
 - Demo의 `AppDelegate`가 화면을 만들기 전에 등록 함수를 호출해요.
@@ -150,7 +156,7 @@ DIContainer.shared.register(GroupUsecaseProtocol.self, dependency: DemoGroupUsec
 
 ### 단위 테스트는 컨테이너를 쓰지 않아요
 
-테스트 대상은 생성자로 Stub을 넣어 직접 만들어요. `Tests` 폴더에는 `DIContainer` 참조가 없어요.
+테스트 대상은 생성자로 Stub을 넣어 직접 만들어요. `DIContainer`를 쓰는 테스트는 `HomeFeatureV2/Tests/Sources/FeedReactorWidgetTests.swift` 하나예요. `FeedReactor`가 세션과 `AuthUsecaseProtocol`을 `@Dependency`로 생성 시점에 꺼내서, 테스트마다 메모리 세션과 Stub을 등록해요.
 
 ```swift
 // App/Tests/Sources/FCMTokenSyncTests.swift (요약)
@@ -166,7 +172,7 @@ let sut = AuthUsecaseImpl(
 )
 ```
 
-- Session은 `UserDefaultsStorageProtocol`을 따르는 테스트 저장소(`FakeUserDefaultsStorage`, `FCMTokenSyncTestStorage`)로 만들어요.
+- Session은 공통 저장소 계약 `StorageProtocol`을 따르는 메모리 저장소(`FakeUserDefaultsStorage`, `FCMTokenSyncTestStorage`)로 만들어요. 임시 폴더의 `FileStorage`도 넣을 수 있어요.
 - `@Dependency` 프로퍼티를 가진 타입을 테스트하려면 먼저 `DIContainer.shared`에 등록해야 하므로, 테스트할 타입은 생성자 주입으로 만들어요.
 
 ## 새 의존성을 추가하는 순서

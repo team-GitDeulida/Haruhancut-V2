@@ -269,7 +269,7 @@ extension HomeViewModel {
     private func handleWidgetUpdate(group: HCGroup, groupId: String) {
 
         if let user = userSession.session {
-            WidgetSessionStore.saveUser(user)
+            WidgetSessionStore().saveUser(user)
         }
 
         handleWidgetImage(group: group, groupId: groupId)
@@ -288,21 +288,10 @@ extension HomeViewModel {
         
         let dateKey = todayPost.createdAt.toDateKey()
         
-        guard let folder = WidgetPaths.photosFolder(
-            groupId: groupId,
-            dateKey: dateKey
-        ) else { return }
-        
-        let existingFiles =
-        (try? FileManager.default.contentsOfDirectory(
-            at: folder,
-            includingPropertiesForKeys: nil
-        )) ?? []
-        
         let alreadySaved =
-        existingFiles.contains {
-            $0.lastPathComponent.contains(todayPost.postId)
-        }
+        WidgetPhotoStore.shared
+            .photoIdentifiers(groupId: groupId, dateKey: dateKey)
+            .contains(todayPost.postId)
         
         if alreadySaved { return }
         

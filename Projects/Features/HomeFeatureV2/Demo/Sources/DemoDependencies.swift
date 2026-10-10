@@ -51,24 +51,41 @@ enum DemoDependencies {
                 groupSession: groupSession
             )
         )
+        DIContainer.shared.register(
+            WidgetUsecaseProtocol.self,
+            dependency: DemoWidgetUsecase()
+        )
     }
 }
 
+/// Demo 앱에는 홈 화면 위젯이 없으므로 아무것도 하지 않습니다.
+private final class DemoWidgetUsecase:
+    WidgetUsecaseProtocol
+{
+    func synchronize(
+        postsByDate: [String: [Post]]
+    ) {}
+
+    func removePhoto(
+        of post: Post
+    ) {}
+}
+
 private final class DemoMemoryStorage:
-    UserDefaultsStorageProtocol
+    StorageProtocol
 {
     private var values:
         [String: Any] = [:]
 
-    func set<T>(
-        _ value: T?,
-        forKey key: String
+    func write<T: Encodable>(
+        _ value: T,
+        to key: String
     ) {
         values[key] = value
     }
 
-    func get<T>(
-        forKey key: String
+    func read<T: Decodable>(
+        _ key: String
     ) -> T? {
         values[key] as? T
     }

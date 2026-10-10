@@ -18,7 +18,6 @@ struct PhotoWidgetModel: TimelineEntry {
 // 2) Provider: 타임라인 데이터를 공급하는 타입
 struct PhotoWidgetProvider: TimelineProvider {
     // typealias Entry = <#type#>
-    let appGroupID = WidgetPaths.appGroupId
     
     // 2-1) 위젯 갤러리나 로드 중에 보여줄 플레이스 홀더
     func placeholder(in context: Context) -> PhotoWidgetModel {
@@ -59,93 +58,40 @@ private extension PhotoWidgetProvider {
      */
     func loadTodayImage() -> Data? {
 
-        guard let user = WidgetSessionStore.loadUser(),
+        guard let user = WidgetSessionStore().loadUser(),
               let groupId = user.groupId else {
             print("❌ widget user 없음")
             return nil
         }
-    
-        let todayKey = Date().widgetDateKey()
 
-        guard let todayFolder = WidgetPaths.photosFolder(
+        guard let data = WidgetPhotoStore.shared.latestPhotoData(
             groupId: groupId,
-            dateKey: todayKey
-        ) else {
-            print("❌ todayFolder 없음")
-            return nil
-        }
-
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: todayFolder,
-            includingPropertiesForKeys: nil,
-            options: .skipsHiddenFiles
+            dateKey: Date().widgetDateKey()
         ) else {
             print("❌ 오늘 이미지 없음")
             return nil
         }
 
-        guard let latest = files.sorted(by: {
-            $0.lastPathComponent > $1.lastPathComponent
-        }).first else {
-            print("❌ 오늘 이미지 없음")
-            return nil
-        }
-
-        return try? Data(contentsOf: latest)
+        return data
     }
     
     // legacy but useful
     func loadLatestImage() -> Data? {
 
-        guard let user = WidgetSessionStore.loadUser(),
+        guard let user = WidgetSessionStore().loadUser(),
               let groupId = user.groupId else {
             print("❌ widget user 없음")
             return nil
         }
 
-        guard let baseFolder = FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
-            .appendingPathComponent("Photos", isDirectory: true)
-            .appendingPathComponent(groupId, isDirectory: true)
-        else {
-            print("❌ widget baseFolder 없음")
-            return nil
-        }
-
-        // 날짜 폴더만 가져오기
-        let dateFolders = (try? FileManager.default.contentsOfDirectory(
-            at: baseFolder,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: .skipsHiddenFiles
-        ))?.filter {
-            (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
-        } ?? []
-
-        guard let latestDateFolder = dateFolders.sorted(by: {
-            $0.lastPathComponent > $1.lastPathComponent
-        }).first else {
-            print("❌ 날짜 폴더 없음")
-            return nil
-        }
-
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: latestDateFolder,
-            includingPropertiesForKeys: nil
+        guard let data = WidgetPhotoStore.shared.latestPhotoData(
+            groupId: groupId
         ) else {
-            print("❌ 이미지 없음")
-            return nil
-        }
-
-        guard let latest = files.sorted(by: {
-            $0.lastPathComponent > $1.lastPathComponent
-        }).first else {
             print("❌ 최신 이미지 없음")
             return nil
         }
 
-        print("✅ widget load image:", latest)
-
-        return try? Data(contentsOf: latest)
+        return data
     }
 }
 

@@ -125,8 +125,7 @@ final class UserSession2Tests: XCTestCase {
     func test_init_restoresSessionFromStorage() {
         let stored = DummySession(id: "stored", name: "banana")
 
-        let data = try! JSONEncoder().encode(stored)
-        storage.set(data, forKey: "test.session")
+        storage.write(stored, to: "test.session")
 
         let newSession = SessionContext<DummySession>(
             storage: storage,
