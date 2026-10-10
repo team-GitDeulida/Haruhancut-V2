@@ -42,14 +42,14 @@ public final class WidgetPhotoStore {
     private static let timestampPrefixLength = 20
     private static let fileExtension = ".jpg"
 
-    private let storage: FileStorageProtocol?
+    private let storage: FileStorage?
     private let now: () -> Date
 
     /// - Parameters:
     ///   - storage: 사진을 저장할 저장소. 기본값은 위젯과 공유하는 App Group 저장소입니다.
     ///   - now: 저장 폴더와 파일 이름에 쓰는 현재 시각.
     public init(
-        storage: FileStorageProtocol? = WidgetPaths.appGroupStorage(),
+        storage: FileStorage? = WidgetPaths.appGroupStorage(),
         now: @escaping () -> Date = Date.init
     ) {
         self.storage = storage

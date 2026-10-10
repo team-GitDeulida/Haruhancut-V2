@@ -12,10 +12,10 @@ import Foundation
 /// 위젯이 그룹을 찾을 때 쓰는 사용자 정보를 App Group 저장소에 저장합니다.
 public struct WidgetSessionStore {
 
-    private let storage: FileStorageProtocol?
+    private let storage: StorageType?
 
     /// - Parameter storage: 사용자 정보를 저장할 저장소. 기본값은 위젯과 공유하는 App Group 저장소입니다.
-    public init(storage: FileStorageProtocol? = WidgetPaths.appGroupStorage()) {
+    public init(storage: StorageType? = WidgetPaths.appGroupStorage()) {
         self.storage = storage
     }
 

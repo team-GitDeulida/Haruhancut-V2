@@ -171,22 +171,22 @@ private final class DemoGroupUsecase:
 }
 
 private final class DemoMemoryStorage:
-    UserDefaultsStorageProtocol
+    StorageType
 {
     private var values:
-        [String: Any] = [:]
+        [String: Data] = [:]
 
-    func set<T>(
-        _ value: T?,
-        forKey key: String
+    func write(
+        _ data: Data,
+        to key: String
     ) {
-        values[key] = value
+        values[key] = data
     }
 
-    func get<T>(
-        forKey key: String
-    ) -> T? {
-        values[key] as? T
+    func read(
+        _ key: String
+    ) -> Data? {
+        values[key]
     }
 
     func remove(_ key: String) {

@@ -9,66 +9,63 @@ import Foundation
 
 /*
  [사용법]
- let storage: UserDefaultsStorageProtocol = UserDefaultsStorage()
+ let storage = UserDefaultsStorage()
 
- // 저장
+ // 공통 CRUD (StorageType)
+ storage.write(data, to: "session.user")
+ let data = storage.read("session.user")
+ storage.remove("session.user")
+
+ // UserDefaults가 담을 수 있는 값을 그대로 저장·조회 (UserDefaultsStorage 익스텐션)
  storage.set("user_123", forKey: "userId")
  storage.set(true, forKey: "isLoggedIn")
- storage.set(Date(), forKey: "lastLoginAt")
-
- // 조회
  let userId: String? = storage.get(forKey: "userId")
  let isLoggedIn: Bool = storage.get(forKey: "isLoggedIn") ?? false
- let lastLogin: Date? = storage.get(forKey: "lastLoginAt")
-
- // 삭제
- storage.remove("userId")
  */
-/// UserDefaults에 값을 저장하는 저장소 계약입니다.
+
+/// UserDefaults에 저장하는 저장소입니다.
 ///
-/// 공통 기능(`StorageType`) 위에 UserDefaults가 담을 수 있는 값(문자열, 숫자, 날짜, 데이터 등)을
-/// 그대로 저장·조회하는 기능을 더합니다.
-public protocol UserDefaultsStorageProtocol: StorageType {
-    func set<T>(_ value: T?, forKey: String)
-    func get<T>(forKey key: String) -> T?
+/// `defaults`만 제공하면 공통 CRUD(`StorageType`)는 아래 익스텐션의 기본 구현을 씁니다.
+public protocol UserDefaultsStorageType: StorageType {
+    var defaults: UserDefaults { get }
 }
 
-/// `StorageType`의 데이터 저장·조회를 `set`·`get`으로 제공합니다.
-/// 테스트용 메모리 저장소도 `set`·`get`·`remove`만 구현하면 됩니다.
-public extension UserDefaultsStorageProtocol {
+public extension UserDefaultsStorageType {
     func write(_ data: Data, to key: String) {
-        set(data, forKey: key)
+        defaults.set(data, forKey: key)
     }
 
     func read(_ key: String) -> Data? {
-        get(forKey: key)
+        defaults.data(forKey: key)
+    }
+
+    func remove(_ key: String) {
+        defaults.removeObject(forKey: key)
     }
 }
 
-public final class UserDefaultsStorage: UserDefaultsStorageProtocol {
-    
-    private let defaults: UserDefaults
-    
+/// `UserDefaults.standard` 또는 주입한 UserDefaults를 쓰는 저장소입니다.
+public final class UserDefaultsStorage: UserDefaultsStorageType {
+
+    public let defaults: UserDefaults
+
     // 테스트용 UserDefaults 주입을 위해 주입받는 구조로 구현
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }
-    
+}
+
+/// UserDefaults가 담을 수 있는 값(문자열, 숫자, 날짜, 데이터 등)을 그대로 저장·조회합니다.
+public extension UserDefaultsStorage {
     // 저장
-    public func set<T>(_ value: T?, forKey: String) {
-        defaults.set(value, forKey: forKey)
+    func set<T>(_ value: T?, forKey key: String) {
+        defaults.set(value, forKey: key)
     }
-    
+
     // 조회
-    public func get<T>(forKey key: String) -> T? {
-        return defaults.object(forKey: key) as? T
+    func get<T>(forKey key: String) -> T? {
+        defaults.object(forKey: key) as? T
     }
-    
-    // 세션 초기화
-    public func remove(_ key: String) {
-        defaults.removeObject(forKey: key)
-    }
-    
 }
 
 

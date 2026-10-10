@@ -18,7 +18,7 @@ public enum WidgetPaths {
     /// 앱과 위젯이 함께 쓰는 App Group 파일 저장소를 만듭니다.
     ///
     /// - Returns: App Group 권한이 없는 타깃에서는 `nil`.
-    public static func appGroupStorage() -> FileStorageProtocol? {
+    public static func appGroupStorage() -> FileStorage? {
         FileStorage(location: .appGroup(appGroupId))
     }
 
