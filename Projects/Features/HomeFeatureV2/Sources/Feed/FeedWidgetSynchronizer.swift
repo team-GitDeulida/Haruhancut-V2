@@ -78,6 +78,7 @@ final class FeedWidgetSynchronizer: FeedWidgetSynchronizing {
     private let store: FeedWidgetStoring
     private let loadImageData: ImageDataLoader
     private let workQueue: DispatchQueue
+    private let now: () -> Date
 
     /// 그룹 ID별로 위젯에 보여야 할 게시물 ID입니다. `workQueue`에서만 접근합니다.
     private var displayedPostIDByGroupID: [String: String] = [:]
@@ -89,17 +90,20 @@ final class FeedWidgetSynchronizer: FeedWidgetSynchronizing {
     ///   - store: 위젯 저장소. 기본값은 App Group 저장소입니다.
     ///   - loadImageData: 게시물 이미지를 내려받는 동작. 기본값은 `URLSession`입니다.
     ///   - workQueue: 상태와 파일 작업을 순서대로 처리할 직렬 큐.
+    ///   - now: 오늘 날짜를 정하는 현재 시각.
     init(
         store: FeedWidgetStoring = AppGroupFeedWidgetStore(),
         loadImageData: @escaping ImageDataLoader =
             FeedWidgetSynchronizer.loadWithURLSession,
         workQueue: DispatchQueue = DispatchQueue(
             label: "HomeFeatureV2.FeedWidgetSynchronizer"
-        )
+        ),
+        now: @escaping () -> Date = Date.init
     ) {
         self.store = store
         self.loadImageData = loadImageData
         self.workQueue = workQueue
+        self.now = now
     }
 
     func synchronize(
@@ -112,7 +116,10 @@ final class FeedWidgetSynchronizer: FeedWidgetSynchronizing {
         else {
             return
         }
-        let post = Self.latestTodayPost(in: postsByDate)
+        let post = Self.latestTodayPost(
+            in: postsByDate,
+            now: now()
+        )
 
         workQueue.async { [self] in
             store.saveUser(user)
@@ -189,9 +196,11 @@ private extension FeedWidgetSynchronizer {
         data: Data?
     ) {
         downloadingPostIDs.remove(post.postId)
+        // 저장소는 저장하는 시각의 날짜 폴더에 쓰므로, 자정을 넘겨 끝난 다운로드는 저장하지 않습니다.
         guard
             let data,
             displayedPostIDByGroupID[groupId] == post.postId,
+            Self.dateKey(of: post) == now().widgetDateKey(),
             !hasPhoto(of: post, groupId: groupId)
         else {
             return
@@ -237,7 +246,7 @@ private extension FeedWidgetSynchronizer {
     func removeOutdatedPhotos(
         in groupId: String
     ) -> Bool {
-        let todayKey = Date().widgetDateKey()
+        let todayKey = now().widgetDateKey()
         let displayedPostID = displayedPostIDByGroupID[groupId]
         let outdatedIdentifiers = store
             .photoIdentifiers(
@@ -272,11 +281,17 @@ extension FeedWidgetSynchronizer {
 
     /// 오늘 올라온 게시물 중 가장 최근 게시물을 찾습니다.
     static func latestTodayPost(
-        in postsByDate: [String: [Post]]
+        in postsByDate: [String: [Post]],
+        now: Date = Date()
     ) -> Post? {
         postsByDate.values
             .flatMap { $0 }
-            .filter { $0.isToday }
+            .filter {
+                Calendar.current.isDate(
+                    $0.createdAt,
+                    inSameDayAs: now
+                )
+            }
             .max { $0.createdAt < $1.createdAt }
     }
 

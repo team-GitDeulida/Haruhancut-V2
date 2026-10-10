@@ -82,6 +82,32 @@ final class FeedWidgetSynchronizerTests: XCTestCase {
         XCTAssertTrue(store.todayIdentifiers.isEmpty)
     }
 
+    func testDownloadFinishedAfterMidnightIsNotSaved() {
+        var current = Calendar.current.startOfDay(for: .now)
+            .addingTimeInterval(23 * 3600 + 59 * 60 + 50)
+        let sut = FeedWidgetSynchronizer(
+            store: store,
+            loadImageData: loader.load,
+            workQueue: DispatchQueue(label: "FeedWidgetSynchronizerTests.midnight"),
+            now: { current }
+        )
+        let post = makePost(id: "late-night", createdAt: current.addingTimeInterval(-5))
+
+        sut.synchronize(
+            user: makeWidgetTestUser(groupID: groupID),
+            postsByDate: ["posts": [post]]
+        )
+        sut.waitUntilIdle()
+        XCTAssertEqual(loader.requestedURLs.count, 1)
+
+        // 다운로드가 자정을 넘겨 끝납니다.
+        current = current.addingTimeInterval(15)
+        loader.completeAll(with: Data([0x01]))
+        sut.waitUntilIdle()
+
+        XCTAssertTrue(store.todayIdentifiers.isEmpty)
+    }
+
     func testSynchronizeDoesNotDownloadSamePostTwiceWhileLoading() {
         let latest = makePost(id: "latest", minutes: 2)
 
