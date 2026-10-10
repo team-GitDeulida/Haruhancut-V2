@@ -8,7 +8,7 @@
 import XCTest
 @testable import Core
 
-/// `SessionContext`가 공통 저장소 계약(`StorageType`)만으로 동작하는지 확인합니다.
+/// `SessionContext`가 공통 저장소 계약(`StorageProtocol`)만으로 동작하는지 확인합니다.
 final class SessionStorageTests: XCTestCase {
 
     private struct Profile: Codable, Equatable, CustomStringConvertible {
@@ -47,7 +47,7 @@ final class SessionStorageTests: XCTestCase {
         let storage = FakeUserDefaultsStorage()
         SessionContext<Profile>(storage: storage, storageKey: "profile").update(Profile(id: "1"))
 
-        XCTAssertNotNil(storage.read("profile"))
+        XCTAssertNotNil(storage.read("profile") as Profile?)
         XCTAssertEqual(
             SessionContext<Profile>(storage: storage, storageKey: "profile").session,
             Profile(id: "1")

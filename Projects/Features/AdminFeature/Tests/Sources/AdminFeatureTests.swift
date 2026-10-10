@@ -480,22 +480,22 @@ final class AdminFeatureTests:
 }
 
 private final class TestMemoryStorage:
-    StorageType
+    StorageProtocol
 {
     private var values:
-        [String: Data] = [:]
+        [String: Any] = [:]
 
-    func write(
-        _ data: Data,
+    func write<T: Encodable>(
+        _ value: T,
         to key: String
     ) {
-        values[key] = data
+        values[key] = value
     }
 
-    func read(
+    func read<T: Decodable>(
         _ key: String
-    ) -> Data? {
-        values[key]
+    ) -> T? {
+        values[key] as? T
     }
 
     func remove(

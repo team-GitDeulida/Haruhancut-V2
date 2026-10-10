@@ -10,6 +10,11 @@ import XCTest
 
 final class FileStorageTests: XCTestCase {
 
+    private struct Profile: Codable, Equatable {
+        var id: String
+        var createdAt: Date
+    }
+
     private var baseURL: URL!
     private var sut: FileStorage!
 
@@ -46,7 +51,19 @@ final class FileStorageTests: XCTestCase {
     }
 
     func test_read_returnsNil_whenFileIsMissing() {
-        XCTAssertNil(sut.read("missing.json"))
+        XCTAssertNil(sut.read("missing.json") as Data?)
+    }
+
+    func test_writeModel_storesJSON_andReadDecodesIt() throws {
+        let profile = Profile(id: "1", createdAt: Date(timeIntervalSince1970: 0))
+
+        try sut.write(profile, to: "Session/profile.json")
+
+        // 파일에는 기본 JSONDecoder로 읽을 수 있는 JSON이 저장됩니다
+        let stored = try XCTUnwrap(sut.read("Session/profile.json") as Data?)
+        XCTAssertEqual(try JSONDecoder().decode(Profile.self, from: stored), profile)
+        XCTAssertEqual(sut.read("Session/profile.json"), profile)
+        XCTAssertNil(sut.read("Session/profile.json") as [String]?)
     }
 
     func test_contentsOfDirectory_returnsNames_withoutHiddenFiles() throws {

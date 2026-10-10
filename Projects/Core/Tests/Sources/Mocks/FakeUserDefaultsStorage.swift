@@ -8,16 +8,16 @@
 import Foundation
 @testable import Core
 
-final class FakeUserDefaultsStorage: StorageType {
+final class FakeUserDefaultsStorage: StorageProtocol {
 
-    private var storage: [String: Data] = [:]
+    private var storage: [String: Any] = [:]
 
-    func write(_ data: Data, to key: String) {
-        storage[key] = data
+    func write<T: Encodable>(_ value: T, to key: String) {
+        storage[key] = value
     }
 
-    func read(_ key: String) -> Data? {
-        storage[key]
+    func read<T: Decodable>(_ key: String) -> T? {
+        storage[key] as? T
     }
 
     func remove(_ key: String) {
