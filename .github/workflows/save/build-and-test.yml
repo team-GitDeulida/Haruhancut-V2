@@ -1,0 +1,271 @@
+# Core VM
+#   build-for-testing
+#   test-without-building
+
+# Data VM
+#   build-for-testing
+#   test-without-building
+
+# App VM
+#   build-for-testing
+#   test-without-building
+
+# build-and-test.yml
+name: 하루한컷 Build & Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      triggered_by_command:
+        description: "Triggered by PR command"
+        required: false
+        default: "false"
+      pr_number:
+        description: "PR number"
+        required: false
+
+  schedule:
+    # UTC 22:00 = KST 07:00
+    - cron: "0 22 * * *"
+
+  # PR 댓글 명령어로도 트리거 가능
+  # issue_comment:
+  #   types: [created]
+
+  # PR이 열릴 때마다 실행 (main 브랜치 대상)
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+# 같은 PR/브랜치에 새 커밋이 올라오면 이전 CI를 취소하고 최신 실행만 검사한다.
+# PR 댓글 명령어로 실행한 경우에는 입력된 PR 번호를 같은 그룹 키로 사용한다.
+concurrency:
+  group: haruhancut-build-and-test-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  XCODE_VERSION: "26.3"
+  SIMULATOR_NAME: "iPhone 16"
+  SIMULATOR_OS: "26.2"
+  # 패키지 캐시와 DerivedData 캐시를 함께 무효화할 때 올린다.
+  # DerivedData는 패키지 파일의 수정 시각에 묶여 있어 패키지 캐시만 새로 만들면 다시 쓰이지 않는다.
+  PACKAGE_CACHE_VERSION: "2"
+
+# Matrix Build + Test (병렬, VM 독립)
+jobs:
+  test:
+    name: Test / ${{ matrix.module }}
+    runs-on: macos-15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [Core, Data, App]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
+          xcodebuild -version
+
+      - name: Create Shared.xcconfig
+        run: |
+          mkdir -p Projects/Shared/Configs
+          cat << 'EOF' > Projects/Shared/Configs/Shared.xcconfig
+          ${{ secrets.SHARED_XCCONFIG }}
+          EOF
+
+      # Tuist 4.210.0은 패키지 소스를 ~/.cache/swifterpm/sources에 받고 Tuist/.build/checkouts에서 링크로 가리킨다.
+      # 프로젝트 생성과 빌드에 필요한 부분만 보관한다. git 미러(repositories)는 tuist install에만 필요해 뺀다.
+      # actions/cache는 Tuist/.build처럼 폴더를 통째로 지정하면 그 아래 제외 규칙을 무시하므로 Tuist/.build/*로 지정한다.
+      # 이 키가 정확히 맞으면 아래 Generate Project에서 tuist install을 건너뛴다.
+      # 다른 의존성 그래프의 캐시가 섞이지 않도록 fallback(restore-keys)은 두지 않는다(#90).
+      - name: Cache Tuist packages
+        id: package_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            Tuist/.build/*
+            !Tuist/.build/repositories
+            !Tuist/.build/.lock
+            ~/.cache/swifterpm/sources
+            ~/.cache/swifterpm/manifests
+          key: tuist-packages-v${{ env.PACKAGE_CACHE_VERSION }}-${{ runner.os }}-${{ hashFiles('mise.toml', 'Tuist/Package.swift', 'Tuist/Package.resolved') }}
+
+      # tuist generate가 Project.swift 같은 설정 파일을 다시 컴파일·실행하지 않도록 Tuist 캐시를 보관한다.
+      # 내용 기준 캐시라 이전 키의 캐시를 받아도 결과가 달라지지 않아 fallback을 둔다.
+      - name: Cache Tuist manifests
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/tuist
+          key: tuist-manifests-v1-${{ runner.os }}-${{ hashFiles('mise.toml') }}-${{ hashFiles('Tuist.swift', 'Workspace.swift', 'Tuist/Package.swift', 'Projects/**/Project.swift') }}
+          restore-keys: |
+            tuist-manifests-v1-${{ runner.os }}-${{ hashFiles('mise.toml') }}-
+
+      # DerivedData의 외부 라이브러리 빌드 결과는 패키지 파일의 수정 시각이 기록과 같아야 다시 쓰인다.
+      # 그래서 위 패키지 캐시를 그대로 받은 실행에서 만든 DerivedData만 저장한다(Save DerivedData 단계).
+      # 우리 모듈은 체크아웃할 때마다 수정 시각이 새로 찍혀 어차피 다시 컴파일되므로, 키는 패키지 캐시와 같은 입력만 본다.
+      - name: Restore DerivedData
+        id: deriveddata_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: DerivedData
+          key: deriveddata-v3-p${{ env.PACKAGE_CACHE_VERSION }}-${{ runner.os }}-xcode${{ env.XCODE_VERSION }}-${{ matrix.module }}-${{ hashFiles('mise.toml', 'Tuist/Package.swift', 'Tuist/Package.resolved') }}
+
+      - name: Set up Mise and Tuist
+        uses: jdx/mise-action@v4
+        with:
+          cache: true
+
+      # 패키지 캐시가 키와 정확히 맞으면 tuist install 결과가 캐시와 같으므로 건너뛴다.
+      # install을 건너뛴 경우에만, 생성에 실패하면 install 후 한 번 더 생성한다.
+      # 바이너리 캐시를 쓰지 않으므로(Tuist 서버 미연결) --cache-profile none으로 타깃별 해시 계산을 건너뛴다.
+      - name: Generate Project
+        id: generate
+        env:
+          PACKAGE_CACHE_HIT: ${{ steps.package_cache.outputs.cache-hit }}
+        run: |
+          if [ "$PACKAGE_CACHE_HIT" != "true" ]; then
+            tuist install
+            tuist generate --no-open --cache-profile none
+          elif ! tuist generate --no-open --cache-profile none; then
+            echo "패키지 캐시만으로 생성하지 못해 tuist install 후 다시 생성합니다."
+            echo "reinstalled=true" >> "$GITHUB_OUTPUT"
+            tuist install
+            tuist generate --no-open --cache-profile none
+          fi
+
+      # 시뮬레이터는 미리 부팅하지 않는다. 부팅 직후 몇 분 동안 함께 돌던 캐시 복원·프로젝트 생성·빌드가
+      # 크게 느려져 테스트 단계에서 줄인 시간보다 더 잃었다(#103). 부팅은 test-without-building이 맡는다.
+      - name: Resolve Simulator UUID
+        run: scripts/resolve_simulator_udid.sh
+
+      # 1. Build For Testing (VM 내부)
+      # CI에서는 인덱스를 쓰지 않으므로 빌드 중 인덱스 생성(COMPILER_INDEX_STORE_ENABLE)을 끈다.
+      - name: Build For Testing
+        run: |
+          xcodebuild build-for-testing \
+            -workspace Haruhancut.xcworkspace \
+            -scheme ${{ matrix.module }} \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath DerivedData \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      # 재시도로 tuist install을 다시 했다면 패키지 파일이 캐시와 달라졌으므로 저장하지 않는다.
+      - name: Save DerivedData
+        if: steps.package_cache.outputs.cache-hit == 'true' && steps.deriveddata_cache.outputs.cache-hit != 'true' && steps.generate.outputs.reinstalled != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: DerivedData
+          key: ${{ steps.deriveddata_cache.outputs.cache-primary-key }}
+
+      # 2. Test Without Building (같은 DerivedData 사용)
+      - name: Test Without Building
+        run: |
+          xcodebuild test-without-building \
+            -workspace Haruhancut.xcworkspace \
+            -scheme ${{ matrix.module }} \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath DerivedData
+
+  # Notify
+  notify:
+    name: Notify Result
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    # 아래 Check replaced 단계가 같은 workflow의 다른 실행을 조회하려고 actions: read가 필요하다.
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      # 같은 PR에 새 커밋이 올라오면 진행 중이던 실행은 cancelled로 끝난다. 이 경우에만 실패 댓글과 메일을 보내지 않는다.
+      # 손으로 취소한 실행도 cancelled로 끝나므로, 같은 PR 브랜치에 더 새로운 실행이 있는지로 구분한다.
+      # 다른 fork가 같은 브랜치 이름을 쓸 수 있어 head 저장소도 비교한다. fork에서 온 실행은 pull_requests가
+      # 비어 있어 PR 번호로는 비교할 수 없다. 이 workflow는 main 대상 PR에서만 돌아 저장소와 브랜치가 같으면 같은 PR이다.
+      # 조회가 실패해도 다음 단계가 건너뛰어지지 않게 해서, 확인하지 못하면 실패 알림을 보낸다.
+      - name: Check replaced by a newer run
+        id: replaced
+        if: needs.test.result == 'cancelled' && github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID")
+          created=$(jq -r .created_at <<< "$run")
+          workflow_id=$(jq -r .workflow_id <<< "$run")
+          newer=$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_id/runs" \
+            -f event=pull_request -f branch="$HEAD_REF" -f per_page=20 \
+            --jq "[.workflow_runs[] | select(.id != $GITHUB_RUN_ID and .created_at > \"$created\" and .head_repository.full_name == \"$HEAD_REPO\")] | length")
+          if [ "$newer" -gt 0 ]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment success (PR only)
+        if: needs.test.result == 'success' && github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ✅ 하루한컷 패키지를 성공적으로 빌드하고 테스트했습니다.
+
+      - name: Comment failure (PR only)
+        if: needs.test.result != 'success' && github.event_name == 'pull_request' && steps.replaced.outputs.value != 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ❌ **하루한컷 iOS CI 실패**
+            - 일부 모듈 테스트 실패
+
+      # 메일은 모든 이벤트에서
+      - name: Send email on success
+        if: needs.test.result == 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ✅ 하루한컷 iOS CI 성공
+          body: |
+            CI 성공 🎉
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Actor: ${{ github.actor }}
+            URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: indextrown@gmail.com
+          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
+
+      - name: Send email on failure
+        if: needs.test.result != 'success' && steps.replaced.outputs.value != 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ❌ 하루한컷 iOS CI 실패
+          body: |
+            CI 실패 발생 ❌
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Actor: ${{ github.actor }}
+            URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: indextrown@gmail.com
+          from: GitHub CI <${{ secrets.MAIL_USERNAME }}>
