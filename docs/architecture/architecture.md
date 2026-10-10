@@ -229,7 +229,6 @@ SnapKit, Then, GRDB는 사용하지 않아요. 레이아웃은 Auto Layout 코�
 | V1 `ProfileCoordinator`, `MemberCoordinator`는 컴파일되지만 생성되지 않고, `HomeCoordinator`는 전체 주석 처리돼 있어요. | `Coordinator/Sources` | 새 흐름은 V2 Coordinator에 추가해요. |
 | `AppCoordinator`가 `FirebaseAuth`를 직접 import해 `Auth.auth().currentUser`를 확인해요. | `AppCoordinator.swift` | 새 Coordinator에서 Firebase를 직접 호출하지 않아요. |
 | `MemberCoordinatorV2`, `ProfileCoordinatorV2`가 `childDidFinish`를 호출하지 않아요. | `Coordinator/Sources` | 새 Coordinator는 흐름이 끝나면 `childDidFinish(self)`를 호출해요. |
-| `Data/Sources/UserDefaultsManager.swift`는 사용하지 않는 코드예요. | Data | 새 코드에서 참조하지 않아요. |
 | `Shared/Fetcher`는 `refactor/#94` 브랜치(Draft PR #95)에서 진행 중이며 `main`에는 모듈이 없어요. | `Projects/Shared/Fetcher` | 병합 후 이 문서를 갱신해요. |
 
 ## 새 기능 개발 체크리스트
