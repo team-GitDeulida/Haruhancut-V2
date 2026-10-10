@@ -11,43 +11,15 @@ import Foundation
  [사용법]
  let storage = UserDefaultsStorage()
 
- // 공통 CRUD (StorageType)
- storage.write(data, to: "session.user")
- let data = storage.read("session.user")
+ try storage.write(user, to: "session.user")
+ let user: User? = storage.read("session.user")
  storage.remove("session.user")
-
- // UserDefaults가 담을 수 있는 값을 그대로 저장·조회 (UserDefaultsStorage 익스텐션)
- storage.set("user_123", forKey: "userId")
- storage.set(true, forKey: "isLoggedIn")
- let userId: String? = storage.get(forKey: "userId")
- let isLoggedIn: Bool = storage.get(forKey: "isLoggedIn") ?? false
  */
 
-/// UserDefaults에 저장하는 저장소입니다.
-///
-/// `defaults`만 제공하면 공통 CRUD(`StorageType`)는 아래 익스텐션의 기본 구현을 씁니다.
-public protocol UserDefaultsStorageType: StorageType {
-    var defaults: UserDefaults { get }
-}
+/// UserDefaults에 저장하는 저장소입니다. 키는 UserDefaults 키입니다.
+public final class UserDefaultsStorage {
 
-public extension UserDefaultsStorageType {
-    func write(_ data: Data, to key: String) {
-        defaults.set(data, forKey: key)
-    }
-
-    func read(_ key: String) -> Data? {
-        defaults.data(forKey: key)
-    }
-
-    func remove(_ key: String) {
-        defaults.removeObject(forKey: key)
-    }
-}
-
-/// `UserDefaults.standard` 또는 주입한 UserDefaults를 쓰는 저장소입니다.
-public final class UserDefaultsStorage: UserDefaultsStorageType {
-
-    public let defaults: UserDefaults
+    private let defaults: UserDefaults
 
     // 테스트용 UserDefaults 주입을 위해 주입받는 구조로 구현
     public init(defaults: UserDefaults = .standard) {
@@ -55,16 +27,19 @@ public final class UserDefaultsStorage: UserDefaultsStorageType {
     }
 }
 
-/// UserDefaults가 담을 수 있는 값(문자열, 숫자, 날짜, 데이터 등)을 그대로 저장·조회합니다.
-public extension UserDefaultsStorage {
-    // 저장
-    func set<T>(_ value: T?, forKey key: String) {
-        defaults.set(value, forKey: key)
+// MARK: - StorageProtocol
+extension UserDefaultsStorage: StorageProtocol {
+    public func write<T: Encodable>(_ value: T, to key: String) throws {
+        defaults.set(try encode(value), forKey: key)
     }
 
-    // 조회
-    func get<T>(forKey key: String) -> T? {
-        defaults.object(forKey: key) as? T
+    public func read<T: Decodable>(_ key: String) -> T? {
+        guard let data = defaults.data(forKey: key) else { return nil }
+        return decode(data)
+    }
+
+    public func remove(_ key: String) {
+        defaults.removeObject(forKey: key)
     }
 }
 
