@@ -13,7 +13,7 @@ import WidgetKit
 /// 위젯과 공유하는 App Group 저장소로 `WidgetRepositoryProtocol`을 구현합니다.
 ///
 /// 날짜 폴더 이름(`widgetDateKey`)과 사진 파일 이름 규칙은 `WidgetPhotoStore`가 정합니다.
-public final class WidgetRepositoryImpl: WidgetRepositoryProtocol {
+public final class WidgetRepositoryImpl {
 
     /// `HaruhancutWidget`의 `PhotoWidget.kind`와 같아야 합니다
     private static let photoWidgetKind = "PhotoWidget"
@@ -34,7 +34,10 @@ public final class WidgetRepositoryImpl: WidgetRepositoryProtocol {
         self.sessionStore = sessionStore
         self.urlSession = urlSession
     }
+}
 
+// MARK: - WidgetRepositoryProtocol
+extension WidgetRepositoryImpl: WidgetRepositoryProtocol {
     public func saveUser(_ user: User) {
         sessionStore.saveUser(user)
     }

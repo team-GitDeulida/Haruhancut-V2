@@ -24,9 +24,7 @@ public protocol WidgetUsecaseProtocol {
 /// 다운로드가 끝났을 때 그 게시물이 여전히 보여야 할 게시물일 때만 저장하므로, 캐시에 남은
 /// 삭제된 게시물이나 다운로드 중 삭제된 게시물이 위젯에 남지 않습니다. 상태와 저장소 작업은
 /// `workQueue`에서 순서대로 처리합니다.
-public final class WidgetUsecaseImpl:
-    WidgetUsecaseProtocol
-{
+public final class WidgetUsecaseImpl {
     private let repository:
         WidgetRepositoryProtocol
     private let userSession:
@@ -66,7 +64,12 @@ public final class WidgetUsecaseImpl:
         self.workQueue = workQueue
         self.now = now
     }
+}
 
+// MARK: - WidgetUsecaseProtocol
+extension WidgetUsecaseImpl:
+    WidgetUsecaseProtocol
+{
     public func synchronize(
         postsByDate: [String: [Post]]
     ) {
@@ -140,13 +143,17 @@ public final class WidgetUsecaseImpl:
             self.repository.reloadWidget()
         }
     }
+}
 
+// MARK: - 테스트
+extension WidgetUsecaseImpl {
     /// 지금까지 요청한 작업이 끝날 때까지 기다립니다. 테스트에서 사용합니다.
     func waitUntilIdle() {
         workQueue.sync {}
     }
 }
 
+// MARK: - Private
 private extension WidgetUsecaseImpl {
     func download(
         _ post: Post,
@@ -263,9 +270,7 @@ private extension WidgetUsecaseImpl {
         }
         return !outdatedIdentifiers.isEmpty
     }
-}
 
-extension WidgetUsecaseImpl {
     /// 오늘 올라온 게시물 중 가장 최근 게시물을 찾습니다.
     static func latestTodayPost(
         in postsByDate: [String: [Post]],

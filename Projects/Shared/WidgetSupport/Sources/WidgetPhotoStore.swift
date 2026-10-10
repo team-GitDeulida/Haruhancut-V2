@@ -34,9 +34,6 @@ import UIKit
 /// 사진은 `Photos/<groupId>/<dateKey>/<저장 시각>-<identifier>.jpg`에 저장합니다.
 /// 파일 이름 규칙은 이 타입만 알고, 앱과 위젯은 아래 API로 읽고 씁니다.
 public final class WidgetPhotoStore {
-    
-    /// 위젯과 공유하는 App Group 저장소를 쓰는 기본 인스턴스입니다
-    public static let shared = WidgetPhotoStore()
 
     /// 파일 이름 앞의 저장 시각(`yyyy-MM-dd-HH-mm-ss-`) 길이입니다
     private static let timestampPrefixLength = 20
@@ -55,10 +52,19 @@ public final class WidgetPhotoStore {
         self.storage = storage
         self.now = now
     }
-    
-    public func saveImage(data: Data,
-                          groupId: String,
-                          identifier: String
+}
+
+// MARK: - 기본 인스턴스
+public extension WidgetPhotoStore {
+    /// 위젯과 공유하는 App Group 저장소를 쓰는 기본 인스턴스입니다
+    static let shared = WidgetPhotoStore()
+}
+
+// MARK: - 사진 저장·삭제·조회
+public extension WidgetPhotoStore {
+    func saveImage(data: Data,
+                   groupId: String,
+                   identifier: String
     ) throws {
         guard let storage else {
             throw WidgetPhotoError.invalidPath
@@ -67,14 +73,14 @@ public final class WidgetPhotoStore {
         let now = now()
         let dateKey = now.widgetDateKey()
         let timestamp = now.widgetTimestamp()
-        
+    
         // 2026-03-09-12-30-10-photo1.jpg
         let fileName = "\(timestamp)-\(identifier)\(Self.fileExtension)"
-        
+    
         // 파일 경로: Photos/family/2026-03-09/2026-03-09-12-30-10-photo1.jpg
         let path = WidgetPaths.photosDirectory(groupId: groupId, dateKey: dateKey)
             + "/" + fileName
-        
+    
         // 압축 & 리사이즈
         guard let downSampledImage = downsample(data: data, maxDimension: 800),
               let resized = downSampledImage.resized(to: CGSize(width: 200, height: 200)),
@@ -82,20 +88,20 @@ public final class WidgetPhotoStore {
         else {
             throw WidgetPhotoError.invalidImage
         }
-        
+    
         // 실제 파일 저장 (폴더가 없으면 만들고, 파일이 깨지지 않게 원자적으로 씁니다)
         try storage.write(compressed, to: path)
-        
+    
         print("[🟢] [WidgetPhotoStore] saved -> \(fileName)")
     }
-    
-    public func deleteImage(groupId: String,
-                            dateKey: String,
-                            identifier: String
+
+    func deleteImage(groupId: String,
+                     dateKey: String,
+                     identifier: String
     ) {
         guard let storage else { return }
         let directory = WidgetPaths.photosDirectory(groupId: groupId, dateKey: dateKey)
-        
+    
         // identifier가 정확히 같은 파일 찾기 (끝부분만 같은 다른 사진은 지우지 않습니다)
         for fileName in photoFileNames(groupId: groupId, dateKey: dateKey)
         where Self.identifier(fromFileName: fileName) == identifier {
@@ -103,7 +109,7 @@ public final class WidgetPhotoStore {
             storage.remove(directory + "/" + fileName)
             print("[🟢] [WidgetPhotoStore] deleted -> \(fileName)")
         }
-        
+    
         // 2026-03-09/ 제거
         if storage.contentsOfDirectory(directory).isEmpty {
             storage.remove(directory)
@@ -111,16 +117,16 @@ public final class WidgetPhotoStore {
     }
 
     /// 날짜 폴더에 저장된 사진의 식별자입니다. 저장 시각 순서입니다.
-    public func photoIdentifiers(groupId: String,
-                                 dateKey: String
+    func photoIdentifiers(groupId: String,
+                          dateKey: String
     ) -> [String] {
         photoFileNames(groupId: groupId, dateKey: dateKey)
             .compactMap(Self.identifier(fromFileName:))
     }
 
     /// 날짜 폴더에서 가장 늦게 저장한 사진을 읽습니다.
-    public func latestPhotoData(groupId: String,
-                                dateKey: String
+    func latestPhotoData(groupId: String,
+                         dateKey: String
     ) -> Data? {
         // 파일 이름이 저장 시각으로 시작하므로 이름순 마지막이 가장 최근입니다
         guard let latest = photoFileNames(groupId: groupId, dateKey: dateKey).last else {
@@ -131,7 +137,7 @@ public final class WidgetPhotoStore {
     }
 
     /// 가장 최근 날짜 폴더에서 가장 늦게 저장한 사진을 읽습니다.
-    public func latestPhotoData(groupId: String) -> Data? {
+    func latestPhotoData(groupId: String) -> Data? {
         // 날짜 폴더 이름(yyyy-MM-dd)순 마지막이 가장 최근 날짜입니다
         guard let latestDateKey = storage?
             .contentsOfDirectory(WidgetPaths.photosDirectory(groupId: groupId))
@@ -144,6 +150,7 @@ public final class WidgetPhotoStore {
     }
 }
 
+// MARK: - Private
 private extension WidgetPhotoStore {
     /// 날짜 폴더의 사진 파일 이름을 저장 시각 순서로 정렬합니다.
     func photoFileNames(groupId: String, dateKey: String) -> [String] {
