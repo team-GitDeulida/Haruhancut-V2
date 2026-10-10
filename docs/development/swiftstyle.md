@@ -186,7 +186,7 @@ UIView.animate(
 | --- | --- | --- |
 | Usecase | `Usecase`(소문자 c)로 써요. 변수 이름은 `authUseCase`처럼 섞여 있어요. | `AuthUsecaseProtocol`, `AuthUsecaseImpl` |
 | 구현체 | `Impl` 접미사 | `GroupUsecaseImpl`, `GroupRepositoryImpl` |
-| Domain·Data 계약 | `Protocol` 접미사 | `AuthRepositoryProtocol`, `FirebaseAuthManagerProtocol`, `UserDefaultsStorageProtocol` |
+| Domain·Data 계약 | `Protocol` 접미사 | `AuthRepositoryProtocol`, `FirebaseAuthManagerProtocol` |
 | 공통 역할 계약 | `Type` 접미사 | `ViewModelType`, `SessionType`, `StorageType` |
 | Feature Builder | `<X>FeatureBuildable` + `<X>FeatureBuilder` | `MemberFeatureBuildable`, `MemberFeatureBuilder` |
 | 화면 이동 계약 | `<X>RouteTrigger` | `SignInRouteTrigger`, `HomeRouteTrigger` |

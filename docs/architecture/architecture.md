@@ -120,7 +120,11 @@ Projects/
 ### Core와 Shared
 
 - Core: `DIContainer`·`@Dependency`, `SessionContext<Model>`, 저장소(`Storage/`), `ViewModelType`, `RefreshableViewController`, `Logger`, `Constants`, `UITestID`, `Extensions+/`
-- Core 저장소: 키로 `Data`를 쓰기·읽기·삭제(CRUD)하는 공통 계약 `StorageType`을 두고, 저장소마다 필요한 기능은 이를 채택한 프로토콜에 더해요. `UserDefaultsStorageProtocol`(+ 값 그대로 `set`·`get`)·`UserDefaultsStorage`, `FileStorageProtocol`(+ 폴더 목록 `contentsOfDirectory`, 존재 확인 `exists`)·`FileStorage`(App Group·Documents·Caches)가 있어요. `SessionContext`는 `StorageType`만 알아서 두 저장소 모두에 저장할 수 있어요. 기본값은 `UserDefaultsStorage`예요.
+- Core 저장소: 키로 `Data`를 쓰기·읽기·삭제(CRUD)하는 공통 계약 `StorageType`을 둬요.
+  - 저장 방식별 CRUD는 `StorageType`을 채택한 프로토콜의 익스텐션에 미리 구현돼 있어요. `UserDefaultsStorageType`은 `defaults`만, `FileStorageType`은 `baseURL`·`fileManager`만 제공하면 돼요.
+  - 구현체 `UserDefaultsStorage`·`FileStorage`(App Group·Documents·Caches)는 이를 채택하고, 저장소에만 필요한 기능은 구현체 익스텐션에 더해요. (`UserDefaultsStorage`의 값 그대로 `set`·`get`, `FileStorage`의 `contentsOfDirectory`·`exists`)
+  - 쓰는 쪽은 CRUD만 필요하면 `StorageType`에 의존해요. (`SessionContext`, `WidgetSessionStore`) 추가 기능이 필요하면 구현체에 의존해요. (`WidgetPhotoStore` → `FileStorage`)
+  - 테스트·Demo의 메모리 저장소는 `StorageType`을 직접 채택해요.
 - DSKit: 공통 UI 컴포넌트, 색상·폰트 리소스, `ImagePreViewController` 등
 - CollectionViewAdapter: 외부 의존성 없이 `UICollectionView`의 섹션·셀 구성을 선언형으로 다루는 사내 모듈이에요. V2 Feature와 AdminFeature가 사용해요. 화면에서 쓰는 방법은 [화면 그리기](view-rendering.md)를 확인해요.
 - ThirdPartyLibs: 외부 패키지를 한곳에서 링크하는 모듈이에요. 소스의 `@_exported import`는 주석 처리돼 있어 각 파일에서 필요한 라이브러리를 직접 import해요.

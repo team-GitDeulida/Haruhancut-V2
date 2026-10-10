@@ -69,14 +69,14 @@ xcodebuild test \
 
 | 스킴 | 로컬 확인 (2026-09-30, Xcode 26.4, iPhone 16 Pro Max / iOS 26.0) |
 | --- | --- |
-| `Core` | 21개 테스트 통과 (2026-10-10, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `Domain` | 11개 테스트 통과 (2026-10-10, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `WidgetSupport` | 13개 테스트 통과 (2026-10-10, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `HomeFeatureV2` | 12개 테스트 통과 (2026-10-10, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `Core` | 21개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `Domain` | 11개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `WidgetSupport` | 13개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `HomeFeatureV2` | 12개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `CollectionViewAdapter` | 42개 테스트 통과 (2026-10-09, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `MemberFeatureV2` | 9개 테스트 통과 |
-| `ProfileFeatureV2` | 3개 테스트 통과 |
-| `AdminFeature` | 5개 테스트 통과 |
+| `MemberFeatureV2` | 9개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `ProfileFeatureV2` | 3개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `AdminFeature` | 5개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `Data` | 4개 테스트 통과 (2026-10-09, Xcode 27.0, iPhone 17 / iOS 27.0) |
 
 과거 PR에서는 같은 스킴을 `tuist test <스킴>`으로도 실행했어요. (예: PR #80의 `tuist test HomeFeatureV2`, PR #76의 `tuist test CollectionViewAdapter`) 이 경우에도 `mise exec -- tuist test <스킴>`으로 버전을 맞춰요.
@@ -169,7 +169,7 @@ Firebase 에뮬레이터는 사용하지 않아요.
 ## 테스트를 작성해요
 
 - 테스트 대상은 생성자에 Stub을 넣어 직접 만들어요. `DIContainer`에 등록하지 않아요. (예외: `FeedReactorWidgetTests`는 `FeedReactor`가 `@Dependency`로 꺼내는 세션과 `AuthUsecaseProtocol`을 등록해요.) 자세한 내용은 [DI Container](../architecture/dicontainer.md#교체-demo와-테스트)를 확인해요.
-- Session은 `UserDefaultsStorageProtocol`을 따르는 메모리 저장소로 만들어요. `set`·`get`·`remove`만 구현하면 공통 계약(`StorageType`)의 나머지는 기본 구현을 써요. (예: `Core/Tests/Sources/Mocks/FakeUserDefaultsStorage.swift`)
+- Session은 공통 저장소 계약 `StorageType`(`write`·`read`·`remove`)을 따르는 메모리 저장소로 만들어요. (예: `Core/Tests/Sources/Mocks/FakeUserDefaultsStorage.swift`)
 - 테스트 대역은 테스트 파일 안에 `private` 타입으로 두는 경우가 많아요. 이름은 `Fake*`, `*Stub`, `Test*`, `Dummy*`가 섞여 있어요.
 - 테스트 대상 생성은 `makeSUT(...)` 헬퍼로 모아요. (예: `FCMTokenSyncTests`)
 - `Single`은 `async throws` 테스트에서 `try await single.value`로 기다려요. `Observable` 출력은 `XCTestExpectation`과 `DisposeBag`으로 확인해요.
