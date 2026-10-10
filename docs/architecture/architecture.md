@@ -48,7 +48,7 @@ Projects/
 | --- | --- | --- | --- |
 | `App` (`productName: Haruhancut`) | app | Coordinator, Data, ThirdPartyLibs, WidgetSupport, HaruhancutWidget | `AppTests`, `AppUITests` |
 | `Coordinator` | staticFramework | 모든 Feature(+Interface), DSKit, Core, ThirdPartyLibs | 없음 |
-| `Domain` | framework | Core | 테스트 타깃 주석 처리 |
+| `Domain` | framework | Core | `DomainTests` |
 | `Data` | framework | Domain, ThirdPartyLibs | `DataTests` |
 | `Core` | framework | ThirdPartyLibs | `CoreTests` |
 | `Shared/ThirdPartyLibs` | framework | 외부 패키지(RxCocoa, RxDataSources, ReactorKit, RxKakaoSDK, Firebase, Kingfisher, Lottie, ScaleKit, FSCalendar 등) | 없음 |
@@ -71,7 +71,7 @@ Projects/
 | `AuthFeature` | MVVM (전환 대상) | DSKit, ThirdPartyLibs | 없음 |
 | `OnboardingFeature` | 빈 Input/Output + 클로저 | DSKit, ThirdPartyLibs | 없음 |
 | `ImageFeature` | MVVM (전환 대상) | DSKit, ThirdPartyLibs | 없음 |
-| `HomeFeatureV2` | ReactorKit(피드·캘린더 탭, 기준 구현) + MVVM(FeedDetail·CalendarDetail·Comment, 전환 대상). `HomeViewController`는 두 Reactor를 묶는 컨테이너 | CollectionViewAdapter, DSKit, Data, ThirdPartyLibs, WidgetSupport | `HomeFeatureV2Tests` |
+| `HomeFeatureV2` | ReactorKit(피드·캘린더 탭, 기준 구현) + MVVM(FeedDetail·CalendarDetail·Comment, 전환 대상). `HomeViewController`는 두 Reactor를 묶는 컨테이너 | CollectionViewAdapter, DSKit, Data, ThirdPartyLibs | `HomeFeatureV2Tests` |
 | `ProfileFeatureV2` | MVVM (전환 대상) | CollectionViewAdapter, DSKit, Core, Domain, ThirdPartyLibs | `ProfileFeatureV2Tests` |
 | `MemberFeatureV2` | MVVM (전환 대상) | CollectionViewAdapter, DSKit, Core, Domain, ThirdPartyLibs | `MemberFeatureV2Tests` |
 | `AdminFeature` | MVVM (전환 대상) | CollectionViewAdapter, DSKit, Core, Domain, ThirdPartyLibs | `AdminFeatureTests` |
@@ -106,24 +106,25 @@ Projects/
 ### Domain: 비즈니스 규칙과 계약
 
 - `Domain/Sources/Entity/`: `User`, `HCGroup`, `Post`, `Comment`, `AdminGroupSummary` 등. `UserSession = SessionContext<User>`, `GroupSession = SessionContext<SessionGroup>` 타입 별칭도 여기에 있어요.
-- `Domain/Sources/RepositoryProtocol/`: `AuthRepositoryProtocol`, `GroupRepositoryProtocol`, `AdminRepositoryProtocol`
-- `Domain/Sources/Usecase/`: 한 파일에 프로토콜과 구현을 함께 둬요. (`AuthUsecaseProtocol`·`AuthUsecaseImpl`, `GroupUsecaseProtocol`·`GroupUsecaseImpl`, `AdminUsecaseProtocol`·`AdminUsecaseImpl`)
-- Usecase는 Repository와 Session을 생성자로 받고, RxSwift `Single`·`Observable`을 반환해요.
+- `Domain/Sources/RepositoryProtocol/`: `AuthRepositoryProtocol`, `GroupRepositoryProtocol`, `AdminRepositoryProtocol`, `WidgetRepositoryProtocol`
+- `Domain/Sources/Usecase/`: 한 파일에 프로토콜과 구현을 함께 둬요. (`AuthUsecaseProtocol`·`AuthUsecaseImpl`, `GroupUsecaseProtocol`·`GroupUsecaseImpl`, `AdminUsecaseProtocol`·`AdminUsecaseImpl`, `WidgetUsecaseProtocol`·`WidgetUsecaseImpl`)
+- Usecase는 Repository와 Session을 생성자로 받고, RxSwift `Single`·`Observable`을 반환해요. `WidgetUsecaseImpl`은 결과를 기다릴 필요가 없는 위젯 저장소 작업이라 반환값이 없고, 자체 직렬 큐에서 순서대로 처리해요.
 
 ### Data: 계약 구현과 외부 SDK
 
 - `Data/Sources/*Manager.swift`: `FirebaseAuthManager`(Realtime Database CRUD·그룹·FCM·observe), `FirebaseStorageManager`, `KakaoLoginManager`, `AppleLoginManager`. 각 Manager는 자신의 프로토콜을 함께 정의해요.
 - `Data/Sources/Dto/`: `UserDTO`, `HCGroupDTO`, `PostDTO`, `CommentDTO`와 `toModel()`·`toDTO()` 변환. 읽기 결과의 `toModel()`은 주로 `FirebaseAuthManager`에서 호출해요.
-- `Data/Sources/RepositoryImpl/`: `AuthRepositoryImpl`, `GroupRepositoryImpl`, `AdminRepositoryImpl`
-- 별도의 Infrastructure 계층은 없어요. 외부 SDK 래퍼는 Data에, UserDefaults 저장소는 Core의 `Session/Storage`에 있어요.
+- `Data/Sources/RepositoryImpl/`: `AuthRepositoryImpl`, `GroupRepositoryImpl`, `AdminRepositoryImpl`. `WidgetRepositoryProtocol`의 구현은 WidgetSupport에 있어요. ([현재 구조의 예외](#현재-구조의-예외) 참고)
+- 별도의 Infrastructure 계층은 없어요. 외부 SDK 래퍼는 Data에, UserDefaults·파일 저장소는 Core의 `Storage`에 있어요.
 
 ### Core와 Shared
 
-- Core: `DIContainer`·`@Dependency`, `SessionContext<Model>`·`UserDefaultsStorage`, `FileStorageProtocol`·`FileStorage`(App Group·Documents·Caches 파일 CRUD), `ViewModelType`, `RefreshableViewController`, `Logger`, `Constants`, `UITestID`, `Extensions+/`
+- Core: `DIContainer`·`@Dependency`, `SessionContext<Model>`, 저장소(`Storage/`), `ViewModelType`, `RefreshableViewController`, `Logger`, `Constants`, `UITestID`, `Extensions+/`
+- Core 저장소: 키로 `Data`를 쓰기·읽기·삭제(CRUD)하는 공통 계약 `StorageType`을 두고, 저장소마다 필요한 기능은 이를 채택한 프로토콜에 더해요. `UserDefaultsStorageProtocol`(+ 값 그대로 `set`·`get`)·`UserDefaultsStorage`, `FileStorageProtocol`(+ 폴더 목록 `contentsOfDirectory`, 존재 확인 `exists`)·`FileStorage`(App Group·Documents·Caches)가 있어요. `SessionContext`는 `StorageType`만 알아서 두 저장소 모두에 저장할 수 있어요. 기본값은 `UserDefaultsStorage`예요.
 - DSKit: 공통 UI 컴포넌트, 색상·폰트 리소스, `ImagePreViewController` 등
 - CollectionViewAdapter: 외부 의존성 없이 `UICollectionView`의 섹션·셀 구성을 선언형으로 다루는 사내 모듈이에요. V2 Feature와 AdminFeature가 사용해요. 화면에서 쓰는 방법은 [화면 그리기](view-rendering.md)를 확인해요.
 - ThirdPartyLibs: 외부 패키지를 한곳에서 링크하는 모듈이에요. 소스의 `@_exported import`는 주석 처리돼 있어 각 파일에서 필요한 라이브러리를 직접 import해요.
-- WidgetSupport: 앱과 위젯이 공유하는 `WidgetSessionStore`, `WidgetPhotoStore`, `WidgetPaths`. 파일은 Core의 `FileStorage`로 App Group 컨테이너에 읽고 써요. 사진 파일 이름 규칙(`<저장 시각>-<식별자>.jpg`)은 `WidgetPhotoStore`만 알고, 앱과 위젯은 `photoIdentifiers`·`latestPhotoData` 같은 API로 읽어요.
+- WidgetSupport: 앱과 위젯이 공유하는 `WidgetSessionStore`, `WidgetPhotoStore`, `WidgetPaths`와 Domain `WidgetRepositoryProtocol`의 구현 `WidgetRepositoryImpl`. 파일은 Core의 `FileStorage`로 App Group 컨테이너에 읽고 써요. 사진 파일 이름 규칙(`<저장 시각>-<식별자>.jpg`)은 `WidgetPhotoStore`만 알고, 앱과 위젯은 `photoIdentifiers`·`latestPhotoData` 같은 API로 읽어요.
 
 ## 의존성 방향과 데이터 흐름
 
@@ -173,6 +174,13 @@ Repository 프로토콜은 Domain에, 구현은 Data에 있어요. Feature는 `A
 
 위 순서는 호출 방향이에요. 응답은 반대로 돌아오지만 Domain이 Data를 import하지는 않아요.
 
+### 홈 화면 위젯 동기화
+
+1. `HomeFeatureBuilder`가 `WidgetUsecaseProtocol`을 resolve해 `FeedReactor`에 넘겨요. 관리자 미리보기(`.adminPreview`)는 다른 그룹을 표시하므로 `nil`을 넘겨 내 위젯을 덮어쓰지 않아요.
+2. `FeedReactor`는 `loadGroup`이 그룹을 내보낼 때마다 `synchronize(postsByDate:)`를 호출해요. 게시물 삭제가 서버에서 성공하면 `removePhoto(of:)`를 호출하고, 남은 게시물로 다시 `synchronize`해요.
+3. `WidgetUsecaseImpl`은 `UserSession`의 사용자를 위젯용으로 저장하고, 오늘 가장 최근 게시물의 사진만 위젯 저장소에 남겨요. 사진이 없으면 내려받아 저장한 뒤 이전 사진을 지우고 위젯 갱신을 요청해요. 다운로드가 끝났을 때 그 게시물이 더 이상 보여야 할 게시물이 아니거나 날짜가 바뀌었으면 저장하지 않아요.
+4. `WidgetRepositoryImpl`(WidgetSupport)이 `WidgetSessionStore`·`WidgetPhotoStore`로 App Group에 쓰고, `URLSession`으로 이미지를 내려받고, `WidgetCenter`로 `PhotoWidget`을 갱신해요. 위젯(`PhotoWidget`)은 같은 저장소에서 오늘 사진을 읽어요.
+
 ## 주요 패턴과 사용 기술
 
 | 패턴 | 적용 위치 | 확인할 파일 |
@@ -210,8 +218,9 @@ SnapKit, Then, GRDB는 사용하지 않아요. 레이아웃은 Auto Layout 코�
 | 예외 | 위치 | 새 코드의 기준 |
 | --- | --- | --- |
 | Domain이 `UIKit`을 import하고 `UIImage`를 API에 사용해요. | `AuthRepositoryProtocol.swift`, `AuthUsecase.swift` 등 | 새 Domain API에는 UIKit 타입을 추가하지 않아요. |
-| HomeFeatureV2가 Data·WidgetSupport를 의존 목록에 두지만 import하지 않아요. | `HomeFeatureV2/Project.swift` | Feature에 Data 의존을 새로 추가하지 않아요. |
-| 위젯 사진 동기화(`WidgetPhotoStore`, `WidgetSessionStore`)가 V1 `HomeViewModel`에만 있어요. App은 V1 HomeFeature를 링크하지 않아요. | `HomeFeature/Sources/Home/HomeViewModel.swift` | V2 흐름(App·Coordinator·HomeFeatureV2)에는 위젯 저장소를 쓰는 코드가 없어요. 위젯 사진이 갱신되지 않을 수 있어요. (확인 필요: 실기기 위젯 동작) |
+| HomeFeatureV2가 Data를 의존 목록에 두지만 import하지 않아요. | `HomeFeatureV2/Project.swift` | Feature에 Data 의존을 새로 추가하지 않아요. |
+| `WidgetRepositoryProtocol`의 구현(`WidgetRepositoryImpl`)이 Data가 아니라 WidgetSupport에 있어요. WidgetSupport는 위젯 익스텐션과 함께 쓰는 정적 framework라서, 동적 framework인 Data가 의존하면 App과 Data 양쪽에 같은 코드가 링크돼요. | `WidgetSupport/Sources/WidgetRepositoryImpl.swift` | 위젯 저장소를 다루는 구현만 WidgetSupport에 두고, 그 밖의 Repository 구현은 Data에 둬요. |
+| V1 `HomeViewModel`이 위젯 저장소(`WidgetPhotoStore`, `WidgetSessionStore`)를 직접 써요. App은 V1 HomeFeature를 링크하지 않아요. | `HomeFeature/Sources/Home/HomeViewModel.swift` | 위젯 동기화는 `WidgetUsecaseProtocol`로 해요. (확인 필요: 실기기 위젯 동작) |
 | V1 `ProfileCoordinator`, `MemberCoordinator`는 컴파일되지만 생성되지 않고, `HomeCoordinator`는 전체 주석 처리돼 있어요. | `Coordinator/Sources` | 새 흐름은 V2 Coordinator에 추가해요. |
 | `AppCoordinator`가 `FirebaseAuth`를 직접 import해 `Auth.auth().currentUser`를 확인해요. | `AppCoordinator.swift` | 새 Coordinator에서 Firebase를 직접 호출하지 않아요. |
 | `MemberCoordinatorV2`, `ProfileCoordinatorV2`가 `childDidFinish`를 호출하지 않아요. | `Coordinator/Sources` | 새 Coordinator는 흐름이 끝나면 `childDidFinish(self)`를 호출해요. |
