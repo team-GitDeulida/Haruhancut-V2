@@ -9,7 +9,7 @@
 | 도구 | simslim 0.12.2 (Homebrew) | `simslim version` |
 | 프로필 | `scripts/simslim/dev.json`(평소 개발), `scripts/simslim/widget.json`(위젯 작업) | 2026-10-10에 simslim 0.12.2에서 형식 검사를 통과했어요. |
 | 지원 런타임 | iOS 18.5 이상은 재부팅해도 설정이 유지돼요. 그보다 낮은 런타임은 부팅할 때마다 다시 적용해요. | simslim README |
-| 기대 효과 | 모든 범주를 끄면 시뮬레이터 1대가 4.0GB에서 0.9GB로 줄었다고 해요(iOS 26.5). 우리 프로필은 일부 범주를 켜 두므로 덜 줄어요. | simslim README. 우리 프로필로 잰 값은 `확인 필요` |
+| 효과 | iPhone 17 (iOS 27.0)에 `dev.json`을 적용하자 메모리가 2.47GB에서 795MB로, 프로세스가 274개에서 111개로 줄었어요. | 2026-10-10, M1 · 16GB, Xcode 27.0, simslim 0.12.2에서 `simslim measure`로 1회 측정 |
 
 simslim은 꺼도 안전하다고 확인된 서비스만 꺼요. 이 허용 목록은 15개 범주, 약 170개 서비스예요. 범주는 `simslim profiles`, 범주 안의 서비스는 `simslim profiles <범주>`로 확인해요.
 
@@ -153,5 +153,4 @@ simslim off 7AD2920B-36F6-4B7A-B3B9-14DEE96A5F74
 ## 확인 필요
 
 - `dev.json`을 적용한 시뮬레이터에서 카카오 로그인, Apple 로그인, 사진 업로드, 알림 권한 창이 동작하는지 아직 확인하지 않았어요. 확인할 대상: iOS 27.0 시뮬레이터에 `dev.json`을 적용하고 앱을 실행해요.
-- 우리 프로필로 줄어든 메모리 값을 아직 재지 않았어요. 확인할 명령: [처음 적용해요](#처음-적용해요) 2단계와 4단계의 `simslim measure`.
 - simslim의 범주별 메모리 수치는 iOS 26.5 기준이에요. iOS 27 런타임에는 허용 목록에 없는 새 서비스가 있을 수 있어요.
