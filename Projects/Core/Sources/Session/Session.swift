@@ -27,7 +27,7 @@ public protocol SessionType {
 
 public final class SessionContext<Model: Codable & Equatable & CustomStringConvertible>: SessionType {
     public typealias SessionChangeHandler = (Model?) -> Void
-    private let storage: UserDefaultsStorageProtocol
+    private let storage: StorageType
     private let storageKey: String
     private var cached: Model?
     // private var onSessionChanged: SessionChangeHandler?
@@ -35,7 +35,7 @@ public final class SessionContext<Model: Codable & Equatable & CustomStringConve
     private var observers: [UUID: SessionChangeHandler] = [:]
     
     public init(
-        storage: UserDefaultsStorageProtocol = UserDefaultsStorage(),
+        storage: StorageType = UserDefaultsStorage(),
         storageKey: String
     ) {
         self.storage = storage
@@ -48,13 +48,17 @@ public final class SessionContext<Model: Codable & Equatable & CustomStringConve
 // MARK: - Private
 private extension SessionContext {
     func loadFromStorage() -> Model? {
-        guard let data: Data = storage.get(forKey: storageKey) else { return nil }
+        guard let data = storage.read(storageKey) else { return nil }
         return try? JSONDecoder().decode(Model.self, from: data)
     }
     
     func saveToStorage(_ model: Model) {
-        let data = try? JSONEncoder().encode(model)
-        storage.set(data, forKey: storageKey)
+        // 인코딩에 실패하면 이전 값이 남지 않도록 지웁니다
+        guard let data = try? JSONEncoder().encode(model) else {
+            storage.remove(storageKey)
+            return
+        }
+        try? storage.write(data, to: storageKey)
     }
 }
 

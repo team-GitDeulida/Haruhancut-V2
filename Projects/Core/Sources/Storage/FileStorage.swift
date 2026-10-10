@@ -24,17 +24,10 @@ import Foundation
 
 /// 기준 폴더 아래의 파일을 읽고 쓰는 저장소 계약입니다.
 ///
-/// 경로는 기준 폴더에서 시작하는 상대 경로입니다. (예: `Photos/family/2026-10-10/photo.jpg`)
-public protocol FileStorageProtocol {
-    /// 파일을 원자적으로 저장합니다. 중간 폴더가 없으면 만듭니다.
-    func write(_ data: Data, to path: String) throws
-
-    /// 파일을 읽습니다. 파일이 없으면 `nil`입니다.
-    func read(_ path: String) -> Data?
-
-    /// 파일이나 폴더를 지웁니다. 없으면 아무 일도 하지 않습니다.
-    func remove(_ path: String)
-
+/// 공통 기능(`StorageType`)의 키는 기준 폴더에서 시작하는 상대 경로입니다.
+/// (예: `Photos/family/2026-10-10/photo.jpg`) `write`는 중간 폴더를 만들고 원자적으로 쓰며,
+/// `remove`는 파일과 폴더를 모두 지웁니다.
+public protocol FileStorageProtocol: StorageType {
     /// 폴더 안 항목의 이름입니다. 숨김 파일은 빼고, 폴더가 없으면 빈 배열입니다.
     func contentsOfDirectory(_ path: String) -> [String]
 

@@ -9,7 +9,7 @@ import Foundation
 
 /*
  [사용법]
- let storage: KeyValueStorage = UserDefaultsStorage()
+ let storage: UserDefaultsStorageProtocol = UserDefaultsStorage()
 
  // 저장
  storage.set("user_123", forKey: "userId")
@@ -24,10 +24,25 @@ import Foundation
  // 삭제
  storage.remove("userId")
  */
-public protocol UserDefaultsStorageProtocol {
+/// UserDefaults에 값을 저장하는 저장소 계약입니다.
+///
+/// 공통 기능(`StorageType`) 위에 UserDefaults가 담을 수 있는 값(문자열, 숫자, 날짜, 데이터 등)을
+/// 그대로 저장·조회하는 기능을 더합니다.
+public protocol UserDefaultsStorageProtocol: StorageType {
     func set<T>(_ value: T?, forKey: String)
     func get<T>(forKey key: String) -> T?
-    func remove(_ key: String)
+}
+
+/// `StorageType`의 데이터 저장·조회를 `set`·`get`으로 제공합니다.
+/// 테스트용 메모리 저장소도 `set`·`get`·`remove`만 구현하면 됩니다.
+public extension UserDefaultsStorageProtocol {
+    func write(_ data: Data, to key: String) {
+        set(data, forKey: key)
+    }
+
+    func read(_ key: String) -> Data? {
+        get(forKey: key)
+    }
 }
 
 public final class UserDefaultsStorage: UserDefaultsStorageProtocol {
