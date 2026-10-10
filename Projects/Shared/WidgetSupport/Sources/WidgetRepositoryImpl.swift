@@ -56,8 +56,11 @@ extension WidgetRepositoryImpl: WidgetRepositoryProtocol {
 
     public func fetchImageData(from url: URL) -> Single<Data> {
         Single.create { [urlSession] observer in
-            let task = urlSession.dataTask(with: url) { data, _, error in
-                if let data {
+            let task = urlSession.dataTask(with: url) { data, response, error in
+                // 403·404 같은 응답의 본문은 이미지가 아니므로 2xx 응답만 성공으로 처리합니다
+                if let data,
+                   let statusCode = (response as? HTTPURLResponse)?.statusCode,
+                   (200..<300).contains(statusCode) {
                     observer(.success(data))
                 } else {
                     observer(.failure(error ?? URLError(.badServerResponse)))
