@@ -123,7 +123,7 @@ Projects/
 - DSKit: 공통 UI 컴포넌트, 색상·폰트 리소스, `ImagePreViewController` 등
 - CollectionViewAdapter: 외부 의존성 없이 `UICollectionView`의 섹션·셀 구성을 선언형으로 다루는 사내 모듈이에요. V2 Feature와 AdminFeature가 사용해요. 화면에서 쓰는 방법은 [화면 그리기](view-rendering.md)를 확인해요.
 - ThirdPartyLibs: 외부 패키지를 한곳에서 링크하는 모듈이에요. 소스의 `@_exported import`는 주석 처리돼 있어 각 파일에서 필요한 라이브러리를 직접 import해요.
-- WidgetSupport: 앱과 위젯이 공유하는 `WidgetSessionStore`, `WidgetPhotoStore`, `WidgetPaths`
+- WidgetSupport: 앱과 위젯이 공유하는 `WidgetSessionStore`, `WidgetPhotoStore`, `WidgetPaths`. 앱에서는 `HomeFeatureV2`의 `FeedWidgetSynchronizer`가 그룹을 불러오거나 게시물을 지울 때 위젯용 사용자와 오늘 사진을 저장·삭제하고, 위젯(`PhotoWidget`)이 이를 읽어요. 관리자 미리보기(`adminPreview`)에서는 동기화하지 않아요.
 
 ## 의존성 방향과 데이터 흐름
 
