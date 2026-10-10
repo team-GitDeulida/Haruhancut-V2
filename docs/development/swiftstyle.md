@@ -101,7 +101,7 @@ import UIKit
 | 타입 파일 | 주요 타입 하나당 한 파일, 타입 이름과 같게 | `MemberViewModel.swift` |
 | extension 파일 | `<타입>+<주제>.swift` 또는 `<타입>+.swift` | `AppDelegate+FCM.swift`, `SceneDelegate+UITests.swift`, `Date+.swift` |
 | CollectionViewAdapter | 읽는 순서를 번호로 붙여요. | `5. Component.swift`, `18. CollectionViewAdapter.swift` |
-| 사용하지 않는 이전 구현 | `Legacy` 접미사 | `UserSessionLegacy2.swift`, `CalendarCellLegacy.swift` |
+| 사용하지 않는 이전 구현 | `Legacy` 접미사 | `HomeViewModelLegacy.swift`, `CalendarCellLegacy.swift` |
 | DTO | 파일은 `Dto`, 타입은 `DTO` | `UserDto.swift` 안의 `UserDTO` |
 
 ---
@@ -186,8 +186,8 @@ UIView.animate(
 | --- | --- | --- |
 | Usecase | `Usecase`(소문자 c)로 써요. 변수 이름은 `authUseCase`처럼 섞여 있어요. | `AuthUsecaseProtocol`, `AuthUsecaseImpl` |
 | 구현체 | `Impl` 접미사 | `GroupUsecaseImpl`, `GroupRepositoryImpl` |
-| Domain·Data·Core 계약 | `Protocol` 접미사 | `AuthRepositoryProtocol`, `FirebaseAuthManagerProtocol`, `StorageProtocol` |
-| 공통 역할 계약 | `Type` 접미사 | `ViewModelType`, `SessionType` |
+| Domain·Data·Core 계약 | `Protocol` 접미사 | `AuthRepositoryProtocol`, `FirebaseAuthManagerProtocol`, `StorageProtocol`, `SessionProtocol` |
+| 공통 역할 계약 | `Type` 접미사 | `ViewModelType` |
 | Feature Builder | `<X>FeatureBuildable` + `<X>FeatureBuilder` | `MemberFeatureBuildable`, `MemberFeatureBuilder` |
 | 화면 이동 계약 | `<X>RouteTrigger` | `SignInRouteTrigger`, `HomeRouteTrigger` |
 | Builder 반환 타입 | `<X>Presentable`, `<X>ViewModelType` | `MemberPresentable` |
