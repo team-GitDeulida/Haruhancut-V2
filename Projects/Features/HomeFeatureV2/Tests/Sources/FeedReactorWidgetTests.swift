@@ -130,15 +130,15 @@ private final class SpyWidgetUsecase: WidgetUsecaseProtocol {
     }
 }
 
-private final class InMemoryStorage: UserDefaultsStorageProtocol {
-    private var values: [String: Any] = [:]
+private final class InMemoryStorage: StorageType {
+    private var values: [String: Data] = [:]
 
-    func set<T>(_ value: T?, forKey: String) {
-        values[forKey] = value
+    func write(_ data: Data, to key: String) {
+        values[key] = data
     }
 
-    func get<T>(forKey key: String) -> T? {
-        values[key] as? T
+    func read(_ key: String) -> Data? {
+        values[key]
     }
 
     func remove(_ key: String) {

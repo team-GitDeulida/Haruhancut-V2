@@ -43,7 +43,7 @@ final class SessionStorageTests: XCTestCase {
         XCTAssertFalse(storage.exists("Session/profile.json"))
     }
 
-    func test_session_persistsAndRestores_withUserDefaultsStorageProtocolFake() {
+    func test_session_persistsAndRestores_withInMemoryStorage() {
         let storage = FakeUserDefaultsStorage()
         SessionContext<Profile>(storage: storage, storageKey: "profile").update(Profile(id: "1"))
 
