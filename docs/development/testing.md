@@ -67,7 +67,7 @@ xcodebuild test \
 | --- | --- |
 | `Core` | 8개 테스트 통과 |
 | `HomeFeatureV2` | 9개 테스트 통과 |
-| `CollectionViewAdapter` | 40개 테스트 통과 |
+| `CollectionViewAdapter` | 42개 테스트 통과 (2026-10-09, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `MemberFeatureV2` | 9개 테스트 통과 |
 | `ProfileFeatureV2` | 3개 테스트 통과 |
 | `AdminFeature` | 5개 테스트 통과 |
