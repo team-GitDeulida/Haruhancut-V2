@@ -96,9 +96,9 @@ public final class WidgetPhotoStore {
         guard let storage else { return }
         let directory = WidgetPaths.photosDirectory(groupId: groupId, dateKey: dateKey)
         
-        // identifier 포함 파일 찾기
-        for fileName in storage.contentsOfDirectory(directory)
-        where fileName.hasSuffix("\(identifier)\(Self.fileExtension)") {
+        // identifier가 정확히 같은 파일 찾기 (끝부분만 같은 다른 사진은 지우지 않습니다)
+        for fileName in photoFileNames(groupId: groupId, dateKey: dateKey)
+        where Self.identifier(fromFileName: fileName) == identifier {
             // 파일 삭제
             storage.remove(directory + "/" + fileName)
             print("[🟢] [WidgetPhotoStore] deleted -> \(fileName)")
