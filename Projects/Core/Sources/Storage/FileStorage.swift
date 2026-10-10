@@ -25,7 +25,7 @@ import Foundation
 ///
 /// 키는 기준 폴더에서 시작하는 상대 경로입니다. (예: `Photos/family/2026-10-10/photo.jpg`)
 /// 기준 폴더는 App Group·Documents·Caches 중에서 고르거나 직접 넘깁니다.
-/// 빈 경로(기준 폴더 자체)와 `..`가 들어 있어 기준 폴더 밖을 가리킬 수 있는 경로는 거부합니다.
+/// 기준 폴더 자체를 가리키는 경로(빈 경로, `.`)와 `..`가 들어 있어 기준 폴더 밖을 가리킬 수 있는 경로는 거부합니다.
 /// `write`는 오류를 던지고, 나머지는 값이 없는 것처럼 동작합니다.(`nil`, `false`, 빈 배열, 아무 일도 하지 않음)
 public final class FileStorage {
 
@@ -144,10 +144,13 @@ public extension FileStorage {
 
 // MARK: - Private
 private extension FileStorage {
-    /// 상대 경로를 기준 폴더 아래의 URL로 바꿉니다.
-    /// 빈 경로는 기준 폴더 자체를, `..`는 기준 폴더 밖을 가리킬 수 있어 `nil`입니다.
+    /// 상대 경로를 기준 폴더 아래의 URL로 바꿉니다. `.`는 현재 폴더라 건너뜁니다.
+    /// 남은 경로가 비면 기준 폴더 자체를, `..`는 기준 폴더 밖을 가리킬 수 있어 `nil`입니다.
     func url(for path: String) -> URL? {
-        let components = path.split(separator: "/").map(String.init)
+        let components = path
+            .split(separator: "/")
+            .map(String.init)
+            .filter { $0 != "." }
         guard !components.isEmpty, !components.contains("..") else { return nil }
         return components.reduce(baseURL) { url, component in
             url.appendingPathComponent(component)
