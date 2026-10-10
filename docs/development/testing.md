@@ -69,7 +69,7 @@ xcodebuild test \
 
 | 스킴 | 로컬 확인 (2026-09-30, Xcode 26.4, iPhone 16 Pro Max / iOS 26.0) |
 | --- | --- |
-| `Core` | 23개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `Core` | 24개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `Domain` | 11개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `WidgetSupport` | 13개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `HomeFeatureV2` | 12개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |

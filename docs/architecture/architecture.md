@@ -122,7 +122,7 @@ Projects/
 - Core: `DIContainer`·`@Dependency`, `SessionContext<Model>`, 저장소(`Storage/`), `ViewModelType`, `RefreshableViewController`, `Logger`, `Constants`, `UITestID`, `Extensions+/`
 - Core 저장소: 키로 값을 쓰기·읽기·삭제(CRUD)하는 프로토콜 `StorageProtocol` 하나를 둬요.
   - `write<T: Encodable>(_:to:)`·`read<T: Decodable>(_:) -> T?`·`remove(_:)`예요. `Data`는 그대로 저장하고, 그 밖의 값은 기본 `JSONEncoder`로 바꿔 저장해요. 읽을 타입은 받는 쪽 타입으로 정해요. (`let user: User? = storage.read(key)`)
-  - 구현체는 `UserDefaultsStorage`(UserDefaults 키)와 `FileStorage`(App Group·Documents·Caches 기준 폴더의 상대 경로)예요. UserDefaults의 suite나 파일 기준 폴더는 생성자로 바꿔요. `FileStorage`는 `..`가 들어 있어 기준 폴더 밖을 가리킬 수 있는 경로를 거부해요.
+  - 구현체는 `UserDefaultsStorage`(UserDefaults 키)와 `FileStorage`(App Group·Documents·Caches 기준 폴더의 상대 경로)예요. UserDefaults의 suite나 파일 기준 폴더는 생성자로 바꿔요. `FileStorage`는 빈 경로(기준 폴더 자체)와 `..`가 들어 있어 기준 폴더 밖을 가리킬 수 있는 경로를 거부해요.
   - 저장소에만 필요한 기능은 구현체 익스텐션에 더해요. (`FileStorage`의 `contentsOfDirectory`·`exists`)
   - 쓰는 쪽은 CRUD만 필요하면 `StorageProtocol`에 의존해요. (`SessionContext`, `WidgetSessionStore`) 추가 기능이 필요하면 구현체에 의존해요. (`WidgetPhotoStore` → `FileStorage`)
   - 테스트·Demo의 메모리 저장소는 `StorageProtocol`을 직접 채택해요.
