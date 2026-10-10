@@ -16,7 +16,7 @@
 
 | 스킴 | 테스트 타깃 | 대상 | 외부 의존 | CI 실행 |
 | --- | --- | --- | --- | --- |
-| `Core` | `CoreTests` | `SessionContext`(공통 저장소 계약 `StorageType`으로 저장), `UserDefaultsStorage`, `FileStorage` | 없음 | 실행 |
+| `Core` | `CoreTests` | `SessionContext`(`StorageProtocol`로 저장), `UserDefaultsStorage`, `FileStorage` | 없음 | 실행 |
 | `Data` | `DataTests` | `FirebaseAuthManager`의 FCM 토큰 생성(토큰 제공자 주입), DTO 변환 | 없음 | 실행 |
 | `App` | `AppTests`, `AppUITests` | FCM 토큰 동기화, Firebase 사용자 조회 통합 테스트(`DataIntegrationTests`), 홈 업로드·삭제 UI 흐름 | **실제 Firebase** | 실행 |
 | `Domain` | `DomainTests` | 위젯 동기화 Usecase(`WidgetUsecaseImpl`) | 없음 | 실행하지 않음 |
@@ -69,7 +69,7 @@ xcodebuild test \
 
 | 스킴 | 로컬 확인 (2026-09-30, Xcode 26.4, iPhone 16 Pro Max / iOS 26.0) |
 | --- | --- |
-| `Core` | 21개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `Core` | 22개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `Domain` | 11개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `WidgetSupport` | 13개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `HomeFeatureV2` | 12개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
@@ -169,7 +169,7 @@ Firebase 에뮬레이터는 사용하지 않아요.
 ## 테스트를 작성해요
 
 - 테스트 대상은 생성자에 Stub을 넣어 직접 만들어요. `DIContainer`에 등록하지 않아요. (예외: `FeedReactorWidgetTests`는 `FeedReactor`가 `@Dependency`로 꺼내는 세션과 `AuthUsecaseProtocol`을 등록해요.) 자세한 내용은 [DI Container](../architecture/dicontainer.md#교체-demo와-테스트)를 확인해요.
-- Session은 공통 저장소 계약 `StorageType`(`write`·`read`·`remove`)을 따르는 메모리 저장소로 만들어요. (예: `Core/Tests/Sources/Mocks/FakeUserDefaultsStorage.swift`)
+- Session은 공통 저장소 계약 `StorageProtocol`(`write`·`read`·`remove`)을 따르는 메모리 저장소로 만들어요. (예: `Core/Tests/Sources/Mocks/FakeUserDefaultsStorage.swift`)
 - 테스트 대역은 테스트 파일 안에 `private` 타입으로 두는 경우가 많아요. 이름은 `Fake*`, `*Stub`, `Test*`, `Dummy*`가 섞여 있어요.
 - 테스트 대상 생성은 `makeSUT(...)` 헬퍼로 모아요. (예: `FCMTokenSyncTests`)
 - `Single`은 `async throws` 테스트에서 `try await single.value`로 기다려요. `Observable` 출력은 `XCTestExpectation`과 `DisposeBag`으로 확인해요.

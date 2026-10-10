@@ -120,11 +120,12 @@ Projects/
 ### Core와 Shared
 
 - Core: `DIContainer`·`@Dependency`, `SessionContext<Model>`, 저장소(`Storage/`), `ViewModelType`, `RefreshableViewController`, `Logger`, `Constants`, `UITestID`, `Extensions+/`
-- Core 저장소: 키로 `Data`를 쓰기·읽기·삭제(CRUD)하는 공통 계약 `StorageType`을 둬요.
-  - 저장 방식별 CRUD는 `StorageType`을 채택한 프로토콜의 익스텐션에 미리 구현돼 있어요. `UserDefaultsStorageType`은 `defaults`만, `FileStorageType`은 `baseURL`·`fileManager`만 제공하면 돼요.
-  - 구현체 `UserDefaultsStorage`·`FileStorage`(App Group·Documents·Caches)는 이를 채택하고, 저장소에만 필요한 기능은 구현체 익스텐션에 더해요. (`UserDefaultsStorage`의 값 그대로 `set`·`get`, `FileStorage`의 `contentsOfDirectory`·`exists`)
-  - 쓰는 쪽은 CRUD만 필요하면 `StorageType`에 의존해요. (`SessionContext`, `WidgetSessionStore`) 추가 기능이 필요하면 구현체에 의존해요. (`WidgetPhotoStore` → `FileStorage`)
-  - 테스트·Demo의 메모리 저장소는 `StorageType`을 직접 채택해요.
+- Core 저장소: 키로 값을 쓰기·읽기·삭제(CRUD)하는 프로토콜 `StorageProtocol` 하나를 둬요.
+  - `write<T: Encodable>(_:to:)`·`read<T: Decodable>(_:) -> T?`·`remove(_:)`예요. `Data`는 그대로 저장하고, 그 밖의 값은 기본 `JSONEncoder`로 바꿔 저장해요. 읽을 타입은 받는 쪽 타입으로 정해요. (`let user: User? = storage.read(key)`)
+  - 구현체는 `UserDefaultsStorage`(UserDefaults 키)와 `FileStorage`(App Group·Documents·Caches 기준 폴더의 상대 경로)예요. UserDefaults의 suite나 파일 기준 폴더는 생성자로 바꿔요.
+  - 저장소에만 필요한 기능은 구현체 익스텐션에 더해요. (`FileStorage`의 `contentsOfDirectory`·`exists`)
+  - 쓰는 쪽은 CRUD만 필요하면 `StorageProtocol`에 의존해요. (`SessionContext`, `WidgetSessionStore`) 추가 기능이 필요하면 구현체에 의존해요. (`WidgetPhotoStore` → `FileStorage`)
+  - 테스트·Demo의 메모리 저장소는 `StorageProtocol`을 직접 채택해요.
 - DSKit: 공통 UI 컴포넌트, 색상·폰트 리소스, `ImagePreViewController` 등
 - CollectionViewAdapter: 외부 의존성 없이 `UICollectionView`의 섹션·셀 구성을 선언형으로 다루는 사내 모듈이에요. V2 Feature와 AdminFeature가 사용해요. 화면에서 쓰는 방법은 [화면 그리기](view-rendering.md)를 확인해요.
 - ThirdPartyLibs: 외부 패키지를 한곳에서 링크하는 모듈이에요. 소스의 `@_exported import`는 주석 처리돼 있어 각 파일에서 필요한 라이브러리를 직접 import해요.

@@ -186,8 +186,8 @@ UIView.animate(
 | --- | --- | --- |
 | Usecase | `Usecase`(소문자 c)로 써요. 변수 이름은 `authUseCase`처럼 섞여 있어요. | `AuthUsecaseProtocol`, `AuthUsecaseImpl` |
 | 구현체 | `Impl` 접미사 | `GroupUsecaseImpl`, `GroupRepositoryImpl` |
-| Domain·Data 계약 | `Protocol` 접미사 | `AuthRepositoryProtocol`, `FirebaseAuthManagerProtocol` |
-| 공통 역할 계약 | `Type` 접미사 | `ViewModelType`, `SessionType`, `StorageType` |
+| Domain·Data·Core 계약 | `Protocol` 접미사 | `AuthRepositoryProtocol`, `FirebaseAuthManagerProtocol`, `StorageProtocol` |
+| 공통 역할 계약 | `Type` 접미사 | `ViewModelType`, `SessionType` |
 | Feature Builder | `<X>FeatureBuildable` + `<X>FeatureBuilder` | `MemberFeatureBuildable`, `MemberFeatureBuilder` |
 | 화면 이동 계약 | `<X>RouteTrigger` | `SignInRouteTrigger`, `HomeRouteTrigger` |
 | Builder 반환 타입 | `<X>Presentable`, `<X>ViewModelType` | `MemberPresentable` |
@@ -223,6 +223,10 @@ UIView.animate(
 - 읽기만 공개할 값은 `private(set)`을 사용해요. (`public private(set) weak var collectionView`)
 - `private extension`과 `public extension`을 모두 사용해요. (`Session.swift`, `FeedReactor.swift`, `HomeV2Coordinator.swift`)
 - 스타일 A는 프로토콜 채택을 `extension`으로 분리하는 경우가 많고(`extension AuthUsecaseImpl`), 스타일 B는 타입 선언에 함께 적어요.
+- 새로 만드는 구현체는 사용하는 쪽이 extension만 읽으면 되도록 나눠요. (예: `FileStorage`, `WidgetRepositoryImpl`, `WidgetUsecaseImpl`)
+  - 타입 본문: `private` 상태와 지정 생성자만 둬요. 클래스의 지정 생성자는 extension에 둘 수 없어요.
+  - `public` extension 또는 프로토콜 채택 extension: 다른 곳에서 쓰는 메서드, 편의 생성자, 중첩 타입을 둬요.
+  - `private extension`: 그 타입 안에서만 쓰는 기능을 둬요.
 
 ### `self` 사용
 
@@ -304,6 +308,7 @@ let collectionView: UICollectionView = {
 ### 주석
 
 - 공개 API와 Builder·RouteTrigger에는 `///` 문서 주석을 달아요. (`/// Member 화면에서 Coordinator로 전달하는 이동 이벤트입니다.`)
+- 프로토콜에는 문서 주석이 필수예요. 프로토콜 선언, 각 요구사항, 프로토콜 익스텐션의 메서드에 한 줄 이상 `///` 주석을 달아요. 구현체 메서드에는 달지 않아도 돼요.
 - 문서 주석은 합쇼체로 써요.
 - 사용하지 않는 코드를 주석으로 남긴 곳이 많아요. 새 코드에서는 주석 처리 대신 삭제하고 Git 이력으로 추적해요.
 

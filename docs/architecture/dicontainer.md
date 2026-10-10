@@ -172,7 +172,7 @@ let sut = AuthUsecaseImpl(
 )
 ```
 
-- Session은 공통 저장소 계약 `StorageType`을 따르는 메모리 저장소(`FakeUserDefaultsStorage`, `FCMTokenSyncTestStorage`)로 만들어요. 임시 폴더의 `FileStorage`도 넣을 수 있어요.
+- Session은 공통 저장소 계약 `StorageProtocol`을 따르는 메모리 저장소(`FakeUserDefaultsStorage`, `FCMTokenSyncTestStorage`)로 만들어요. 임시 폴더의 `FileStorage`도 넣을 수 있어요.
 - `@Dependency` 프로퍼티를 가진 타입을 테스트하려면 먼저 `DIContainer.shared`에 등록해야 하므로, 테스트할 타입은 생성자 주입으로 만들어요.
 
 ## 새 의존성을 추가하는 순서
