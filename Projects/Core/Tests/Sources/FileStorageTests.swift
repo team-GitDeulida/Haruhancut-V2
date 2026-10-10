@@ -112,10 +112,10 @@ final class FileStorageTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: outside), Data("outside".utf8))
     }
 
-    func test_emptyPath_doesNotTouchBaseFolder() throws {
+    func test_pathPointingAtBaseFolder_doesNotTouchIt() throws {
         try sut.write(Data("keep".utf8), to: "Photos/keep.jpg")
 
-        for path in ["", "/", "//"] {
+        for path in ["", "/", "//", ".", "./", "./."] {
             XCTAssertThrowsError(try sut.write(Data(), to: path))
             XCTAssertNil(sut.read(path) as Data?)
             XCTAssertFalse(sut.exists(path))
@@ -124,6 +124,8 @@ final class FileStorageTests: XCTestCase {
         }
 
         XCTAssertEqual(sut.read("Photos/keep.jpg"), Data("keep".utf8))
+        // `.`는 건너뛰므로 같은 파일을 가리킵니다
+        XCTAssertEqual(sut.read("./Photos/./keep.jpg"), Data("keep".utf8))
     }
 
     func test_locationInit_findsSandboxDirectories() {
