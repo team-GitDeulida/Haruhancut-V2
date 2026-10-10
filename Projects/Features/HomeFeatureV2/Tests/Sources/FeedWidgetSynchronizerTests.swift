@@ -4,114 +4,133 @@ import XCTest
 
 final class FeedWidgetSynchronizerTests: XCTestCase {
     private let groupID = "group"
+    private var store: FakeFeedWidgetStore!
+    private var loader: FakeImageDataLoader!
+    private var sut: FeedWidgetSynchronizer!
+
+    override func setUp() {
+        super.setUp()
+        store = FakeFeedWidgetStore()
+        loader = FakeImageDataLoader()
+        sut = FeedWidgetSynchronizer(
+            store: store,
+            loadImageData: loader.load,
+            workQueue: DispatchQueue(label: "FeedWidgetSynchronizerTests")
+        )
+    }
 
     func testSynchronizeSavesUserAndLatestTodayPhoto() {
-        let store = FakeFeedWidgetStore()
-        let loader = FakeImageDataLoader()
-        let sut = makeSUT(store: store, loader: loader)
-        let latestPost = makePost(id: "latest", createdAt: todayAt(minutes: 2))
+        let latest = makePost(id: "latest", minutes: 2)
 
-        sut.synchronize(
-            user: makeWidgetTestUser(groupID: groupID),
-            postsByDate: [
-                "yesterday": [makePost(id: "yesterday", createdAt: yesterday())],
-                "today": [
-                    makePost(id: "older", createdAt: todayAt(minutes: 1)),
-                    latestPost,
-                ],
-            ]
-        )
-
+        synchronize([
+            makePost(id: "yesterday", createdAt: yesterday()),
+            makePost(id: "older", minutes: 1),
+            latest,
+        ])
         XCTAssertEqual(store.savedUserIDs, ["user"])
-        XCTAssertEqual(loader.requestedURLs, [URL(string: latestPost.imageURL)])
-        XCTAssertEqual(store.savedPhotos, [.init(groupId: groupID, identifier: "latest")])
+        XCTAssertEqual(loader.requestedURLs, [URL(string: latest.imageURL)!])
+
+        completeDownloads()
+
+        XCTAssertEqual(store.todayIdentifiers, ["latest"])
         XCTAssertEqual(store.reloadCount, 1)
     }
 
     func testSynchronizeSkipsDownloadWhenPhotoIsAlreadySaved() {
-        let latestPost = makePost(id: "latest", createdAt: todayAt(minutes: 2))
-        let store = FakeFeedWidgetStore()
-        store.existingPhotos = [
-            .init(
-                groupId: groupID,
-                dateKey: FeedWidgetSynchronizer.dateKey(of: latestPost),
-                identifier: "latest"
-            ),
-        ]
-        let loader = FakeImageDataLoader()
-        let sut = makeSUT(store: store, loader: loader)
+        store.todayIdentifiers = ["latest"]
 
-        sut.synchronize(
-            user: makeWidgetTestUser(groupID: groupID),
-            postsByDate: ["today": [latestPost]]
-        )
+        synchronize([makePost(id: "latest", minutes: 2)])
 
-        XCTAssertEqual(store.savedUserIDs, ["user"])
         XCTAssertTrue(loader.requestedURLs.isEmpty)
-        XCTAssertTrue(store.savedPhotos.isEmpty)
+        XCTAssertEqual(store.todayIdentifiers, ["latest"])
         XCTAssertEqual(store.reloadCount, 0)
     }
 
-    func testSynchronizeSavesOnlyUserWhenThereIsNoTodayPost() {
-        let store = FakeFeedWidgetStore()
-        let loader = FakeImageDataLoader()
-        let sut = makeSUT(store: store, loader: loader)
+    func testSynchronizeReplacesOutdatedPhotoAfterNewPhotoIsSaved() {
+        store.todayIdentifiers = ["older"]
 
-        sut.synchronize(
-            user: makeWidgetTestUser(groupID: groupID),
-            postsByDate: ["yesterday": [makePost(id: "yesterday", createdAt: yesterday())]]
-        )
+        synchronize([makePost(id: "older", minutes: 1), makePost(id: "latest", minutes: 2)])
+        // 새 사진을 저장하기 전까지 기존 사진을 유지합니다.
+        XCTAssertEqual(store.todayIdentifiers, ["older"])
+
+        completeDownloads()
+
+        XCTAssertEqual(store.todayIdentifiers, ["latest"])
+        XCTAssertEqual(store.reloadCount, 1)
+    }
+
+    func testStaleCachedPostIsNotSavedAfterServerResult() {
+        store.todayIdentifiers = ["server-latest"]
+
+        // 캐시에는 다른 기기에서 지운 게시물이 최신으로 남아 있습니다.
+        synchronize([makePost(id: "deleted-elsewhere", minutes: 3)])
+        // 서버 결과에는 이미 저장된 게시물이 최신입니다.
+        synchronize([makePost(id: "server-latest", minutes: 2)])
+        completeDownloads()
+
+        XCTAssertEqual(store.todayIdentifiers, ["server-latest"])
+    }
+
+    func testPhotoDeletedDuringDownloadIsNotSaved() {
+        let post = makePost(id: "deleted", minutes: 2)
+
+        synchronize([post])
+        sut.removePhoto(of: post, user: makeWidgetTestUser(groupID: groupID))
+        synchronize([])
+        completeDownloads()
+
+        XCTAssertTrue(store.todayIdentifiers.isEmpty)
+    }
+
+    func testSynchronizeDoesNotDownloadSamePostTwiceWhileLoading() {
+        let latest = makePost(id: "latest", minutes: 2)
+
+        synchronize([latest])
+        synchronize([latest])
+
+        XCTAssertEqual(loader.requestedURLs.count, 1)
+    }
+
+    func testSynchronizeRemovesTodayPhotosWhenThereIsNoTodayPost() {
+        store.todayIdentifiers = ["deleted-elsewhere"]
+
+        synchronize([makePost(id: "yesterday", createdAt: yesterday())])
 
         XCTAssertEqual(store.savedUserIDs, ["user"])
         XCTAssertTrue(loader.requestedURLs.isEmpty)
-        XCTAssertEqual(store.reloadCount, 0)
+        XCTAssertTrue(store.todayIdentifiers.isEmpty)
+        XCTAssertEqual(store.reloadCount, 1)
     }
 
     func testSynchronizeDoesNothingWithoutGroup() {
-        let store = FakeFeedWidgetStore()
-        let loader = FakeImageDataLoader()
-        let sut = makeSUT(store: store, loader: loader)
-
         sut.synchronize(
             user: makeWidgetTestUser(groupID: nil),
-            postsByDate: ["today": [makePost(id: "latest", createdAt: todayAt(minutes: 2))]]
+            postsByDate: ["today": [makePost(id: "latest", minutes: 2)]]
         )
+        sut.waitUntilIdle()
 
         XCTAssertTrue(store.savedUserIDs.isEmpty)
         XCTAssertTrue(loader.requestedURLs.isEmpty)
     }
 
     func testSynchronizeDoesNotSaveWhenDownloadFails() {
-        let store = FakeFeedWidgetStore()
-        let loader = FakeImageDataLoader(data: nil)
-        let sut = makeSUT(store: store, loader: loader)
+        synchronize([makePost(id: "latest", minutes: 2)])
+        completeDownloads(with: nil)
 
-        sut.synchronize(
-            user: makeWidgetTestUser(groupID: groupID),
-            postsByDate: ["today": [makePost(id: "latest", createdAt: todayAt(minutes: 2))]]
-        )
-
-        XCTAssertTrue(store.savedPhotos.isEmpty)
+        XCTAssertTrue(store.todayIdentifiers.isEmpty)
         XCTAssertEqual(store.reloadCount, 0)
     }
 
     func testRemovePhotoDeletesPostPhotoAndReloadsWidget() {
-        let store = FakeFeedWidgetStore()
-        let sut = makeSUT(store: store, loader: FakeImageDataLoader())
-        let post = makePost(id: "deleted", createdAt: todayAt(minutes: 1))
+        store.todayIdentifiers = ["deleted"]
 
-        sut.removePhoto(of: post, user: makeWidgetTestUser(groupID: groupID))
-
-        XCTAssertEqual(
-            store.deletedPhotos,
-            [
-                .init(
-                    groupId: groupID,
-                    dateKey: FeedWidgetSynchronizer.dateKey(of: post),
-                    identifier: "deleted"
-                ),
-            ]
+        sut.removePhoto(
+            of: makePost(id: "deleted", minutes: 1),
+            user: makeWidgetTestUser(groupID: groupID)
         )
+        sut.waitUntilIdle()
+
+        XCTAssertTrue(store.todayIdentifiers.isEmpty)
         XCTAssertEqual(store.reloadCount, 1)
     }
 
@@ -120,15 +139,25 @@ final class FeedWidgetSynchronizerTests: XCTestCase {
         XCTAssertNil(FeedWidgetSynchronizer.make(for: .adminPreview(groupID: "other-group")))
     }
 
-    private func makeSUT(
-        store: FakeFeedWidgetStore,
-        loader: FakeImageDataLoader
-    ) -> FeedWidgetSynchronizer {
-        FeedWidgetSynchronizer(store: store, loadImageData: loader.load)
+    private func synchronize(_ posts: [Post]) {
+        sut.synchronize(
+            user: makeWidgetTestUser(groupID: groupID),
+            postsByDate: ["posts": posts]
+        )
+        sut.waitUntilIdle()
     }
 
-    private func todayAt(minutes: Int) -> Date {
-        Calendar.current.startOfDay(for: .now).addingTimeInterval(TimeInterval(minutes * 60))
+    private func completeDownloads(with data: Data? = Data([0x01])) {
+        loader.completeAll(with: data)
+        sut.waitUntilIdle()
+    }
+
+    private func makePost(id: String, minutes: Int) -> Post {
+        makePost(
+            id: id,
+            createdAt: Calendar.current.startOfDay(for: .now)
+                .addingTimeInterval(TimeInterval(minutes * 60))
+        )
     }
 
     private func yesterday() -> Date {
@@ -162,50 +191,63 @@ func makeWidgetTestUser(groupID: String?) -> User {
     )
 }
 
+/// 오늘 날짜 폴더 하나만 흉내 내는 위젯 저장소입니다.
 private final class FakeFeedWidgetStore: FeedWidgetStoring {
-    struct Photo: Equatable {
-        var groupId: String
-        var dateKey: String? = nil
-        var identifier: String
-    }
-
-    var existingPhotos: [Photo] = []
+    /// 오늘 폴더에 저장된 사진의 식별자입니다.
+    var todayIdentifiers: [String] = []
     private(set) var savedUserIDs: [String] = []
-    private(set) var savedPhotos: [Photo] = []
-    private(set) var deletedPhotos: [Photo] = []
     private(set) var reloadCount = 0
 
     func saveUser(_ user: User) {
         savedUserIDs.append(user.uid)
     }
 
-    func hasPhoto(groupId: String, dateKey: String, identifier: String) -> Bool {
-        existingPhotos.contains(Photo(groupId: groupId, dateKey: dateKey, identifier: identifier))
+    func photoIdentifiers(groupId _: String, dateKey: String) -> [String] {
+        dateKey == todayKey ? todayIdentifiers : []
     }
 
-    func savePhoto(data _: Data, groupId: String, identifier: String) throws {
-        savedPhotos.append(Photo(groupId: groupId, identifier: identifier))
+    func savePhoto(data _: Data, groupId _: String, identifier: String) throws {
+        todayIdentifiers.append(identifier)
     }
 
-    func deletePhoto(groupId: String, dateKey: String, identifier: String) {
-        deletedPhotos.append(Photo(groupId: groupId, dateKey: dateKey, identifier: identifier))
+    func deletePhoto(groupId _: String, dateKey: String, identifier: String) {
+        guard dateKey == todayKey else { return }
+        todayIdentifiers.removeAll { $0 == identifier }
     }
 
     func reloadWidget() {
         reloadCount += 1
     }
+
+    private var todayKey: String {
+        FeedWidgetSynchronizer.dateKey(
+            of: Post(
+                postId: "today",
+                userId: "user",
+                nickname: "user",
+                profileImageURL: nil,
+                imageURL: "",
+                createdAt: .now,
+                likeCount: 0,
+                comments: [:]
+            )
+        )
+    }
 }
 
+/// 다운로드 완료 시점을 테스트가 정하는 이미지 로더입니다.
 private final class FakeImageDataLoader {
-    private let data: Data?
-    private(set) var requestedURLs: [URL?] = []
-
-    init(data: Data? = Data([0x01])) {
-        self.data = data
-    }
+    private(set) var requestedURLs: [URL] = []
+    private var completions: [(Data?) -> Void] = []
 
     func load(url: URL, completion: @escaping (Data?) -> Void) {
         requestedURLs.append(url)
-        completion(data)
+        completions.append(completion)
+    }
+
+    func completeAll(with data: Data?) {
+        let pending = completions
+        completions.removeAll()
+        pending.forEach { $0(data) }
     }
 }
