@@ -141,8 +141,8 @@ jobs:
             tuist generate --no-open --cache-profile none
           fi
 
-      # 시뮬레이터는 미리 부팅하지 않는다. 부팅 직후 몇 분 동안 함께 돌던 캐시 복원·프로젝트 생성·빌드가
-      # 크게 느려져 테스트 단계에서 줄인 시간보다 더 잃었다(#103). 부팅은 test-without-building이 맡는다.
+      # 시뮬레이터는 빌드 전에 부팅하지 않는다. 부팅 직후 몇 분 동안 함께 돌던 캐시 복원·프로젝트 생성·빌드가
+      # 크게 느려져 테스트 단계에서 줄인 시간보다 더 잃었다(#103). 부팅은 빌드가 끝난 뒤 Slim Simulator 단계가 맡는다.
       - name: Resolve Simulator UUID
         run: scripts/resolve_simulator_udid.sh
 
@@ -165,6 +165,23 @@ jobs:
         with:
           path: DerivedData
           key: ${{ steps.deriveddata_cache.outputs.cache-primary-key }}
+
+      # 로컬 개발과 같은 simslim 프로필(scripts/simslim/dev.json)로 위젯·Siri·Spotlight 같은 백그라운드 서비스를 끄고 시뮬레이터를 부팅한다.
+      # 처음 부팅한 시뮬레이터가 띄우는 서비스를 줄여 부팅과 테스트 러너 실행을 가볍게 하려는 목적이다(#111).
+      # simslim은 버전과 SHA-256을 고정한 릴리스 바이너리를 받는다(Homebrew tap 설치보다 빠르고 버전이 바뀌지 않는다).
+      # 실패하거나 5분을 넘기면 건너뛰고, 이 경우 test-without-building이 기존처럼 시뮬레이터를 부팅한다.
+      - name: Slim Simulator
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          SIMSLIM_VERSION: "0.12.2"
+          SIMSLIM_SHA256: "b47302da6fb83b8b4c21f4fdd61507469770c07b0ff07fd1f48207bda4270887"
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/simslim.tar.gz" \
+            "https://github.com/MobAI-App/simslim/releases/download/v${SIMSLIM_VERSION}/simslim-v${SIMSLIM_VERSION}-macos-arm64.tar.gz"
+          echo "${SIMSLIM_SHA256}  $RUNNER_TEMP/simslim.tar.gz" | shasum -a 256 -c -
+          tar -xzf "$RUNNER_TEMP/simslim.tar.gz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/simslim" on "$SIM_UDID" --profile scripts/simslim/dev.json
 
       # 2. Test Without Building (같은 DerivedData 사용)
       - name: Test Without Building
