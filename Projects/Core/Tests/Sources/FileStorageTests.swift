@@ -96,6 +96,22 @@ final class FileStorageTests: XCTestCase {
         XCTAssertFalse(sut.exists("Photos/missing"))
     }
 
+    func test_pathEscapingBaseFolder_isRejected() throws {
+        let outside = baseURL.deletingLastPathComponent()
+            .appendingPathComponent("FileStorageTests-outside-\(UUID().uuidString).txt")
+        try Data("outside".utf8).write(to: outside)
+        defer { try? FileManager.default.removeItem(at: outside) }
+        let escapingPath = "../" + outside.lastPathComponent
+
+        XCTAssertThrowsError(try sut.write(Data("changed".utf8), to: escapingPath))
+        XCTAssertNil(sut.read(escapingPath) as Data?)
+        XCTAssertFalse(sut.exists(escapingPath))
+        XCTAssertEqual(sut.contentsOfDirectory(".."), [])
+        sut.remove(escapingPath)
+
+        XCTAssertEqual(try Data(contentsOf: outside), Data("outside".utf8))
+    }
+
     func test_locationInit_findsSandboxDirectories() {
         // App Group은 시뮬레이터가 권한 없이도 경로를 돌려줄 수 있어 검사하지 않습니다.
         XCTAssertNotNil(FileStorage(location: .documents))
