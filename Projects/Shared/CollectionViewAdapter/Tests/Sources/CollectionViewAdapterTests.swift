@@ -195,6 +195,27 @@ private func selfSizedItemHeights(
     }
 }
 
+private final class TestItemContentView:
+    UIView,
+    ItemContentView,
+    Touchable
+{
+    nonisolated static let estimatedHeight: CGFloat = 52
+
+    private(set) var appliedItems: [TestItem] = []
+
+    func apply(_ item: TestItem) {
+        appliedItems.append(item)
+    }
+}
+
+private final class DefaultHeightItemContentView:
+    UIView,
+    ItemContentView
+{
+    func apply(_ item: TestItem) {}
+}
+
 final class CollectionViewAdapterTests: XCTestCase {
     func testAnyComponentUsesItemID() {
         let component = AnyComponent(
@@ -2424,5 +2445,103 @@ final class CollectionViewAdapterTests: XCTestCase {
 
         // 같은 reuse key를 쓰므로 AnyComponent 분기 없이 한 타입으로 다룹니다.
         XCTAssertEqual(readOnly.reuseKey, editable.reuseKey)
+    }
+
+    // MARK: - ItemComponent
+
+    @MainActor
+    func testItemComponentUsesContentEstimatedHeight() {
+        let item = TestItem(id: 1, title: "알림")
+
+        XCTAssertEqual(ItemComponent<TestItemContentView>(item: item).estimatedHeight, 52)
+        XCTAssertEqual(ItemComponent<DefaultHeightItemContentView>(item: item).estimatedHeight, 44)
+        XCTAssertEqual(
+            ItemComponent<TestItemContentView>(item: item, estimatedHeight: 80).estimatedHeight,
+            80
+        )
+    }
+
+    @MainActor
+    func testItemComponentAppliesOnlyChangedItems() {
+        let first = TestItem(id: 1, title: "알림")
+        let changed = TestItem(id: 1, title: "알림 끔")
+        let content = ItemComponent<TestItemContentView>(item: first).createContent()
+        let context = ComponentContext()
+
+        ItemComponent<TestItemContentView>(item: first).render(context: context, content: content)
+        // 화면에 다시 표시되거나 같은 Item으로 다시 bind되면 그리지 않습니다.
+        ItemComponent<TestItemContentView>(item: first).render(context: context, content: content)
+        ItemComponent<TestItemContentView>(item: first).render(context: ComponentContext(), content: content)
+        XCTAssertEqual(content.appliedItems, [first])
+
+        ItemComponent<TestItemContentView>(item: changed).render(context: ComponentContext(), content: content)
+        // 셀 재사용으로 이전 Item이 다시 들어와도 다시 그립니다.
+        ItemComponent<TestItemContentView>(item: first).render(context: ComponentContext(), content: content)
+        XCTAssertEqual(content.appliedItems, [first, changed, first])
+    }
+
+    @MainActor
+    func testItemComponentWorksWithModifiersAndTypeErasure() {
+        let item = TestItem(id: 7, title: "계좌")
+        var touchCount = 0
+        let component = ItemComponent<TestItemContentView>(item: item)
+            .onTouch { touchCount += 1 }
+        let content = component.createContent()
+
+        component.render(context: ComponentContext(), content: content)
+        content.touchEvent.send(())
+
+        XCTAssertEqual(content.appliedItems, [item])
+        XCTAssertEqual(touchCount, 1)
+        XCTAssertEqual(AnyComponent(component).id, AnyHashable(7))
+        XCTAssertTrue(
+            AnyComponent(ItemComponent<TestItemContentView>(item: item))
+                .isContentEqual(to: AnyComponent(ItemComponent<TestItemContentView>(item: item)))
+        )
+        XCTAssertFalse(
+            AnyComponent(ItemComponent<TestItemContentView>(item: item))
+                .isContentEqual(
+                    to: AnyComponent(
+                        ItemComponent<TestItemContentView>(item: TestItem(id: 7, title: "생활비"))
+                    )
+                )
+        )
+    }
+
+    @MainActor
+    func testItemComponentBindsAsItemAndHeader() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout: UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(collectionView: collectionView)
+
+        adapter.bind {
+            LazySection(id: "settings") {
+                For([1, 2]) { ItemComponent<TestItemContentView>(item: TestItem(id: $0, title: "\($0)")) }
+            } header: {
+                ItemComponent<DefaultHeightItemContentView>(item: TestItem(id: 100, title: "앱"))
+            }
+        }
+
+        XCTAssertEqual(
+            adapter.diffableDataSource.snapshot().itemIdentifiers.map(\.rawValue),
+            [AnyHashable(1), AnyHashable(2)]
+        )
+        XCTAssertEqual(adapter.sections.first?.header?.component.id, AnyHashable(100))
+        XCTAssertEqual(adapter.sections.first?.maximumEstimatedItemHeight, 52)
+    }
+
+    @MainActor
+    func testItemComponentRendersInSwiftUIBridgeView() {
+        let first = TestItem(id: 1, title: "알림")
+        let changed = TestItem(id: 1, title: "알림 끔")
+        let view = UIComponentView(component: ItemComponent<TestItemContentView>(item: first))
+
+        view.update(component: ItemComponent<TestItemContentView>(item: first))
+        view.update(component: ItemComponent<TestItemContentView>(item: changed))
+
+        let content = view.subviews.first as? TestItemContentView
+        XCTAssertEqual(content?.appliedItems, [first, changed])
     }
 }

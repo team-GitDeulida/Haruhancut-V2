@@ -23,32 +23,12 @@ struct SettingSectionModel:
         [SettingRowContentView.Item]
 }
 
-struct SettingRowComponent: Component {
-    typealias Item =
-        SettingRowContentView.Item
-
-    let item: Item
-
-    var estimatedHeight: CGFloat {
-        52
-    }
-
-    func createContent()
-        -> SettingRowContentView
-    {
-        SettingRowContentView()
-    }
-
-    func render(
-        context _: ComponentContext,
-        content: SettingRowContentView
-    ) {
-        content.item = item
-    }
-}
+typealias SettingRowComponent =
+    ItemComponent<SettingRowContentView>
 
 final class SettingRowContentView:
     UIControl,
+    ItemContentView,
     Touchable,
     ContainsSwitch
 {
@@ -73,14 +53,8 @@ final class SettingRowContentView:
         let role: Role
     }
 
-    var item: Item? {
-        didSet {
-            guard item != oldValue else {
-                return
-            }
-            applyItem()
-        }
-    }
+    nonisolated static let estimatedHeight:
+        CGFloat = 52
 
     let switchToggleEvent =
         ComponentEvent<Bool>()
@@ -214,16 +188,7 @@ final class SettingRowContentView:
         ])
     }
 
-    private func applyItem() {
-        guard let item else {
-            titleLabel.text = nil
-            detailLabel.text = nil
-            detailLabel.isHidden = true
-            toggleSwitch.isHidden = true
-            accessibilityLabel = nil
-            return
-        }
-
+    func apply(_ item: Item) {
         titleLabel.text = item.title
         titleLabel.textColor =
             item.role == .destructive
@@ -266,35 +231,12 @@ final class SettingRowContentView:
     }
 }
 
-struct SettingSectionHeaderComponent:
-    Component
-{
-    typealias Item =
-        SettingSectionHeaderContentView.Item
-
-    let item: Item
-
-    var estimatedHeight: CGFloat {
-        38
-    }
-
-    func createContent()
-        -> SettingSectionHeaderContentView
-    {
-        SettingSectionHeaderContentView()
-    }
-
-    func render(
-        context _: ComponentContext,
-        content:
-            SettingSectionHeaderContentView
-    ) {
-        content.item = item
-    }
-}
+typealias SettingSectionHeaderComponent =
+    ItemComponent<SettingSectionHeaderContentView>
 
 final class SettingSectionHeaderContentView:
-    UIView
+    UIView,
+    ItemContentView
 {
     struct Item:
         Identifiable,
@@ -304,15 +246,8 @@ final class SettingSectionHeaderContentView:
         let title: String
     }
 
-    var item: Item? {
-        didSet {
-            guard item != oldValue else {
-                return
-            }
-            titleLabel.text =
-                item?.title
-        }
-    }
+    nonisolated static let estimatedHeight:
+        CGFloat = 38
 
     private let titleLabel: UILabel = {
         let label = UILabel()
@@ -362,5 +297,9 @@ final class SettingSectionHeaderContentView:
         fatalError(
             "init(coder:)는 지원하지 않습니다."
         )
+    }
+
+    func apply(_ item: Item) {
+        titleLabel.text = item.title
     }
 }
