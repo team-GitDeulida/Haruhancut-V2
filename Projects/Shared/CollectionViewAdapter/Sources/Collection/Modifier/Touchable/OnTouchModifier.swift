@@ -47,12 +47,12 @@ where Wrapped.Content: Touchable {
 
         // 꺼져 있으면 재사용된 Content에 남은 recognizer도 끄고 이벤트를 연결하지 않습니다.
         guard isEnabled else {
-            content.disableTouchHandling()
+            content.disableTouchHandling(in: context)
             return
         }
 
         // 터치 recognizer를 Content에 최초 한 번만 설치합니다.
-        content.installTouchHandlingIfNeeded()
+        content.installTouchHandlingIfNeeded(enabledBy: context)
 
         // Content의 터치 이벤트와 사용자가 `.onTouch`에 전달한 closure를
         // 현재 render 수명 동안 연결합니다.

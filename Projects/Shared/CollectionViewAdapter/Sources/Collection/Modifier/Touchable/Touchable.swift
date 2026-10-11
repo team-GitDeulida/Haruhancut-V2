@@ -20,6 +20,12 @@ private final class ComponentTouchGestureRecognizer:
 {
     let event = ComponentEvent<Void>()
 
+    /// 이 recognizer를 마지막으로 켠 render의 context입니다.
+    ///
+    /// 같은 render에서 켠 recognizer는 겹쳐 붙은 다른 modifier가 `isEnabled: false`여도
+    /// 끄지 않습니다. 셀이 다시 bind되면 새 context가 만들어져 일치하지 않습니다.
+    weak var enablingContext: ComponentContext?
+
     private weak var contentView: UIView?
 
     /// Content View 내부의 탭만 전달할 recognizer를 만듭니다.
@@ -147,9 +153,12 @@ extension Touchable where Self: UIView {
     /// 일시적으로 display 수명에서 빠졌다가 다시 들어올 수 있습니다.
     /// 기존 recognizer를 다시 연결해 UIKit의 gesture environment에도
     /// 현재 표시 수명을 반영합니다.
-    func installTouchHandlingIfNeeded() {
+    func installTouchHandlingIfNeeded(
+        enabledBy context: ComponentContext? = nil
+    ) {
         let gestureRecognizer = componentTouchGestureRecognizer
         gestureRecognizer.isEnabled = true
+        gestureRecognizer.enablingContext = context
         removeGestureRecognizer(gestureRecognizer)
         addGestureRecognizer(gestureRecognizer)
     }
@@ -157,9 +166,15 @@ extension Touchable where Self: UIView {
 
 extension Touchable where Self: UIView {
     /// 이미 설치된 터치 recognizer를 끕니다. 설치된 적이 없으면 아무 일도 하지 않습니다.
-    func disableTouchHandling() {
+    ///
+    /// - Parameter context: 이번 render의 context. 같은 render에서 다른 modifier가
+    ///   켠 recognizer는 끄지 않습니다.
+    func disableTouchHandling(
+        in context: ComponentContext
+    ) {
         gestureRecognizers?
             .compactMap { $0 as? ComponentTouchGestureRecognizer }
+            .filter { $0.enablingContext !== context }
             .forEach { $0.isEnabled = false }
     }
 }

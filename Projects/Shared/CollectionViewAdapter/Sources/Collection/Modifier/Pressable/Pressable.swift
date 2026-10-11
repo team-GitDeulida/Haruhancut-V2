@@ -28,6 +28,12 @@ private final class ComponentPressedEffectGestureRecognizer:
         static let animationDuration: TimeInterval = 0.12
     }
 
+    /// 이 recognizer를 마지막으로 켠 render의 context입니다.
+    ///
+    /// 같은 render에서 켠 recognizer는 겹쳐 붙은 다른 modifier가 `isEnabled: false`여도
+    /// 끄지 않습니다. 셀이 다시 bind되면 새 context가 만들어져 일치하지 않습니다.
+    weak var enablingContext: ComponentContext?
+
     private weak var contentView: UIView?
     private var pressedScale: CGFloat
     private var initialLocation: CGPoint?
@@ -172,7 +178,10 @@ extension Pressable where Self: UIView {
     /// 눌림 recognizer를 UIView 수명 동안 한 번만 설치하고 최신 scale을 반영합니다.
     ///
     /// - Parameter scale: 터치 중 Content에 적용할 0보다 크고 1보다 작은 축소 비율.
-    func installPressedEffectIfNeeded(scale: CGFloat) {
+    func installPressedEffectIfNeeded(
+        scale: CGFloat,
+        enabledBy context: ComponentContext? = nil
+    ) {
         guard scale > 0, scale < 1 else {
             return
         }
@@ -183,24 +192,31 @@ extension Pressable where Self: UIView {
             .compactMap({ $0 as? ComponentPressedEffectGestureRecognizer })
             .first {
             gestureRecognizer.isEnabled = true
+            gestureRecognizer.enablingContext = context
             gestureRecognizer.updatePressedScale(scale)
             return
         }
 
-        addGestureRecognizer(
-            ComponentPressedEffectGestureRecognizer(
-                contentView: self,
-                pressedScale: scale
-            )
+        let gestureRecognizer = ComponentPressedEffectGestureRecognizer(
+            contentView: self,
+            pressedScale: scale
         )
+        gestureRecognizer.enablingContext = context
+        addGestureRecognizer(gestureRecognizer)
     }
 }
 
 extension Pressable where Self: UIView {
     /// 이미 설치된 눌림 recognizer를 끕니다. 설치된 적이 없으면 아무 일도 하지 않습니다.
-    func disablePressedEffect() {
+    ///
+    /// - Parameter context: 이번 render의 context. 같은 render에서 다른 modifier가
+    ///   켠 recognizer는 끄지 않습니다.
+    func disablePressedEffect(
+        in context: ComponentContext
+    ) {
         gestureRecognizers?
             .compactMap { $0 as? ComponentPressedEffectGestureRecognizer }
+            .filter { $0.enablingContext !== context }
             .forEach { $0.isEnabled = false }
     }
 }

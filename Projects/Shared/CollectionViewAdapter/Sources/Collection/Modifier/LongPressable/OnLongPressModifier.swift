@@ -54,11 +54,14 @@ where Wrapped.Content: LongPressable {
 
         // 꺼져 있으면 재사용된 Content에 남은 recognizer도 끄고 이벤트를 연결하지 않습니다.
         guard isEnabled else {
-            content.disableLongPressHandling()
+            content.disableLongPressHandling(in: context)
             return
         }
 
-        content.installLongPressHandlingIfNeeded(minimumDuration: minimumDuration)
+        content.installLongPressHandlingIfNeeded(
+            minimumDuration: minimumDuration,
+            enabledBy: context
+        )
 
         let observation = content.longPressEvent.observe { [weak content] in
             guard let content else {

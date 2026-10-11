@@ -46,11 +46,14 @@ where Wrapped.Content: Pressable {
 
         // 꺼져 있으면 재사용된 Content에 남은 recognizer도 끕니다.
         guard isEnabled else {
-            content.disablePressedEffect()
+            content.disablePressedEffect(in: context)
             return
         }
 
-        content.installPressedEffectIfNeeded(scale: scale)
+        content.installPressedEffectIfNeeded(
+            scale: scale,
+            enabledBy: context
+        )
     }
 }
 
