@@ -2363,6 +2363,60 @@ final class CollectionViewAdapterTests: XCTestCase {
     }
 
     @MainActor
+    func testDisabledOuterModifierKeepsEnabledInnerModifierWorking() {
+        let item = TestItem(id: 7, title: "계좌")
+        let contentView = TestContentView()
+        let context = ComponentContext()
+        var innerTouchCount = 0
+        var outerTouchCount = 0
+        var innerLongPressCount = 0
+
+        let component = TestComponent(item: item)
+            .onTouch { innerTouchCount += 1 }
+            .onTouch(isEnabled: false) { outerTouchCount += 1 }
+            .pressedEffect()
+            .pressedEffect(isEnabled: false)
+            .onLongPress(minimumDuration: 0.4) { innerLongPressCount += 1 }
+            .onLongPress(minimumDuration: 0.4, isEnabled: false) {}
+        component.render(context: context, content: contentView)
+        // 화면에서 사라졌다가 다시 표시될 때처럼 연결을 정리하고 같은 context로 다시 그립니다.
+        context.cancel()
+        component.render(context: context, content: contentView)
+
+        let tapRecognizer = contentView.gestureRecognizers?
+            .first { $0 is UITapGestureRecognizer }
+        let longPressRecognizers = contentView.gestureRecognizers?
+            .compactMap { $0 as? UILongPressGestureRecognizer }
+        XCTAssertEqual(tapRecognizer?.isEnabled, true)
+        XCTAssertEqual(longPressRecognizers?.count, 2)
+        XCTAssertTrue(longPressRecognizers?.allSatisfy(\.isEnabled) == true)
+
+        contentView.touchEvent.send(())
+        contentView.longPressEvent.send(())
+        XCTAssertEqual(innerTouchCount, 1)
+        XCTAssertEqual(outerTouchCount, 0)
+        XCTAssertEqual(innerLongPressCount, 1)
+    }
+
+    @MainActor
+    func testEnabledOuterModifierTurnsRecognizerBackOn() {
+        let contentView = TestContentView()
+        var outerTouchCount = 0
+
+        TestComponent(item: TestItem(id: 7, title: "계좌"))
+            .onTouch(isEnabled: false) {}
+            .onTouch { outerTouchCount += 1 }
+            .render(context: ComponentContext(), content: contentView)
+        contentView.touchEvent.send(())
+
+        XCTAssertEqual(
+            contentView.gestureRecognizers?.first { $0 is UITapGestureRecognizer }?.isEnabled,
+            true
+        )
+        XCTAssertEqual(outerTouchCount, 1)
+    }
+
+    @MainActor
     func testConditionalModifierKeepsSingleComponentType() {
         let item = TestItem(id: 7, title: "계좌")
         let readOnly = AnyComponent(TestComponent(item: item).onLongPress(isEnabled: false) {})
