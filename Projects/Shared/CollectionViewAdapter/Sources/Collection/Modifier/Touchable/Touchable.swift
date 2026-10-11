@@ -149,7 +149,17 @@ extension Touchable where Self: UIView {
     /// 현재 표시 수명을 반영합니다.
     func installTouchHandlingIfNeeded() {
         let gestureRecognizer = componentTouchGestureRecognizer
+        gestureRecognizer.isEnabled = true
         removeGestureRecognizer(gestureRecognizer)
         addGestureRecognizer(gestureRecognizer)
+    }
+}
+
+extension Touchable where Self: UIView {
+    /// 이미 설치된 터치 recognizer를 끕니다. 설치된 적이 없으면 아무 일도 하지 않습니다.
+    func disableTouchHandling() {
+        gestureRecognizers?
+            .compactMap { $0 as? ComponentTouchGestureRecognizer }
+            .forEach { $0.isEnabled = false }
     }
 }

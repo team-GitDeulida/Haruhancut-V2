@@ -138,11 +138,21 @@ extension LongPressable where Self: UIView {
         isUserInteractionEnabled = true
 
         let gestureRecognizer = componentLongPressGestureRecognizer
+        gestureRecognizer.isEnabled = true
         gestureRecognizer.minimumPressDuration = minimumDuration
 
         // Self-sizing으로 display 수명에서 빠졌다가 돌아온 Content도
         // UIKit의 현재 gesture environment에 다시 연결합니다.
         removeGestureRecognizer(gestureRecognizer)
         addGestureRecognizer(gestureRecognizer)
+    }
+}
+
+extension LongPressable where Self: UIView {
+    /// 이미 설치된 long press recognizer를 끕니다. 설치된 적이 없으면 아무 일도 하지 않습니다.
+    func disableLongPressHandling() {
+        gestureRecognizers?
+            .compactMap { $0 as? ComponentLongPressGestureRecognizer }
+            .forEach { $0.isEnabled = false }
     }
 }

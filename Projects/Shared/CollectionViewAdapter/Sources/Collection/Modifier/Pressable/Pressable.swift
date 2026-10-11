@@ -182,6 +182,7 @@ extension Pressable where Self: UIView {
         if let gestureRecognizer = gestureRecognizers?
             .compactMap({ $0 as? ComponentPressedEffectGestureRecognizer })
             .first {
+            gestureRecognizer.isEnabled = true
             gestureRecognizer.updatePressedScale(scale)
             return
         }
@@ -192,5 +193,14 @@ extension Pressable where Self: UIView {
                 pressedScale: scale
             )
         )
+    }
+}
+
+extension Pressable where Self: UIView {
+    /// 이미 설치된 눌림 recognizer를 끕니다. 설치된 적이 없으면 아무 일도 하지 않습니다.
+    func disablePressedEffect() {
+        gestureRecognizers?
+            .compactMap { $0 as? ComponentPressedEffectGestureRecognizer }
+            .forEach { $0.isEnabled = false }
     }
 }
