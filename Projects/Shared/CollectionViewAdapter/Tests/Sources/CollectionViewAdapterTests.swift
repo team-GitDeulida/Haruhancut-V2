@@ -2111,4 +2111,318 @@ final class CollectionViewAdapterTests: XCTestCase {
         )
         XCTAssertEqual(callbackCount, 2)
     }
+
+    // MARK: - 짧은 Section 선언 문법
+
+    @MainActor
+    func testLazySectionInitializerMatchesModifierSyntax() {
+        let header = TestComponent(item: TestItem(id: 100, title: "헤더"))
+        let footer = TestComponent(item: TestItem(id: 200, title: "푸터"))
+
+        let modifierSection = LazySection(identifier: "accounts") {
+            TestComponent(item: TestItem(id: 1, title: "여행 적금"))
+        }
+        .withHeader(header)
+        .withFooter(footer)
+        .withSectionLayout(.verticalList(estimatedRowHeight: 60, spacing: 8))
+        .resolve()
+
+        let initializerSection = LazySection(
+            id: "accounts",
+            layout: .list(rowHeight: 60, spacing: 8)
+        ) {
+            TestComponent(item: TestItem(id: 1, title: "여행 적금"))
+        } header: {
+            header
+        } footer: {
+            footer
+        }
+        .resolve()
+
+        XCTAssertEqual(initializerSection.identifier, modifierSection.identifier)
+        XCTAssertTrue(initializerSection.layout.isLayoutEquivalent(to: modifierSection.layout))
+        XCTAssertEqual(initializerSection.items.map(\.id), modifierSection.items.map(\.id))
+        XCTAssertEqual(initializerSection.header?.kind, UICollectionView.elementKindSectionHeader)
+        XCTAssertEqual(initializerSection.footer?.kind, UICollectionView.elementKindSectionFooter)
+        XCTAssertEqual(initializerSection.header?.zIndex, modifierSection.header?.zIndex)
+        XCTAssertEqual(initializerSection.header?.component.id, modifierSection.header?.component.id)
+        XCTAssertEqual(initializerSection.footer?.component.id, modifierSection.footer?.component.id)
+    }
+
+    @MainActor
+    func testLazySectionWithoutLayoutUsesVerticalList() {
+        let idSection = LazySection(id: "accounts") {
+            TestComponent(item: TestItem(id: 1, title: "여행 적금"))
+        }
+        .resolve()
+        let identifierSection = LazySection(identifier: "accounts") {
+            TestComponent(item: TestItem(id: 1, title: "여행 적금"))
+        }
+        .resolve()
+
+        XCTAssertTrue(idSection.layout.isLayoutEquivalent(to: .verticalList()))
+        XCTAssertTrue(identifierSection.layout.isLayoutEquivalent(to: .verticalList()))
+        XCTAssertNil(idSection.header)
+        XCTAssertNil(idSection.footer)
+    }
+
+    @MainActor
+    func testPinnedHeaderMatchesPinnedLayoutRegardlessOfOrder() {
+        let header = TestComponent(item: TestItem(id: 100, title: "헤더"))
+        let manualSection = LazySection(identifier: "members") {
+            TestComponent(item: TestItem(id: 1, title: "동현"))
+        }
+        .withHeader(header, zIndex: 1)
+        .withSectionLayout(
+            .verticalList(estimatedRowHeight: 60)
+                .withHeaderPinToVisibleBounds(true)
+        )
+        .resolve()
+
+        let pinnedLast = LazySection(id: "members", layout: .list(rowHeight: 60)) {
+            TestComponent(item: TestItem(id: 1, title: "동현"))
+        } header: {
+            header
+        }
+        .pinnedHeader()
+        .resolve()
+        let pinnedFirst = LazySection(identifier: "members") {
+            TestComponent(item: TestItem(id: 1, title: "동현"))
+        }
+        .pinnedHeader()
+        .withSectionLayout(.list(rowHeight: 60))
+        .withHeader(header)
+        .resolve()
+
+        for section in [pinnedLast, pinnedFirst] {
+            XCTAssertTrue(section.layout.isLayoutEquivalent(to: manualSection.layout))
+            XCTAssertEqual(section.header?.zIndex, 1)
+            XCTAssertEqual(section.makeLayoutSection().boundarySupplementaryItems.first?.pinToVisibleBounds, true)
+        }
+    }
+
+    @MainActor
+    func testPinnedHeaderKeepsHigherZIndex() {
+        let section = LazySection(identifier: "members") {
+            TestComponent(item: TestItem(id: 1, title: "동현"))
+        }
+        .withHeader(TestComponent(item: TestItem(id: 100, title: "헤더")), zIndex: 3)
+        .pinnedHeader()
+        .resolve()
+
+        XCTAssertEqual(section.header?.zIndex, 3)
+    }
+
+    @MainActor
+    func testForWithoutLabelMatchesForOf() {
+        let ids = [1, 2, 3]
+        let unlabeled = LazySection(id: "accounts") {
+            For(ids) { TestComponent(item: TestItem(id: $0, title: "\($0)")) }
+        }
+        .resolve()
+        let labeled = LazySection(id: "accounts") {
+            For(of: ids) { TestComponent(item: TestItem(id: $0, title: "\($0)")) }
+        }
+        .resolve()
+
+        XCTAssertEqual(unlabeled.items.map(\.id), labeled.items.map(\.id))
+    }
+
+    @MainActor
+    func testOmittedAnimationAnimatesOnlyWhenItemsAreVisible() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout: UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(collectionView: collectionView)
+
+        // 처음에는 표시 중인 item이 없어 애니메이션하지 않습니다.
+        XCTAssertFalse(adapter.shouldAnimateDifferences(nil))
+        XCTAssertTrue(adapter.shouldAnimateDifferences(true))
+
+        adapter.bind {
+            LazySection(id: "accounts") {
+                TestComponent(item: TestItem(id: 1, title: "여행 적금"))
+            }
+        }
+        XCTAssertTrue(adapter.shouldAnimateDifferences(nil))
+        XCTAssertFalse(adapter.shouldAnimateDifferences(false))
+
+        adapter.bind {
+            LazySection(id: "accounts") {}
+        }
+        XCTAssertFalse(adapter.shouldAnimateDifferences(nil))
+    }
+
+    @MainActor
+    func testShortSyntaxBindAppliesSectionsToSnapshot() {
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout: UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(collectionView: collectionView)
+
+        adapter.bind {
+            LazySection(id: "members", layout: .list(rowHeight: 60)) {
+                For([1, 2]) { TestComponent(item: TestItem(id: $0, title: "\($0)")) }
+            } header: {
+                TestComponent(item: TestItem(id: 100, title: "헤더"))
+            }
+            .pinnedHeader()
+        }
+
+        let snapshot = adapter.diffableDataSource.snapshot()
+        XCTAssertEqual(snapshot.numberOfSections, 1)
+        XCTAssertEqual(snapshot.itemIdentifiers.map(\.rawValue), [AnyHashable(1), AnyHashable(2)])
+        XCTAssertEqual(adapter.sections.first?.header?.zIndex, 1)
+    }
+
+    // MARK: - 조건부 modifier
+
+    @MainActor
+    func testDisabledTouchModifierTurnsOffReusedRecognizer() {
+        let item = TestItem(id: 7, title: "계좌")
+        let contentView = TestContentView()
+        var touchCount = 0
+
+        let enabledContext = ComponentContext()
+        TestComponent(item: item)
+            .onTouch { touchCount += 1 }
+            .render(context: enabledContext, content: contentView)
+        let recognizer = contentView.gestureRecognizers?
+            .first { $0 is UITapGestureRecognizer }
+        XCTAssertEqual(recognizer?.isEnabled, true)
+
+        // 셀 재사용처럼 이전 render 수명을 끝내고 꺼진 modifier로 다시 그립니다.
+        enabledContext.cancel()
+        TestComponent(item: item)
+            .onTouch(isEnabled: false) { touchCount += 1 }
+            .render(context: ComponentContext(), content: contentView)
+        contentView.touchEvent.send(())
+
+        XCTAssertEqual(recognizer?.isEnabled, false)
+        XCTAssertEqual(touchCount, 0)
+
+        TestComponent(item: item)
+            .onTouch { touchCount += 1 }
+            .render(context: ComponentContext(), content: contentView)
+        contentView.touchEvent.send(())
+
+        XCTAssertEqual(recognizer?.isEnabled, true)
+        XCTAssertEqual(touchCount, 1)
+    }
+
+    @MainActor
+    func testDisabledLongPressModifierTurnsOffReusedRecognizer() {
+        let item = TestItem(id: 7, title: "계좌")
+        let contentView = TestContentView()
+        var longPressCount = 0
+
+        let enabledContext = ComponentContext()
+        TestComponent(item: item)
+            .onLongPress(minimumDuration: 0.4) { longPressCount += 1 }
+            .render(context: enabledContext, content: contentView)
+        let recognizer = contentView.gestureRecognizers?
+            .compactMap { $0 as? UILongPressGestureRecognizer }
+            .first { $0.minimumPressDuration > 0 }
+        XCTAssertEqual(recognizer?.isEnabled, true)
+
+        enabledContext.cancel()
+        TestComponent(item: item)
+            .onLongPress(minimumDuration: 0.4, isEnabled: false) { longPressCount += 1 }
+            .render(context: ComponentContext(), content: contentView)
+        contentView.longPressEvent.send(())
+
+        XCTAssertEqual(recognizer?.isEnabled, false)
+        XCTAssertEqual(longPressCount, 0)
+    }
+
+    @MainActor
+    func testDisabledPressedEffectTurnsOffRecognizerAndChangesUpdateToken() {
+        let item = TestItem(id: 7, title: "계좌")
+        let contentView = TestContentView()
+
+        TestComponent(item: item)
+            .pressedEffect()
+            .render(context: ComponentContext(), content: contentView)
+        let recognizer = contentView.gestureRecognizers?
+            .compactMap { $0 as? UILongPressGestureRecognizer }
+            .first { $0.minimumPressDuration == 0 }
+        XCTAssertEqual(recognizer?.isEnabled, true)
+
+        TestComponent(item: item)
+            .pressedEffect(isEnabled: false)
+            .render(context: ComponentContext(), content: contentView)
+        XCTAssertEqual(recognizer?.isEnabled, false)
+
+        // 켜짐 여부가 바뀌면 같은 Item이어도 다시 bind합니다.
+        XCTAssertFalse(
+            AnyComponent(TestComponent(item: item).pressedEffect())
+                .isContentEqual(to: AnyComponent(TestComponent(item: item).pressedEffect(isEnabled: false)))
+        )
+    }
+
+    @MainActor
+    func testDisabledOuterModifierKeepsEnabledInnerModifierWorking() {
+        let item = TestItem(id: 7, title: "계좌")
+        let contentView = TestContentView()
+        let context = ComponentContext()
+        var innerTouchCount = 0
+        var outerTouchCount = 0
+        var innerLongPressCount = 0
+
+        let component = TestComponent(item: item)
+            .onTouch { innerTouchCount += 1 }
+            .onTouch(isEnabled: false) { outerTouchCount += 1 }
+            .pressedEffect()
+            .pressedEffect(isEnabled: false)
+            .onLongPress(minimumDuration: 0.4) { innerLongPressCount += 1 }
+            .onLongPress(minimumDuration: 0.4, isEnabled: false) {}
+        component.render(context: context, content: contentView)
+        // 화면에서 사라졌다가 다시 표시될 때처럼 연결을 정리하고 같은 context로 다시 그립니다.
+        context.cancel()
+        component.render(context: context, content: contentView)
+
+        let tapRecognizer = contentView.gestureRecognizers?
+            .first { $0 is UITapGestureRecognizer }
+        let longPressRecognizers = contentView.gestureRecognizers?
+            .compactMap { $0 as? UILongPressGestureRecognizer }
+        XCTAssertEqual(tapRecognizer?.isEnabled, true)
+        XCTAssertEqual(longPressRecognizers?.count, 2)
+        XCTAssertTrue(longPressRecognizers?.allSatisfy(\.isEnabled) == true)
+
+        contentView.touchEvent.send(())
+        contentView.longPressEvent.send(())
+        XCTAssertEqual(innerTouchCount, 1)
+        XCTAssertEqual(outerTouchCount, 0)
+        XCTAssertEqual(innerLongPressCount, 1)
+    }
+
+    @MainActor
+    func testEnabledOuterModifierTurnsRecognizerBackOn() {
+        let contentView = TestContentView()
+        var outerTouchCount = 0
+
+        TestComponent(item: TestItem(id: 7, title: "계좌"))
+            .onTouch(isEnabled: false) {}
+            .onTouch { outerTouchCount += 1 }
+            .render(context: ComponentContext(), content: contentView)
+        contentView.touchEvent.send(())
+
+        XCTAssertEqual(
+            contentView.gestureRecognizers?.first { $0 is UITapGestureRecognizer }?.isEnabled,
+            true
+        )
+        XCTAssertEqual(outerTouchCount, 1)
+    }
+
+    @MainActor
+    func testConditionalModifierKeepsSingleComponentType() {
+        let item = TestItem(id: 7, title: "계좌")
+        let readOnly = AnyComponent(TestComponent(item: item).onLongPress(isEnabled: false) {})
+        let editable = AnyComponent(TestComponent(item: item).onLongPress(isEnabled: true) {})
+
+        // 같은 reuse key를 쓰므로 AnyComponent 분기 없이 한 타입으로 다룹니다.
+        XCTAssertEqual(readOnly.reuseKey, editable.reuseKey)
+    }
 }

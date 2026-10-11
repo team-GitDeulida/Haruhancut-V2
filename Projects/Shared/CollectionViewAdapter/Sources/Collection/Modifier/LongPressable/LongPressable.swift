@@ -19,6 +19,12 @@ private final class ComponentLongPressGestureRecognizer:
 {
     let event = ComponentEvent<Void>()
 
+    /// 이 recognizer를 마지막으로 켠 render의 context입니다.
+    ///
+    /// 같은 render에서 켠 recognizer는 겹쳐 붙은 다른 modifier가 `isEnabled: false`여도
+    /// 끄지 않습니다. 셀이 다시 bind되면 새 context가 만들어져 일치하지 않습니다.
+    weak var enablingContext: ComponentContext?
+
     private weak var contentView: UIView?
 
     /// Content View의 long press만 전달할 recognizer를 만듭니다.
@@ -132,17 +138,37 @@ extension LongPressable where Self: UIView {
     /// 기본 long press recognizer를 설치하고 최신 인식 시간을 반영합니다.
     ///
     /// - Parameter minimumDuration: Long press로 인식하기까지 필요한 0보다 큰 시간.
-    func installLongPressHandlingIfNeeded(minimumDuration: TimeInterval) {
+    func installLongPressHandlingIfNeeded(
+        minimumDuration: TimeInterval,
+        enabledBy context: ComponentContext? = nil
+    ) {
         precondition(minimumDuration > 0, "minimumDuration은 0보다 커야 합니다.")
 
         isUserInteractionEnabled = true
 
         let gestureRecognizer = componentLongPressGestureRecognizer
+        gestureRecognizer.isEnabled = true
+        gestureRecognizer.enablingContext = context
         gestureRecognizer.minimumPressDuration = minimumDuration
 
         // Self-sizing으로 display 수명에서 빠졌다가 돌아온 Content도
         // UIKit의 현재 gesture environment에 다시 연결합니다.
         removeGestureRecognizer(gestureRecognizer)
         addGestureRecognizer(gestureRecognizer)
+    }
+}
+
+extension LongPressable where Self: UIView {
+    /// 이미 설치된 long press recognizer를 끕니다. 설치된 적이 없으면 아무 일도 하지 않습니다.
+    ///
+    /// - Parameter context: 이번 render의 context. 같은 render에서 다른 modifier가
+    ///   켠 recognizer는 끄지 않습니다.
+    func disableLongPressHandling(
+        in context: ComponentContext
+    ) {
+        gestureRecognizers?
+            .compactMap { $0 as? ComponentLongPressGestureRecognizer }
+            .filter { $0.enablingContext !== context }
+            .forEach { $0.isEnabled = false }
     }
 }

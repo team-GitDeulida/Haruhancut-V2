@@ -64,12 +64,33 @@ public struct SectionModels: SectionModelsConvertible {
 ///
 /// Builder 클로저를 저장해 두었다가 `CollectionViewAdapter.bind`가
 /// 호출될 때 item을 평가합니다.
+///
+/// 두 가지 문법을 모두 지원합니다.
+///
+/// ```swift
+/// // modifier로 설정을 덧붙이는 문법
+/// LazySection(identifier: "members") { ... }
+///     .withHeader(MemberHeaderComponent(), zIndex: 1)
+///     .withSectionLayout(.verticalList(estimatedRowHeight: 60))
+///
+/// // initializer에서 layout과 header를 함께 선언하는 문법
+/// LazySection(id: "members", layout: .list(rowHeight: 60)) {
+///     ...
+/// } header: {
+///     MemberHeaderComponent()
+/// }
+/// ```
 @MainActor
-public struct LazySection: SectionModelType {
+public struct LazySection:
+    SectionModelType,
+    SectionConfigurationProviding
+{
     /// Section을 안정적으로 식별하는 값입니다.
     public let identifier: AnyHashable
 
     private let content: () -> [AnyComponent]
+
+    let sectionConfiguration: SectionConfiguration
 
     /// Lazy section을 만듭니다.
     ///
@@ -81,8 +102,121 @@ public struct LazySection: SectionModelType {
         @SectionBuilder content:
             @escaping () -> [AnyComponent]
     ) {
-        self.identifier = AnyHashable(identifier)
+        self.init(
+            identifier: AnyHashable(identifier),
+            configuration: SectionConfiguration(),
+            content: content
+        )
+    }
+
+    /// Layout을 함께 지정해 lazy section을 만듭니다.
+    ///
+    /// - Parameters:
+    ///   - id: 다른 section과 겹치지 않는 안정적인 ID.
+    ///   - layout: Section의 Compositional Layout 전략. `nil`이면 세로 목록입니다.
+    ///   - content: Item Component를 만드는 builder.
+    public init<ID: Hashable>(
+        id: ID,
+        layout: CollectionSectionLayout? = nil,
+        @SectionBuilder content:
+            @escaping () -> [AnyComponent]
+    ) {
+        self.init(
+            identifier: AnyHashable(id),
+            configuration: SectionConfiguration(
+                layout: layout ?? .verticalList()
+            ),
+            content: content
+        )
+    }
+
+    /// Layout과 header를 함께 지정해 lazy section을 만듭니다.
+    ///
+    /// - Parameters:
+    ///   - id: 다른 section과 겹치지 않는 안정적인 ID.
+    ///   - layout: Section의 Compositional Layout 전략. `nil`이면 세로 목록입니다.
+    ///   - content: Item Component를 만드는 builder.
+    ///   - header: Header로 표시할 Component를 만드는 클로저.
+    public init<ID: Hashable, Header: Component>(
+        id: ID,
+        layout: CollectionSectionLayout? = nil,
+        @SectionBuilder content:
+            @escaping () -> [AnyComponent],
+        header: () -> Header
+    ) {
+        self.init(
+            identifier: AnyHashable(id),
+            configuration: SectionConfiguration(
+                layout: layout ?? .verticalList(),
+                header: .header(header())
+            ),
+            content: content
+        )
+    }
+
+    /// Layout과 footer를 함께 지정해 lazy section을 만듭니다.
+    ///
+    /// - Parameters:
+    ///   - id: 다른 section과 겹치지 않는 안정적인 ID.
+    ///   - layout: Section의 Compositional Layout 전략. `nil`이면 세로 목록입니다.
+    ///   - content: Item Component를 만드는 builder.
+    ///   - footer: Footer로 표시할 Component를 만드는 클로저.
+    public init<ID: Hashable, Footer: Component>(
+        id: ID,
+        layout: CollectionSectionLayout? = nil,
+        @SectionBuilder content:
+            @escaping () -> [AnyComponent],
+        footer: () -> Footer
+    ) {
+        self.init(
+            identifier: AnyHashable(id),
+            configuration: SectionConfiguration(
+                layout: layout ?? .verticalList(),
+                footer: .footer(footer())
+            ),
+            content: content
+        )
+    }
+
+    /// Layout, header와 footer를 함께 지정해 lazy section을 만듭니다.
+    ///
+    /// - Parameters:
+    ///   - id: 다른 section과 겹치지 않는 안정적인 ID.
+    ///   - layout: Section의 Compositional Layout 전략. `nil`이면 세로 목록입니다.
+    ///   - content: Item Component를 만드는 builder.
+    ///   - header: Header로 표시할 Component를 만드는 클로저.
+    ///   - footer: Footer로 표시할 Component를 만드는 클로저.
+    public init<
+        ID: Hashable,
+        Header: Component,
+        Footer: Component
+    >(
+        id: ID,
+        layout: CollectionSectionLayout? = nil,
+        @SectionBuilder content:
+            @escaping () -> [AnyComponent],
+        header: () -> Header,
+        footer: () -> Footer
+    ) {
+        self.init(
+            identifier: AnyHashable(id),
+            configuration: SectionConfiguration(
+                layout: layout ?? .verticalList(),
+                header: .header(header()),
+                footer: .footer(footer())
+            ),
+            content: content
+        )
+    }
+
+    private init(
+        identifier: AnyHashable,
+        configuration: SectionConfiguration,
+        content: @escaping () -> [AnyComponent]
+    ) {
+        self.identifier = identifier
         self.content = content
+        sectionConfiguration = configuration
     }
 
     /// 저장한 builder를 평가해 현재 item Component를 만듭니다.
@@ -103,6 +237,8 @@ struct SectionConfiguration {
     var header: SupplementaryView?
     var footer: SupplementaryView?
     var reachedEnd: SectionReachedEndConfiguration?
+    /// Header를 스크롤 중 고정하고 item 위에 그릴지 여부입니다.
+    var pinsHeader = false
 }
 
 @MainActor
@@ -170,9 +306,8 @@ public extension SectionModelType {
         zIndex: Int = 0
     ) -> ConfiguredSection<Self> {
         var configuration = resolvedConfiguration
-        configuration.header = SupplementaryView(
-            component: component,
-            kind: UICollectionView.elementKindSectionHeader,
+        configuration.header = .header(
+            component,
             alignment: alignment,
             height: height,
             extendsBoundary: extendsBoundary,
@@ -203,9 +338,8 @@ public extension SectionModelType {
         zIndex: Int = 0
     ) -> ConfiguredSection<Self> {
         var configuration = resolvedConfiguration
-        configuration.footer = SupplementaryView(
-            component: component,
-            kind: UICollectionView.elementKindSectionFooter,
+        configuration.footer = .footer(
+            component,
             alignment: alignment,
             height: height,
             extendsBoundary: extendsBoundary,
@@ -226,6 +360,22 @@ public extension SectionModelType {
     ) -> ConfiguredSection<Self> {
         var configuration = resolvedConfiguration
         configuration.layout = layout
+        return ConfiguredSection(
+            base: self,
+            configuration: configuration
+        )
+    }
+
+    /// Header를 스크롤 중 화면 위쪽에 고정합니다.
+    ///
+    /// `withSectionLayout(_:)`에서 `withHeaderPinToVisibleBounds(true)`를
+    /// 지정하고 header에 `zIndex: 1`을 준 것과 같습니다. Layout이나
+    /// header를 지정한 순서와 관계없이 적용됩니다.
+    ///
+    /// - Returns: Header 고정 설정을 가진 새 section 값.
+    func pinnedHeader() -> ConfiguredSection<Self> {
+        var configuration = resolvedConfiguration
+        configuration.pinsHeader = true
         return ConfiguredSection(
             base: self,
             configuration: configuration
@@ -274,11 +424,20 @@ extension SectionModelType {
     /// - Returns: Layout, supplementary view와 끝 접근 설정을 포함한 Section 값.
     func resolve() -> ResolvedSection {
         let configuration = resolvedConfiguration
+        var layout = configuration.layout
+        var header = configuration.header
+        if configuration.pinsHeader {
+            layout = layout.withHeaderPinToVisibleBounds(true)
+            // 고정된 header가 아래로 지나가는 item에 가려지지 않게 합니다.
+            if let zIndex = header?.zIndex {
+                header?.zIndex = max(zIndex, 1)
+            }
+        }
         return ResolvedSection(
             identifier: identifier,
-            layout: configuration.layout,
+            layout: layout,
             items: makeItems(),
-            header: configuration.header,
+            header: header,
             footer: configuration.footer,
             reachedEnd: configuration.reachedEnd
         )

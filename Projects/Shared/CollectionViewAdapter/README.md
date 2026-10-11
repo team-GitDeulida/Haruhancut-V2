@@ -314,14 +314,15 @@ Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
 | 기능 | API | 역할 |
 | --- | --- | --- |
 | 선언형 Item | `Component` | `Identifiable & Equatable` Item을 `UIView` 생성·렌더링 규칙과 연결합니다. |
-| 선언형 Section | `SectionModels`, `LazySection`, `For(of:)` | Section과 Component를 상태에서 선언합니다. |
-| Header / Footer | `withHeader`, `withFooter` | 일반 Component를 boundary supplementary view로 재사용합니다. |
-| 세로 목록 | `.verticalList` | self-sizing 단일 열 목록을 구성합니다. |
+| 선언형 Section | `SectionModels`, `LazySection(identifier:)`·`LazySection(id:layout:)`, `For(of:)`·`For(_:)` | Section과 Component를 상태에서 선언합니다. 짧은 문법과 modifier 문법을 함께 쓸 수 있습니다. |
+| Header / Footer | `withHeader`, `withFooter`, `header:`·`footer:` trailing closure | 일반 Component를 boundary supplementary view로 재사용합니다. |
+| Header 고정 | `pinnedHeader()`, `withHeaderPinToVisibleBounds(_:)` | 스크롤 중 header를 위쪽에 고정합니다. |
+| 세로 목록 | `.verticalList`, `.list` | self-sizing 단일 열 목록을 구성합니다. |
 | Grid | `.grid` | 같은 너비의 여러 열을 구성합니다. |
 | 가로 목록 | `.horizontalCarousel` | orthogonal scrolling Section을 구성합니다. |
 | Custom layout | `CollectionSectionLayout` initializer | `NSCollectionLayoutSection`을 직접 만듭니다. |
-| 상태 갱신 | `bind(_:animatingDifferences:)` | Section tree를 새 Diffable snapshot으로 반영합니다. |
-| Component 이벤트 | `onTouch`, `pressedEffect`, `onLongPress`, `onButtonTap`, `onToggle` | Content가 채택한 capability에 필요한 동작만 합성합니다. |
+| 상태 갱신 | `bind(_:animatingDifferences:)`, `bind { }` | Section tree를 새 Diffable snapshot으로 반영합니다. `animatingDifferences`를 생략하면 표시 중인 item이 있을 때만 애니메이션합니다. |
+| Component 이벤트 | `onTouch`, `pressedEffect`, `onLongPress`, `onButtonTap`, `onToggle` | Content가 채택한 capability에 필요한 동작만 합성합니다. `onTouch`·`pressedEffect`·`onLongPress`는 `isEnabled:`로 조건에 따라 끌 수 있습니다. |
 | 표시 lifecycle | `willDisplayItem`, `ComponentContext` | 표시 시점과 render 단위 작업 수명을 연결합니다. |
 | Prefetch | `prefetchItems`, `cancelPrefetchingItems` | `IndexPath`와 stable Section·Item ID를 함께 전달합니다. |
 | 전체 Pagination | `reachedEnd` | Collection View 끝 접근 영역에 들어올 때 알립니다. |
@@ -515,6 +516,21 @@ Content 전체에 설치되는 `Touchable`, `Pressable`, `LongPressable`은 하�
 각자의 UIKit 동작을 유지하고 `.onButtonTap`, `.onToggle`로 별도로
 처리할 수 있습니다.
 
+조건에 따라 동작을 끄려면 `isEnabled:`를 넘깁니다. `false`면 modifier를
+붙이지 않은 것처럼 동작하고, 재사용된 Content에 남은 recognizer도 끕니다.
+반환 타입이 바뀌지 않으므로 조건마다 `AnyComponent`로 감쌀 필요가 없습니다.
+`.onButtonTap`과 `.onToggle`은 버튼·스위치의 표시 상태를 Content가 정하므로
+`isEnabled:`를 두지 않습니다.
+
+```swift
+FeedComponent(post: post)
+    .pressedEffect()
+    .onTouch { openDetail(post) }
+    .onLongPress(minimumDuration: 0.4, isEnabled: !isReadOnly) {
+        confirmDelete(post)
+    }
+```
+
 ### ComponentContext
 
 `ComponentContext`는 현재 render의 환경과 수명을 제공합니다.
@@ -555,10 +571,45 @@ func render(
 | --- | --- |
 | `SectionModels` | 여러 Section을 묶는 최종 Adapter 입력 |
 | `LazySection` | bind 시점에 Component를 평가하는 Section |
-| `For(of:)` | Collection의 각 값으로 Component를 만드는 반복 표현 |
+| `For(of:)` / `For(_:)` | Collection의 각 값으로 Component를 만드는 반복 표현 |
 | `withHeader` / `withFooter` | 일반 Component를 supplementary view로 연결 |
+| `header:` / `footer:` | `LazySection(id:layout:)`의 trailing closure로 header·footer 연결 |
 | `withSectionLayout` | Section별 Compositional Layout 지정 |
+| `pinnedHeader()` | Header를 스크롤 중 고정하고 item 위에 표시 |
 | `onReachedEnd` | 가로 Carousel Section의 끝 접근 callback 연결 |
+
+같은 Section을 두 가지 문법으로 선언할 수 있고, 한 화면 안에서 섞어 써도 됩니다.
+
+```swift
+// modifier 문법
+adapter.bind(
+    SectionModels {
+        LazySection(identifier: "members") {
+            For(of: members) { MemberRowComponent(user: $0) }
+        }
+        .withHeader(MemberHeaderComponent(count: members.count), zIndex: 1)
+        .withSectionLayout(
+            .verticalList(estimatedRowHeight: 60)
+                .withHeaderPinToVisibleBounds(true)
+        )
+    },
+    animatingDifferences: !previousMembers.isEmpty
+)
+
+// 짧은 문법
+adapter.bind {
+    LazySection(id: "members", layout: .list(rowHeight: 60)) {
+        For(members) { MemberRowComponent(user: $0) }
+    } header: {
+        MemberHeaderComponent(count: members.count)
+    }
+    .pinnedHeader()
+}
+```
+
+- `LazySection(id:layout:)`의 `layout`을 생략하면 `.verticalList()`입니다. `.list(rowHeight:spacing:contentInsets:)`는 `.verticalList(estimatedRowHeight:spacing:contentInsets:)`와 같습니다.
+- `pinnedHeader()`는 `withHeaderPinToVisibleBounds(true)`와 header `zIndex: 1`을 함께 적용한 것과 같습니다. Layout·header를 지정한 순서와 관계없이 적용되고, 더 큰 `zIndex`를 지정했다면 그 값을 유지합니다.
+- `bind`의 `animatingDifferences`를 생략하면 표시 중인 item이 있을 때만 변경을 애니메이션합니다. 첫 표시처럼 비어 있던 화면은 애니메이션 없이 반영합니다. `true`·`false`를 넘기면 그 값을 그대로 사용합니다.
 
 Section ID는 화면 안에서 고유해야 합니다. Item ID는 같은 Section 안에서
 고유해야 하고, 서로 다른 Section에서는 같은 원본 ID를 사용할 수 있습니다.
