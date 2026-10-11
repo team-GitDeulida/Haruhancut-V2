@@ -27,7 +27,6 @@ final class FeedViewController: UIViewController, View {
 
     private let imageTappedRelay = PublishRelay<Post>()
     private let longPressedRelay = PublishRelay<Post>()
-    private var currentComponents: [FeedComponent] = []
     private var didSkipInitialAppear = false
 
     init(reactor: FeedReactor, isReadOnly: Bool = false) {
@@ -105,33 +104,28 @@ final class FeedViewController: UIViewController, View {
     }
 
     private func renderFeed(components: [FeedComponent]) {
-        let shouldAnimate = !currentComponents.isEmpty
-        currentComponents = components
-
-        collectionViewAdapter.bind(
-            SectionModels {
-                LazySection(identifier: "feed") {
-                    For(of: components) { component in
-                        self.makeInteractiveComponent(component)
-                    }
-                }
-                .withSectionLayout(
-                    .grid(
-                        columns: 2,
-                        estimatedRowHeight: 240,
-                        interItemSpacing: 20,
-                        lineSpacing: 20,
-                        contentInsets: NSDirectionalEdgeInsets(
-                            top: 20,
-                            leading: 16,
-                            bottom: 0,
-                            trailing: 16
-                        )
+        // 표시 중인 게시물이 있을 때만 변경을 애니메이션합니다. (bind 기본 동작)
+        collectionViewAdapter.bind {
+            LazySection(
+                id: "feed",
+                layout: .grid(
+                    columns: 2,
+                    estimatedRowHeight: 240,
+                    interItemSpacing: 20,
+                    lineSpacing: 20,
+                    contentInsets: NSDirectionalEdgeInsets(
+                        top: 20,
+                        leading: 16,
+                        bottom: 0,
+                        trailing: 16
                     )
                 )
-            },
-            animatingDifferences: shouldAnimate
-        )
+            ) {
+                For(components) { component in
+                    self.makeInteractiveComponent(component)
+                }
+            }
+        }
 
         let hasContent = !components.isEmpty
         customView.emptyLabel.text = isReadOnly
@@ -150,23 +144,16 @@ final class FeedViewController: UIViewController, View {
         customView.cameraBtn.alpha = canAddPhoto ? 1.0 : 0.3
     }
 
-    private func makeInteractiveComponent(_ component: FeedComponent) -> AnyComponent {
-        let interactiveComponent = component
+    private func makeInteractiveComponent(_ component: FeedComponent) -> some Component {
+        component
             .pressedEffect()
             .onTouch { [weak self] in
                 self?.imageTappedRelay.accept(component.post)
             }
-
-        guard !isReadOnly else {
-            return AnyComponent(interactiveComponent)
-        }
-
-        return AnyComponent(
-            interactiveComponent
-                .onLongPress(minimumDuration: 0.4) { [weak self] in
-                    self?.longPressedRelay.accept(component.post)
-                }
-        )
+            // 읽기 전용 모드에서는 길게 눌러 삭제할 수 없습니다.
+            .onLongPress(minimumDuration: 0.4, isEnabled: !isReadOnly) { [weak self] in
+                self?.longPressedRelay.accept(component.post)
+            }
     }
 
     private func setupRefreshControl() {
