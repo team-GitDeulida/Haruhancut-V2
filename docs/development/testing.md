@@ -73,7 +73,7 @@ xcodebuild test \
 | `Domain` | 11개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `WidgetSupport` | 13개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `HomeFeatureV2` | 12개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `CollectionViewAdapter` | 53개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `CollectionViewAdapter` | 55개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `MemberFeatureV2` | 9개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `ProfileFeatureV2` | 3개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `AdminFeature` | 5개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
