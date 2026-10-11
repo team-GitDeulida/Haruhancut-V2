@@ -183,9 +183,37 @@ private func renderFeed(components: [FeedComponent]) {
 }
 ```
 
+같은 Section을 짧은 문법으로도 선언할 수 있어요. 두 문법은 같은 결과를 내고, 한 화면에서 섞어 써도 돼요.
+
+```swift
+private func renderFeed(components: [FeedComponent]) {
+    collectionViewAdapter.bind {
+        LazySection(
+            id: "feed",
+            layout: .grid(columns: 2, estimatedRowHeight: 240, interItemSpacing: 20, lineSpacing: 20,
+                          contentInsets: NSDirectionalEdgeInsets(top: 20, leading: 16, bottom: 0, trailing: 16))
+        ) {
+            For(components) { component in
+                self.makeInteractiveComponent(component)
+            }
+        }
+    }
+    customView.emptyLabel.isHidden = !components.isEmpty
+}
+```
+
+| 지금 문법 | 짧은 문법 |
+| --- | --- |
+| `LazySection(identifier:) { }` + `.withSectionLayout(_:)` | `LazySection(id:layout:) { }` (`layout`을 생략하면 세로 목록) |
+| `.withHeader(_:)`, `.withFooter(_:)` | `LazySection(id:) { } header: { } footer: { }` |
+| `.withSectionLayout(layout.withHeaderPinToVisibleBounds(true))` + `zIndex: 1` | `.pinnedHeader()` |
+| `For(of: items) { }` | `For(items) { }` |
+| `.verticalList(estimatedRowHeight:)` | `.list(rowHeight:)` |
+| `bind(SectionModels { }, animatingDifferences: shouldAnimate)` | `bind { }` (`animatingDifferences` 생략) |
+
 - 목록에 쓰는 State 조각을 `distinctUntilChanged()`로 걸러 `render...` 메서드 하나로 넘겨요. 매번 전체 `SectionModels`를 새로 만들어 `bind`하면 Adapter가 차이만 반영해요.
 - `render...`는 `private` 메서드로 두고, 목록 밖 UI(빈 상태 라벨, 버튼 상태)도 같은 곳에서 갱신해요.
-- 첫 표시에는 `animatingDifferences: false`, 이후 갱신에는 `true`를 써요. (`shouldAnimate`)
+- `animatingDifferences`를 생략하면 Adapter가 정해요. 표시 중인 item이 있을 때만 애니메이션하고, 첫 표시처럼 비어 있던 화면은 애니메이션 없이 반영해요. 기존처럼 `shouldAnimate`를 계산해 넘겨도 그대로 동작해요.
 - Section `identifier`는 화면 안에서 고유한 문자열로 정하고, 반복 사용하면 `private enum Constant`에 둬요. (`Constant.memberSectionIdentifier`)
 - 한 화면에 Section이 여러 개면 `SectionModels { ... }` 안에 `LazySection`을 나열해요.
 
@@ -221,7 +249,7 @@ MemberRowComponent(user: member, birthdayText: text)
 - ReactorKit 화면은 modifier 클로저에서 `[weak self]`로 잡고 `self?.reactor?.action.onNext(...)`로 Action을 보내요.
 - 컨테이너의 자식 화면이면 `PublishRelay`에 넣고 `Driver`로 부모에 공개해요. (`FeedViewController.imageTappedRelay` → `imageTapped`)
 - 기존 Input/Output 화면은 `PublishRelay`에 넣어 Input으로 넘겨요. (`MemberViewController.memberTappedRelay`)
-- 조건에 따라 modifier를 다르게 붙이면 반환 타입이 달라지므로 `AnyComponent`로 감싸요.
+- 조건에 따라 동작을 끄려면 `.onTouch`·`.pressedEffect`·`.onLongPress`에 `isEnabled:`를 넘겨요. 반환 타입이 바뀌지 않아 `AnyComponent`가 필요 없어요. `isEnabled:`가 없는 modifier(`.onButtonTap`, `.onToggle`)를 조건에 따라 붙이거나 modifier 구성이 크게 달라지면 `AnyComponent`로 감싸요.
 
 ```swift
 // FeedViewController (요약): 읽기 전용 모드에서는 길게 누르기를 붙이지 않아요
@@ -240,6 +268,17 @@ private func makeInteractiveComponent(_ component: FeedComponent) -> AnyComponen
         }
     )
 }
+```
+
+`isEnabled:`를 쓰면 같은 화면을 이렇게 줄일 수 있어요.
+
+```swift
+FeedComponent(post: post)
+    .pressedEffect()
+    .onTouch { [weak self] in self?.imageTappedRelay.accept(post) }
+    .onLongPress(minimumDuration: 0.4, isEnabled: !isReadOnly) { [weak self] in
+        self?.longPressedRelay.accept(post)
+    }
 ```
 
 Modifier의 observation은 `ComponentContext.cancellationBag`에 연결돼, Cell이 재사용되거나 다시 render될 때 자동으로 정리돼요.
@@ -263,13 +302,25 @@ LazySection(identifier: Constant.memberSectionIdentifier) { ... }
 ```
 
 - Header·Footer도 일반 Component로 만들어요.
-- 스크롤 중 고정하려면 layout에 `.withHeaderPinToVisibleBounds(true)`를 붙이고, 셀 위에 보이도록 `zIndex: 1`을 줘요.
+- 스크롤 중 고정하려면 layout에 `.withHeaderPinToVisibleBounds(true)`를 붙이고, 셀 위에 보이도록 `zIndex: 1`을 줘요. `.pinnedHeader()` 하나로도 같은 설정이 돼요.
+
+```swift
+LazySection(id: Constant.memberSectionIdentifier, layout: .list(rowHeight: Constant.rowHeight, spacing: Constant.rowSpacing)) {
+    ...
+} header: {
+    MemberHeaderComponent(memberCount: state.members.count, showsBirthdaySettingsButton: state.canEditBirthdaySettings)
+        .onButtonTap { [weak self] in
+            self?.showBirthdaySettings()
+        }
+}
+.pinnedHeader()
+```
 
 ## Section layout을 골라요
 
 | layout | 하루한컷 사용 예 | 주요 인자 |
 | --- | --- | --- |
-| `.verticalList` | 멤버, 설정, 관리자 목록 | `estimatedRowHeight`, `spacing`, `contentInsets` |
+| `.verticalList` (짧게 `.list`) | 멤버, 설정, 관리자 목록 | `estimatedRowHeight`(`.list`는 `rowHeight`), `spacing`, `contentInsets` |
 | `.grid` | 피드(2열) | `columns`, `estimatedRowHeight`, `interItemSpacing`, `lineSpacing`, `contentInsets` |
 | `.horizontalCarousel` | 아직 사용하지 않아요. (Demo에만 있음) | `itemWidth`, `estimatedHeight`, `spacing`, `behavior` |
 | `CollectionSectionLayout { _ in ... }` 직접 생성 | 프로필 게시물 그리드 (`ProfileViewController.makeProfilePostGridLayout(targetWidth:)`) | 기본 layout으로 표현할 수 없을 때 `NSCollectionLayoutSection`을 직접 만들어요. |

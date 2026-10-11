@@ -25,7 +25,7 @@
 | `MemberFeatureV2` | `MemberFeatureV2Tests` | 멤버 화면 ViewModel | 없음 | 실행하지 않음 |
 | `ProfileFeatureV2` | `ProfileFeatureV2Tests` | 프로필 화면 | 없음 | 실행하지 않음 |
 | `AdminFeature` | `AdminFeatureTests` | 관리자 Usecase·ViewModel | 없음 | 실행하지 않음 |
-| `CollectionViewAdapter` | `CollectionViewAdapterTests` | 섹션·컴포넌트·diff 적용 | 없음 | 실행하지 않음 |
+| `CollectionViewAdapter` | `CollectionViewAdapterTests` | 섹션·컴포넌트·diff 적용, 짧은 Section 문법, 조건부 modifier(`isEnabled:`) | 없음 | 실행하지 않음 |
 
 - V1 Feature(Auth, Home, Image, Member, Onboarding, Profile)의 테스트 타깃은 `Project.swift`에서 주석 처리돼 있어요. `Tests/Sources/Empty.swift`만 있어요.
 - `DSKitTests`, `RxLabTests`는 타깃만 있고 테스트가 없어요.
@@ -73,7 +73,7 @@ xcodebuild test \
 | `Domain` | 11개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `WidgetSupport` | 13개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `HomeFeatureV2` | 12개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `CollectionViewAdapter` | 42개 테스트 통과 (2026-10-09, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `CollectionViewAdapter` | 53개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `MemberFeatureV2` | 9개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `ProfileFeatureV2` | 3개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `AdminFeature` | 5개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
