@@ -138,10 +138,12 @@ public final class CollectionViewAdapter:
     /// - Parameters:
     ///   - sectionModels: `SectionModels {}`로 만든 section 모음.
     ///   - animatingDifferences: Diffable 변경 애니메이션 사용 여부.
+    ///     생략하면 표시 중인 item이 있을 때만 애니메이션합니다.
+    ///     첫 표시처럼 비어 있던 화면은 애니메이션 없이 반영합니다.
     ///   - completion: Snapshot 반영을 마친 뒤 실행할 동작.
     public func bind(
         _ sectionModels: any SectionModelsConvertible,
-        animatingDifferences: Bool = true,
+        animatingDifferences: Bool? = nil,
         completion: (() -> Void)? = nil
     ) {
         let newSections = sectionModels.sectionModels.sections
@@ -150,6 +152,9 @@ public final class CollectionViewAdapter:
         registerContainers(in: newSections)
 
         let oldSections = sections
+        let animatesDifferences = shouldAnimateDifferences(
+            animatingDifferences
+        )
         sections = newSections
         updateComponentLookup(in: newSections)
         updateSectionReachedEndConfigurations(
@@ -160,7 +165,7 @@ public final class CollectionViewAdapter:
         applySnapshot(
             oldSections: oldSections,
             newSections: newSections,
-            animatingDifferences: animatingDifferences,
+            animatingDifferences: animatesDifferences,
             completion: completion
         )
     }
@@ -169,10 +174,11 @@ public final class CollectionViewAdapter:
     ///
     /// - Parameters:
     ///   - animatingDifferences: Diffable 변경 애니메이션 사용 여부.
+    ///     생략하면 표시 중인 item이 있을 때만 애니메이션합니다.
     ///   - completion: Snapshot 반영을 마친 뒤 실행할 동작.
     ///   - sectionModels: Lazy section을 만드는 builder.
     public func bind(
-        animatingDifferences: Bool = true,
+        animatingDifferences: Bool? = nil,
         completion: (() -> Void)? = nil,
         @SectionModelsBuilder sectionModels: () -> SectionModels
     ) {
@@ -181,6 +187,16 @@ public final class CollectionViewAdapter:
             animatingDifferences: animatingDifferences,
             completion: completion
         )
+    }
+
+    /// 이번 bind에서 변경을 애니메이션할지 정합니다.
+    ///
+    /// - Parameter requested: 호출부가 지정한 값. `nil`이면 자동으로 정합니다.
+    /// - Returns: 지정한 값, 또는 표시 중인 item이 있으면 `true`.
+    func shouldAnimateDifferences(
+        _ requested: Bool?
+    ) -> Bool {
+        requested ?? sections.contains { !$0.items.isEmpty }
     }
 
     /// 현재 Compositional Layout을 다시 계산합니다.
