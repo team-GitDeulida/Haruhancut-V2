@@ -323,37 +323,35 @@ final class ProfileViewController:
             profilePostTargetWidth
 
         adapter.bind(
-            SectionModels {
-                LazySection(
-                    identifier:
-                        Constant
-                            .postSectionIdentifier
-                ) {
-                    For(of: posts) {
-                        post in
-                        ProfilePostComponent(
-                            post: post,
-                            targetWidth:
-                                targetWidth
-                        )
-                        .pressedEffect(scale: 0.98)
-                        .onTouch {
-                            [weak self] in
-                            self?
-                                .imageTappedRelay
-                                .accept(post)
-                        }
-                    }
-                }
-                .withSectionLayout(
+            animatingDifferences: true
+        ) {
+            LazySection(
+                id:
+                    Constant
+                        .postSectionIdentifier,
+                layout:
                     makeProfilePostGridLayout(
                         targetWidth:
                             targetWidth
                     )
-                )
-            },
-            animatingDifferences: true
-        )
+            ) {
+                For(posts) {
+                    post in
+                    ProfilePostComponent(
+                        post: post,
+                        targetWidth:
+                            targetWidth
+                    )
+                    .pressedEffect(scale: 0.98)
+                    .onTouch {
+                        [weak self] in
+                        self?
+                            .imageTappedRelay
+                            .accept(post)
+                    }
+                }
+            }
+        }
     }
 
     private func makeProfilePostGridLayout(

@@ -102,53 +102,47 @@ final class SettingViewController:
             makeSettingSections()
 
         adapter.bind(
-            SectionModels {
-                for section in sections {
-                    LazySection(
-                        identifier:
-                            section.id
-                    ) {
-                        For(
-                            of: section.items
-                        ) { item in
-                            SettingRowComponent(
-                                item: item
-                            )
-                            .onTouch {
-                                [weak self] in
-                                self?
-                                    .handleSelection(
-                                        item.id
-                                    )
-                            }
-                            .onToggle {
-                                [weak self] isOn in
-                                self?
-                                    .notificationToggleRelay
-                                    .accept(isOn)
-                            }
+            animatingDifferences: false
+        ) {
+            for section in sections {
+                LazySection(
+                    id:
+                        section.id,
+                    layout:
+                        .list(rowHeight: 52)
+                ) {
+                    For(
+                        section.items
+                    ) { item in
+                        SettingRowComponent(
+                            item: item
+                        )
+                        .onTouch {
+                            [weak self] in
+                            self?
+                                .handleSelection(
+                                    item.id
+                                )
+                        }
+                        .onToggle {
+                            [weak self] isOn in
+                            self?
+                                .notificationToggleRelay
+                                .accept(isOn)
                         }
                     }
-                    .withHeader(
-                        SettingSectionHeaderComponent(
-                            item: .init(
-                                id:
-                                    "\(section.id)-header",
-                                title:
-                                    section.title
-                            )
-                        )
-                    )
-                    .withSectionLayout(
-                        .verticalList(
-                            estimatedRowHeight:
-                                52
+                } header: {
+                    SettingSectionHeaderComponent(
+                        item: .init(
+                            id:
+                                "\(section.id)-header",
+                            title:
+                                section.title
                         )
                     )
                 }
-            },
-            animatingDifferences: false
-        )
+            }
+        }
     }
 
     private func makeSettingSections()
