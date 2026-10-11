@@ -52,12 +52,33 @@ CollectionViewAdapter.bind
 
 ## Component를 만들어요
 
-Component는 두 가지 방식으로 만들어요. 둘 다 modifier, Header·Footer, `#Preview`에서 똑같이 쓸 수 있어요.
+Component는 세 가지 방식으로 만들어요. 모두 modifier와 Header·Footer에서 똑같이 쓸 수 있어요.
 
 | 방식 | 언제 쓰나요 | 예시 |
 | --- | --- | --- |
 | ContentView가 `ItemContentView`를 채택하고 `typealias XxxComponent = ItemComponent<XxxContentView>` | Item만으로 그릴 수 있을 때 (**새 셀의 기본**) | 설정 행·헤더(`SettingComponents.swift`) |
 | `struct XxxComponent: Component`를 직접 구현 | 이벤트에 원본 모델이 필요하거나(`FeedComponent.post`), Item 밖의 값이 필요하거나(`ProfilePostComponent.targetWidth`), 모델에서 Item을 만드는 `init`·고정 행(`MemberRowComponent.invite`)을 Component에 두고 싶을 때 | 피드·멤버·프로필·관리자 |
+| `HostingComponent(item:) { item in SwiftUI View }` | 텍스트·아이콘 위주라 SwiftUI로 그리기 쉬운 셀. 높이가 내용으로 정해지거나 고정 크기·고정 비율인 셀 | CollectionViewAdapter Demo의 "SwiftUI Cells" (기능 화면은 아직 쓰지 않아요) |
+
+### SwiftUI View로 그려요
+
+```swift
+HostingComponent(item: row) { row in
+    HStack {
+        Text(row.title)
+        Spacer()
+        Image(systemName: row.isOn ? "checkmark.circle.fill" : "circle")
+    }
+    .padding(16)
+}
+.onTouch { [weak self] in self?.toggle(row.id) }
+```
+
+- 셀 높이는 SwiftUI View가 셀 너비에서 계산해요. 셀 여백은 View에서 `.padding`으로 줘요.
+- 같은 Item이면 View를 다시 만들지 않아요. View 안에서 Item 밖의 값(ViewController 상태 등)을 읽지 않아요.
+- 셀 전체 동작은 `.onTouch` 같은 modifier로 연결해요. Content 전체에 붙는 modifier는 SwiftUI `Button` 위의 터치도 받을 수 있어요.
+- 이미지는 고정 크기나 고정 비율로 그려요. 표시한 뒤 높이가 바뀌는 셀은 확인하지 않았어요. (확인 필요)
+- 피드·프로필처럼 이미지가 많고 Kingfisher prefetch를 쓰는 화면은 UIKit 셀을 유지해요. `KFImage`와 `ImagePrefetcher`가 같은 캐시를 쓰는지는 확인하지 않았어요. (확인 필요: 기능 화면에 적용할 때 확인)
 
 ### ItemContentView로 만들어요
 
