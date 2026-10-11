@@ -175,62 +175,56 @@ final class MemberViewController:
         )
 
         adapter.bind(
-            SectionModels {
-                LazySection(
-                    identifier:
-                        Constant.memberSectionIdentifier
-                ) {
-                    MemberRowComponent
-                        .invite
-                        .onTouch { [weak self] in
-                            self?.inviteTappedRelay.accept(())
-                        }
+            animatingDifferences: true
+        ) {
+            LazySection(
+                id:
+                    Constant.memberSectionIdentifier,
+                layout: .list(
+                    rowHeight: Constant.rowHeight,
+                    spacing: Constant.rowSpacing
+                )
+            ) {
+                MemberRowComponent
+                    .invite
+                    .onTouch { [weak self] in
+                        self?.inviteTappedRelay.accept(())
+                    }
 
-                    For(of: state.members) {
-                        member in
-                        MemberRowComponent(
-                            user: member,
-                            birthdayText:
-                                self.birthdayText(
-                                    for: member,
-                                    settings:
-                                        state
-                                            .birthdaySettings
-                                )
-                        )
-                        .onTouch { [weak self] in
-                            self?.memberTappedRelay.accept(member)
-                        }
+                For(state.members) {
+                    member in
+                    MemberRowComponent(
+                        user: member,
+                        birthdayText:
+                            self.birthdayText(
+                                for: member,
+                                settings:
+                                    state
+                                        .birthdaySettings
+                            )
+                    )
+                    .onTouch { [weak self] in
+                        self?.memberTappedRelay.accept(member)
                     }
                 }
-                .withHeader(
-                    MemberHeaderComponent(
-                        memberCount:
-                            state
-                                .members
-                                .count,
-                        showsBirthdaySettingsButton:
-                            state
-                                .canEditBirthdaySettings
-                    )
-                    .onButtonTap {
-                        [weak self] in
-                        self?
-                            .showBirthdaySettings()
-                    },
-                    zIndex: 1
+            } header: {
+                MemberHeaderComponent(
+                    memberCount:
+                        state
+                            .members
+                            .count,
+                    showsBirthdaySettingsButton:
+                        state
+                            .canEditBirthdaySettings
                 )
-                .withSectionLayout(
-                    CollectionSectionLayout
-                        .verticalList(
-                            estimatedRowHeight: Constant.rowHeight,
-                            spacing: Constant.rowSpacing
-                        )
-                        .withHeaderPinToVisibleBounds(true)
-                )
-            },
-            animatingDifferences: true
-        )
+                .onButtonTap {
+                    [weak self] in
+                    self?
+                        .showBirthdaySettings()
+                }
+            }
+            .pinnedHeader()
+        }
     }
 
     private func birthdayText(

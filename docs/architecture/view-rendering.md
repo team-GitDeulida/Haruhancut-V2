@@ -36,9 +36,9 @@ Reactor.State (도메인 모델·표시 값)
       │  bind(reactor:) : map → distinctUntilChanged → drive
       ▼
 ViewController.render(...)
-      │  SectionModels { LazySection { For(of:) { XxxComponent(...) } } }
+      │  adapter.bind { LazySection(id:layout:) { For(items) { XxxComponent(...) } } }
       ▼
-CollectionViewAdapter.bind(_:animatingDifferences:)
+CollectionViewAdapter.bind
       │  Diffable snapshot · ContainerCell<Component> · Compositional Layout
       ▼
 루트 View의 UICollectionView
@@ -162,31 +162,6 @@ func bind(reactor: FeedReactor) {
 }
 
 private func renderFeed(components: [FeedComponent]) {
-    let shouldAnimate = !currentComponents.isEmpty
-    currentComponents = components
-
-    collectionViewAdapter.bind(
-        SectionModels {
-            LazySection(identifier: "feed") {
-                For(of: components) { component in
-                    self.makeInteractiveComponent(component)
-                }
-            }
-            .withSectionLayout(
-                .grid(columns: 2, estimatedRowHeight: 240, interItemSpacing: 20, lineSpacing: 20,
-                      contentInsets: NSDirectionalEdgeInsets(top: 20, leading: 16, bottom: 0, trailing: 16))
-            )
-        },
-        animatingDifferences: shouldAnimate
-    )
-    customView.emptyLabel.isHidden = !components.isEmpty   // 실제 코드는 읽기 전용 모드 문구도 함께 바꿔요
-}
-```
-
-같은 Section을 짧은 문법으로도 선언할 수 있어요. 두 문법은 같은 결과를 내고, 한 화면에서 섞어 써도 돼요.
-
-```swift
-private func renderFeed(components: [FeedComponent]) {
     collectionViewAdapter.bind {
         LazySection(
             id: "feed",
@@ -198,11 +173,13 @@ private func renderFeed(components: [FeedComponent]) {
             }
         }
     }
-    customView.emptyLabel.isHidden = !components.isEmpty
+    customView.emptyLabel.isHidden = !components.isEmpty   // 실제 코드는 읽기 전용 모드 문구도 함께 바꿔요
 }
 ```
 
-| 지금 문법 | 짧은 문법 |
+기능 화면은 모두 위의 짧은 문법을 써요. 이전 문법(`SectionModels { }`, `withSectionLayout` 같은 modifier)도 그대로 동작하고, 한 화면에서 섞어 써도 돼요. 짧은 문법에 없는 설정(header `alignment`·`height` 등)은 modifier로 덧붙여요.
+
+| 이전 문법 | 짧은 문법 |
 | --- | --- |
 | `LazySection(identifier:) { }` + `.withSectionLayout(_:)` | `LazySection(id:layout:) { }` (`layout`을 생략하면 세로 목록) |
 | `.withHeader(_:)`, `.withFooter(_:)` | `LazySection(id:) { } header: { } footer: { }` |
@@ -213,9 +190,9 @@ private func renderFeed(components: [FeedComponent]) {
 
 - 목록에 쓰는 State 조각을 `distinctUntilChanged()`로 걸러 `render...` 메서드 하나로 넘겨요. 매번 전체 `SectionModels`를 새로 만들어 `bind`하면 Adapter가 차이만 반영해요.
 - `render...`는 `private` 메서드로 두고, 목록 밖 UI(빈 상태 라벨, 버튼 상태)도 같은 곳에서 갱신해요.
-- `animatingDifferences`를 생략하면 Adapter가 정해요. 표시 중인 item이 있을 때만 애니메이션하고, 첫 표시처럼 비어 있던 화면은 애니메이션 없이 반영해요. 기존처럼 `shouldAnimate`를 계산해 넘겨도 그대로 동작해요.
-- Section `identifier`는 화면 안에서 고유한 문자열로 정하고, 반복 사용하면 `private enum Constant`에 둬요. (`Constant.memberSectionIdentifier`)
-- 한 화면에 Section이 여러 개면 `SectionModels { ... }` 안에 `LazySection`을 나열해요.
+- `animatingDifferences`를 생략하면 Adapter가 정해요. 표시 중인 item이 있을 때만 애니메이션하고, 첫 표시처럼 비어 있던 화면은 애니메이션 없이 반영해요. (피드·관리자) 항상 같은 값이 필요하면 직접 넘겨요. (멤버·프로필 `bind(animatingDifferences: true) { }`, 설정 `false`)
+- Section `id`는 화면 안에서 고유한 문자열로 정하고, 반복 사용하면 `private enum Constant`에 둬요. (`Constant.memberSectionIdentifier`)
+- 한 화면에 Section이 여러 개면 `bind { ... }` 안에 `LazySection`을 나열하거나 `for`로 반복해요. (`SettingViewController`)
 
 ### Reactor State에는 무엇을 두나요
 
@@ -252,33 +229,17 @@ MemberRowComponent(user: member, birthdayText: text)
 - 조건에 따라 동작을 끄려면 `.onTouch`·`.pressedEffect`·`.onLongPress`에 `isEnabled:`를 넘겨요. 반환 타입이 바뀌지 않아 `AnyComponent`가 필요 없어요. `isEnabled:`가 없는 modifier(`.onButtonTap`, `.onToggle`)를 조건에 따라 붙이거나 modifier 구성이 크게 달라지면 `AnyComponent`로 감싸요.
 
 ```swift
-// FeedViewController (요약): 읽기 전용 모드에서는 길게 누르기를 붙이지 않아요
-private func makeInteractiveComponent(_ component: FeedComponent) -> AnyComponent {
-    let interactive = component
+// FeedViewController (요약): 읽기 전용 모드에서는 길게 누르기를 꺼요
+private func makeInteractiveComponent(_ component: FeedComponent) -> some Component {
+    component
         .pressedEffect()
         .onTouch { [weak self] in
             self?.imageTappedRelay.accept(component.post)
         }
-
-    guard !isReadOnly else { return AnyComponent(interactive) }
-
-    return AnyComponent(
-        interactive.onLongPress(minimumDuration: 0.4) { [weak self] in
+        .onLongPress(minimumDuration: 0.4, isEnabled: !isReadOnly) { [weak self] in
             self?.longPressedRelay.accept(component.post)
         }
-    )
 }
-```
-
-`isEnabled:`를 쓰면 같은 화면을 이렇게 줄일 수 있어요.
-
-```swift
-FeedComponent(post: post)
-    .pressedEffect()
-    .onTouch { [weak self] in self?.imageTappedRelay.accept(post) }
-    .onLongPress(minimumDuration: 0.4, isEnabled: !isReadOnly) { [weak self] in
-        self?.longPressedRelay.accept(post)
-    }
 ```
 
 Modifier의 observation은 `ComponentContext.cancellationBag`에 연결돼, Cell이 재사용되거나 다시 render될 때 자동으로 정리돼요.
@@ -286,25 +247,7 @@ Modifier의 observation은 `ComponentContext.cancellationBag`에 연결돼, Cell
 ### Header와 Footer
 
 ```swift
-LazySection(identifier: Constant.memberSectionIdentifier) { ... }
-    .withHeader(
-        MemberHeaderComponent(memberCount: state.members.count, showsBirthdaySettingsButton: state.canEditBirthdaySettings)
-            .onButtonTap { [weak self] in
-                self?.showBirthdaySettings()
-            },
-        zIndex: 1
-    )
-    .withSectionLayout(
-        CollectionSectionLayout
-            .verticalList(estimatedRowHeight: Constant.rowHeight, spacing: Constant.rowSpacing)
-            .withHeaderPinToVisibleBounds(true)
-    )
-```
-
-- Header·Footer도 일반 Component로 만들어요.
-- 스크롤 중 고정하려면 layout에 `.withHeaderPinToVisibleBounds(true)`를 붙이고, 셀 위에 보이도록 `zIndex: 1`을 줘요. `.pinnedHeader()` 하나로도 같은 설정이 돼요.
-
-```swift
+// MemberViewController (요약)
 LazySection(id: Constant.memberSectionIdentifier, layout: .list(rowHeight: Constant.rowHeight, spacing: Constant.rowSpacing)) {
     ...
 } header: {
@@ -315,6 +258,9 @@ LazySection(id: Constant.memberSectionIdentifier, layout: .list(rowHeight: Const
 }
 .pinnedHeader()
 ```
+
+- Header·Footer도 일반 Component로 만들어요. `header:`·`footer:` 클로저나 `.withHeader(_:)`·`.withFooter(_:)` modifier로 붙여요.
+- 스크롤 중 고정하려면 `.pinnedHeader()`를 붙여요. layout의 `.withHeaderPinToVisibleBounds(true)`와 header `zIndex: 1`을 함께 지정한 것과 같아요.
 
 ## Section layout을 골라요
 
