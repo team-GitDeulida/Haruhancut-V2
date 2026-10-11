@@ -36,8 +36,6 @@ final class AdminViewController:
         )
     private let refreshControl =
         UIRefreshControl()
-    private var currentGroups:
-        [AdminGroupSummary] = []
 
     private lazy var adapter =
         CollectionViewAdapter(
@@ -178,8 +176,6 @@ final class AdminViewController:
         _ state: AdminScreenState
     ) {
         render(state.groups)
-        currentGroups =
-            state.groups
 
         let showsFullScreenLoading =
             state.isLoading
@@ -229,49 +225,44 @@ final class AdminViewController:
                 )
             }
 
-        adapter.bind(
-            SectionModels {
-                LazySection(
-                    identifier:
+        // 표시 중인 그룹이 있을 때만 변경을 애니메이션합니다. (bind 기본 동작)
+        adapter.bind {
+            LazySection(
+                id:
+                    Constant
+                        .sectionIdentifier,
+                layout: .list(
+                    rowHeight:
                         Constant
-                            .sectionIdentifier
-                ) {
-                    For(
-                        of: components
-                    ) {
-                        component in
-                        component
-                            .pressedEffect(scale: 0.98)
-                            .onTouch {
-                                [weak self] in
-                                self?
-                                    .groupTappedRelay
-                                    .accept(
-                                        component
-                                            .group
-                                    )
-                            }
-                    }
-                }
-                .withSectionLayout(
-                    .verticalList(
-                        estimatedRowHeight:
-                            Constant
-                                .estimatedRowHeight,
-                        spacing: 12,
-                        contentInsets:
-                            .init(
-                                top: 20,
-                                leading: 20,
-                                bottom: 24,
-                                trailing: 20
-                            )
-                    )
+                            .estimatedRowHeight,
+                    spacing: 12,
+                    contentInsets:
+                        .init(
+                            top: 20,
+                            leading: 20,
+                            bottom: 24,
+                            trailing: 20
+                        )
                 )
-            },
-            animatingDifferences:
-                !currentGroups.isEmpty
-        )
+            ) {
+                For(
+                    components
+                ) {
+                    component in
+                    component
+                        .pressedEffect(scale: 0.98)
+                        .onTouch {
+                            [weak self] in
+                            self?
+                                .groupTappedRelay
+                                .accept(
+                                    component
+                                        .group
+                                )
+                        }
+                }
+            }
+        }
     }
 
     private func metricsText(
