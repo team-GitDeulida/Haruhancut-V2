@@ -284,6 +284,17 @@ struct RootListView: View {
                             shape: .yellow
                         )
                     }
+
+                    NavigationLink {
+                        HostingCellDemoViewController()
+                            .toSwiftUI()
+                    } label: {
+                        CustomLabel(
+                            title: "SwiftUI Cells",
+                            caption: "HostingComponent로 SwiftUI View를 셀로 그립니다",
+                            shape: .yellow
+                        )
+                    }
                 }
 
                 ReadmeCaptureSection()

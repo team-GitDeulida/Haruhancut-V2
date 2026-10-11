@@ -262,6 +262,43 @@ Collection View에서 사용할 때는 같은 Component를 `LazySection`에 넣�
 SwiftUI에서는 `VStack`, `ForEach` 같은 View 구성 안에 직접 넣습니다.
 두 환경 모두 같은 `createContent`와 `render` 계약을 사용합니다.
 
+### SwiftUI View로 셀 그리기
+
+반대로 SwiftUI View를 Collection View 셀로 쓸 수도 있습니다.
+`HostingComponent`가 `UIHostingConfiguration`으로 View를 셀에 담습니다.
+
+```swift
+adapter.bind {
+    LazySection(id: "rows", layout: .list(spacing: 8)) {
+        For(rows) { row in
+            HostingComponent(item: row) { row in
+                HStack {
+                    Text(row.title)
+                    Spacer()
+                    Image(systemName: row.isOn ? "checkmark.circle.fill" : "circle")
+                }
+                .padding(16)
+            }
+            .pressedEffect()
+            .onTouch { toggle(row.id) }
+        }
+    } header: {
+        HostingComponent(item: header) { Text($0.title).font(.headline) }
+    }
+}
+```
+
+- 셀 높이는 SwiftUI View가 셀 너비에서 계산한 높이입니다. 여러 줄 텍스트도
+  너비에 맞게 감싸집니다.
+- 같은 Item이면 View를 다시 만들지 않습니다. View는 `item`만으로 그리고,
+  Item 밖의 값을 읽지 않습니다.
+- `.onTouch`, `.pressedEffect`, `.onLongPress`와 Header·Footer에서 일반
+  Component처럼 사용합니다. Content 전체에 붙는 modifier는 SwiftUI `Button`
+  위의 터치도 받을 수 있으므로, 셀 전체 동작은 modifier로 연결합니다.
+- 표시한 뒤 높이가 바뀌는 View(불러온 이미지 크기로 높이가 정해지는 경우 등)는
+  확인하지 않았습니다. 이미지는 고정 크기나 고정 비율로 그립니다.
+- Demo의 "SwiftUI Cells" 화면에서 목록·고정 헤더·사진 grid 예시를 볼 수 있습니다.
+
 ## 왜 만들었나요?
 
 ### Collection View 화면은 책임이 빠르게 늘어납니다
@@ -327,7 +364,7 @@ Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
 | Prefetch | `prefetchItems`, `cancelPrefetchingItems` | `IndexPath`와 stable Section·Item ID를 함께 전달합니다. |
 | 전체 Pagination | `reachedEnd` | Collection View 끝 접근 영역에 들어올 때 알립니다. |
 | Section Pagination | `onReachedEnd` | 가로 Carousel Section의 끝 접근을 독립적으로 알립니다. |
-| SwiftUI 연결 | `ComponentView`, `ComponentRepresenting` | UIKit Component를 SwiftUI View hierarchy에서 재사용합니다. |
+| SwiftUI 연결 | `ComponentView`, `ComponentRepresenting`, `HostingComponent` | UIKit Component를 SwiftUI View hierarchy에서 재사용하고, SwiftUI View를 셀로 그립니다. |
 
 ## 모듈 연결
 

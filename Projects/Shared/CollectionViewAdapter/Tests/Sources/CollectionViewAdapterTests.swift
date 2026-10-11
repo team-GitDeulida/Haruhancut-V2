@@ -1,3 +1,4 @@
+import SwiftUI
 import XCTest
 import UIKit
 @testable import CollectionViewAdapter
@@ -2543,5 +2544,113 @@ final class CollectionViewAdapterTests: XCTestCase {
 
         let content = view.subviews.first as? TestItemContentView
         XCTAssertEqual(content?.appliedItems, [first, changed])
+    }
+
+    // MARK: - HostingComponent
+
+    @MainActor
+    func testHostingComponentSizesCellToSwiftUIContent() {
+        let short = TestItem(id: 1, title: "한 줄")
+        let long = TestItem(id: 2, title: String(repeating: "여러 줄로 감싸지는 긴 문장입니다. ", count: 8))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 2000))
+        let collectionView = UICollectionView(
+            frame: window.bounds,
+            collectionViewLayout: UICollectionViewFlowLayout()
+        )
+        window.addSubview(collectionView)
+        window.isHidden = false
+        defer { window.isHidden = true }
+        let adapter = CollectionViewAdapter(collectionView: collectionView)
+
+        adapter.bind(animatingDifferences: false) {
+            LazySection(id: "rows") {
+                For([short, long]) { item in
+                    HostingComponent(item: item) { item in
+                        HostingTestRow(title: item.title)
+                    }
+                }
+            }
+        }
+        let heights = withExtendedLifetime(adapter) {
+            collectionView.layoutIfNeeded()
+            return (0..<2).compactMap {
+                collectionView.collectionViewLayout
+                    .layoutAttributesForItem(at: IndexPath(item: $0, section: 0))?
+                    .frame.height
+            }
+        }
+
+        // SwiftUI가 같은 너비에서 계산한 높이를 pt 단위로 올림한 값과 같습니다.
+        let expected = [short, long].map {
+            ceil(
+                UIHostingController(rootView: HostingTestRow(title: $0.title))
+                    .sizeThatFits(in: CGSize(width: 320, height: CGFloat.greatestFiniteMagnitude))
+                    .height
+            )
+        }
+        XCTAssertEqual(heights, expected)
+        XCTAssertGreaterThan(heights[1], heights[0] * 2)
+    }
+
+    @MainActor
+    func testHostingComponentRebuildsViewOnlyForChangedItems() {
+        let first = TestItem(id: 1, title: "알림")
+        let changed = TestItem(id: 1, title: "알림 끔")
+        var builtTitles: [String] = []
+        func component(_ item: TestItem) -> HostingComponent<TestItem, Text> {
+            HostingComponent(item: item) { item in
+                builtTitles.append(item.title)
+                return Text(item.title)
+            }
+        }
+        let content = component(first).createContent()
+
+        component(first).render(context: ComponentContext(), content: content)
+        component(first).render(context: ComponentContext(), content: content)
+        component(changed).render(context: ComponentContext(), content: content)
+
+        XCTAssertEqual(builtTitles, ["알림", "알림 끔"])
+    }
+
+    @MainActor
+    func testHostingComponentWorksWithModifiersAndHeader() {
+        let item = TestItem(id: 7, title: "계좌")
+        var touchCount = 0
+        let component = HostingComponent(item: item) { item in
+            Text(item.title)
+        }
+        .pressedEffect()
+        .onTouch { touchCount += 1 }
+        let content = component.createContent()
+        component.render(context: ComponentContext(), content: content)
+        content.touchEvent.send(())
+        XCTAssertEqual(touchCount, 1)
+        XCTAssertEqual(AnyComponent(component).id, AnyHashable(7))
+
+        let collectionView = UICollectionView(
+            frame: .zero,
+            collectionViewLayout: UICollectionViewFlowLayout()
+        )
+        let adapter = CollectionViewAdapter(collectionView: collectionView)
+        adapter.bind {
+            LazySection(id: "accounts") {
+                component
+            } header: {
+                HostingComponent(item: TestItem(id: 100, title: "헤더")) { Text($0.title) }
+            }
+        }
+        XCTAssertEqual(adapter.sections.first?.header?.component.id, AnyHashable(100))
+        XCTAssertEqual(adapter.diffableDataSource.snapshot().itemIdentifiers.map(\.rawValue), [AnyHashable(7)])
+    }
+}
+
+private struct HostingTestRow: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.system(size: 17))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
     }
 }
