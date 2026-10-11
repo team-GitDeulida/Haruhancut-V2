@@ -313,7 +313,7 @@ Collection View를 연결하는 공통 책임은 Adapter에 맡깁니다.
 
 | 기능 | API | 역할 |
 | --- | --- | --- |
-| 선언형 Item | `Component` | `Identifiable & Equatable` Item을 `UIView` 생성·렌더링 규칙과 연결합니다. |
+| 선언형 Item | `Component`, `ItemContentView`·`ItemComponent` | `Identifiable & Equatable` Item을 `UIView` 생성·렌더링 규칙과 연결합니다. Item만으로 그리는 셀은 Content View만 만들어 `ItemComponent<Content>`로 씁니다. |
 | 선언형 Section | `SectionModels`, `LazySection(identifier:)`·`LazySection(id:layout:)`, `For(of:)`·`For(_:)` | Section과 Component를 상태에서 선언합니다. 짧은 문법과 modifier 문법을 함께 쓸 수 있습니다. |
 | Header / Footer | `withHeader`, `withFooter`, `header:`·`footer:` trailing closure | 일반 Component를 boundary supplementary view로 재사용합니다. |
 | Header 고정 | `pinnedHeader()`, `withHeaderPinToVisibleBounds(_:)` | 스크롤 중 header를 위쪽에 고정합니다. |
@@ -421,6 +421,41 @@ public protocol Component: CompositionalLayoutSizeable {
 - `Item.Equatable`은 같은 ID의 화면 상태 변경을 찾는 데 사용합니다.
 - `estimatedHeight`는 Compositional Layout의 초기 추정값입니다.
 - 실제 높이는 Content의 Auto Layout fitting 결과로 결정합니다.
+
+### ItemContentView와 ItemComponent
+
+Item만으로 그릴 수 있는 셀은 Component 구조체를 따로 만들지 않아도 됩니다.
+Content View가 `ItemContentView`를 채택하면 `ItemComponent<Content>`가
+Component 역할을 합니다.
+
+```swift
+final class SettingRowContentView: UIView, ItemContentView, Touchable {
+    struct Item: Identifiable, Equatable {
+        let id: String
+        let title: String
+    }
+
+    nonisolated static let estimatedHeight: CGFloat = 52
+
+    func apply(_ item: Item) {
+        titleLabel.text = item.title
+    }
+}
+
+typealias SettingRowComponent = ItemComponent<SettingRowContentView>
+
+SettingRowComponent(item: item)
+    .onTouch { openSetting(item.id) }
+```
+
+- `apply(_:)`는 Content가 직전에 반영한 Item과 다를 때만 호출됩니다. 화면에
+  다시 표시되거나 같은 Item으로 다시 bind되면 호출하지 않습니다.
+- `estimatedHeight`를 생략하면 44pt입니다. Content가 main actor에 속하므로
+  `nonisolated static let`으로 선언합니다.
+- `ItemComponent`는 일반 Component라서 modifier, Header·Footer,
+  `ComponentView`(SwiftUI)에서 그대로 사용할 수 있습니다.
+- 이벤트에 원본 모델이 필요하거나 Item 밖의 값이 필요하면 `Component`를
+  직접 구현합니다.
 
 ### Component 상호작용 capability
 

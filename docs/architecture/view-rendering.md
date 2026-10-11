@@ -52,6 +52,41 @@ CollectionViewAdapter.bind
 
 ## Component를 만들어요
 
+Component는 두 가지 방식으로 만들어요. 둘 다 modifier, Header·Footer, `#Preview`에서 똑같이 쓸 수 있어요.
+
+| 방식 | 언제 쓰나요 | 예시 |
+| --- | --- | --- |
+| ContentView가 `ItemContentView`를 채택하고 `typealias XxxComponent = ItemComponent<XxxContentView>` | Item만으로 그릴 수 있을 때 (**새 셀의 기본**) | 설정 행·헤더(`SettingComponents.swift`) |
+| `struct XxxComponent: Component`를 직접 구현 | 이벤트에 원본 모델이 필요하거나(`FeedComponent.post`), Item 밖의 값이 필요하거나(`ProfilePostComponent.targetWidth`), 모델에서 Item을 만드는 `init`·고정 행(`MemberRowComponent.invite`)을 Component에 두고 싶을 때 | 피드·멤버·프로필·관리자 |
+
+### ItemContentView로 만들어요
+
+```swift
+// ProfileFeatureV2/Sources/Setting/SettingComponents.swift (요약)
+typealias SettingRowComponent = ItemComponent<SettingRowContentView>
+
+final class SettingRowContentView: UIControl, ItemContentView, Touchable, ContainsSwitch {
+    struct Item: Identifiable, Equatable { ... }
+
+    nonisolated static let estimatedHeight: CGFloat = 52
+
+    func apply(_ item: Item) {
+        titleLabel.text = item.title
+        ...
+    }
+}
+
+// 호출부는 직접 만든 Component와 같아요
+SettingRowComponent(item: item)
+    .onTouch { [weak self] in self?.handleSelection(item.id) }
+```
+
+- `apply(_:)`는 직전에 반영한 Item과 다를 때만 불려요. 같은 값인지 직접 비교하는 `didSet`이 필요 없어요.
+- 셀이 재사용되면 다른 Item으로 `apply(_:)`가 불리므로, 라벨·이미지·숨김 상태를 매번 모두 다시 설정해요.
+- `estimatedHeight`는 Content가 main actor에 속하므로 `nonisolated static let`으로 선언해요. 생략하면 44pt예요. 호출부에서 `ItemComponent(item:estimatedHeight:)`로 바꿀 수도 있어요.
+
+### Component를 직접 구현해요
+
 `MemberFeatureV2/Sources/Member/MemberRowComponent.swift`가 기준 예시예요.
 
 ```swift
@@ -115,7 +150,7 @@ final class MemberRowContentView: UIView, Touchable {
 | 화면에 표시하는 값만 담고, 표시용으로 가공해서 넣어요. (`relativeTimeText`, `birthdayText`) | 표시 값이 `==` 비교에 들어가야 값이 바뀔 때 다시 그려져요. |
 | 도메인 모델 전체를 Item에 넣지 않아요. 이벤트에 원본 모델이 필요하면 Component 프로퍼티로 따로 들고 있어요. (`FeedComponent.post`) | 표시와 무관한 필드 변경으로 불필요한 갱신이 생기지 않게 해요. |
 
-### Component
+### Component (직접 구현할 때)
 
 - `struct XxxComponent: Component`로 만들고 `let item: Item`만 저장해요. 이벤트에 필요한 원본 값은 추가 프로퍼티로 둘 수 있어요.
 - 모델을 받는 `init`에서 Item을 만들어요. 고정 행은 `static var invite: Self`처럼 정적 프로퍼티로 제공해요.
@@ -126,8 +161,8 @@ final class MemberRowContentView: UIView, Touchable {
 ### ContentView
 
 - `final class XxxContentView: UIView`로 만들고 지원하는 상호작용 capability만 채택해요. (`Touchable`, `Pressable`, `LongPressable`, `ContainsButton`, `ContainsSwitch`)
-- `var item: Item? { didSet { guard item != oldValue else { return }; applyItem() } }`로 같은 값이면 다시 그리지 않아요.
-- `applyItem()`은 이전 상태를 먼저 지운 뒤 새 값을 적용해요. `item`이 `nil`이면 라벨·이미지·접근성 값을 비워요. (재사용 셀에 이전 값이 남지 않게)
+- `ItemContentView`를 채택하면 `apply(_:)`가 바뀐 Item에만 불려요. Component를 직접 구현할 때는 `var item: Item? { didSet { guard item != oldValue else { return }; applyItem() } }`로 같은 값이면 다시 그리지 않아요.
+- 새 값을 적용할 때 이전 상태(라벨·이미지·접근성 값·숨김 여부)를 모두 다시 설정해요. 재사용 셀에 이전 값이 남지 않게 해요. 직접 구현한 ContentView는 `item`이 `nil`일 때 값을 비워요.
 - 위에서 아래까지 이어지는 Auto Layout 제약을 걸어요. 제약이 끊기면 self-sizing 높이가 맞지 않아요.
 - 서브뷰 생성과 배치는 [Swift 스타일의 UI 코드](../development/swiftstyle.md#ui-코드) 규칙을 따라요. 새 파일은 `configureView()`·`configureLayout()`을 사용해요.
 - 내부 버튼·스위치는 `ContainsButton`·`ContainsSwitch`를 채택하고 `buttonTapEvent.send(())`, `switchToggleEvent.send(toggle.isOn)`으로 이벤트를 보내요.
