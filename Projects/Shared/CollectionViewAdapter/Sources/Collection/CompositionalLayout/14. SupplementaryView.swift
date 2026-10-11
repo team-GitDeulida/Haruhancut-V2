@@ -21,7 +21,7 @@ public struct SupplementaryView {
     let alignment: NSRectAlignment
     let height: CollectionLayoutDimension
     let extendsBoundary: Bool
-    let zIndex: Int
+    var zIndex: Int
 
     /// 일반 Component를 header 또는 footer의 supplementary 배치 값으로 감쌉니다.
     ///
@@ -69,5 +69,43 @@ public struct SupplementaryView {
         item.extendsBoundary = extendsBoundary
         item.zIndex = zIndex
         return item
+    }
+}
+
+extension SupplementaryView {
+    /// Section header 위치에 Component를 배치하는 설정을 만듭니다.
+    static func header<C: Component>(
+        _ component: C,
+        alignment: NSRectAlignment = .top,
+        height: CollectionLayoutDimension? = nil,
+        extendsBoundary: Bool = true,
+        zIndex: Int = 0
+    ) -> SupplementaryView {
+        SupplementaryView(
+            component: component,
+            kind: UICollectionView.elementKindSectionHeader,
+            alignment: alignment,
+            height: height,
+            extendsBoundary: extendsBoundary,
+            zIndex: zIndex
+        )
+    }
+
+    /// Section footer 위치에 Component를 배치하는 설정을 만듭니다.
+    static func footer<C: Component>(
+        _ component: C,
+        alignment: NSRectAlignment = .bottom,
+        height: CollectionLayoutDimension? = nil,
+        extendsBoundary: Bool = true,
+        zIndex: Int = 0
+    ) -> SupplementaryView {
+        SupplementaryView(
+            component: component,
+            kind: UICollectionView.elementKindSectionFooter,
+            alignment: alignment,
+            height: height,
+            extendsBoundary: extendsBoundary,
+            zIndex: zIndex
+        )
     }
 }

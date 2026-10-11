@@ -27,6 +27,25 @@ public struct For<Data: RandomAccessCollection> {
     ) {
         items = data.flatMap(content)
     }
+
+    /// Collection의 각 값으로 item Component를 만듭니다.
+    ///
+    /// `For(of:)`와 같은 결과를 만들며, SwiftUI `ForEach`처럼
+    /// 이름표 없이 데이터를 넘길 때 사용합니다.
+    ///
+    /// - Parameters:
+    ///   - data: 순회할 데이터.
+    ///   - content: 각 값에서 item Component를 만드는 builder.
+    public init(
+        _ data: Data,
+        @SectionBuilder content:
+            (Data.Element) -> [AnyComponent]
+    ) {
+        self.init(
+            of: data,
+            content: content
+        )
+    }
 }
 
 /// `LazySection`의 item Component만 선언적으로 조립합니다.

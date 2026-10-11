@@ -245,6 +245,29 @@ public struct CollectionSectionLayout {
         }
     }
 
+    /// 세로 목록 layout을 짧게 만듭니다.
+    ///
+    /// `verticalList(estimatedRowHeight:spacing:contentInsets:)`와 같은
+    /// layout입니다. 행 높이는 self-sizing의 추정값이며, 실제 높이는 Content의
+    /// Auto Layout으로 정해집니다.
+    ///
+    /// - Parameters:
+    ///   - rowHeight: 행의 추정 높이. `nil`이면 Component의 추정 높이 중 최댓값.
+    ///   - spacing: 행 사이 간격.
+    ///   - contentInsets: Section 안쪽 여백.
+    /// - Returns: 세로 목록 layout.
+    public static func list(
+        rowHeight: CGFloat? = nil,
+        spacing: CGFloat = 0,
+        contentInsets: NSDirectionalEdgeInsets = .zero
+    ) -> Self {
+        verticalList(
+            estimatedRowHeight: rowHeight,
+            spacing: spacing,
+            contentInsets: contentInsets
+        )
+    }
+
     /// 같은 너비의 열로 구성된 self-sizing grid를 만듭니다.
     ///
     /// - Parameters:
