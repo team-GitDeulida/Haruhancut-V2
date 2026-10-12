@@ -259,13 +259,15 @@ func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
         removeLocal: {
             guard userSession.groupId == groupId else { return }
             groupSession.clear()
-            userSession.update(\.groupId, nil)
         }
     )
 }
 
 public func loadAndFetchGroup() -> Observable<HCGroup> {
-    groupFetcher(groupId: groupId).fetch().fetchedValues()
+    groupFetcher(groupId: groupId)
+        .fetch()
+        .concatMap { self.leaveGroupIfNotFound($0, groupId: groupId) }  // 서버·세션의 groupId 정리
+        .fetchedValues()
 }
 ```
 
@@ -277,6 +279,7 @@ public func loadAndFetchGroup() -> Observable<HCGroup> {
 
 - Repository는 서버에 데이터가 없을 때만 `nil`을 돌려주고, 읽거나 변환하지 못하면 에러를 보내요. `nil`과 에러를 섞지 않아야 Fetcher가 캐시를 잘못 지우지 않아요.
 - `removeLocal`은 지우기 전에 요청한 대상(유저 ID·그룹 ID)이 지금 세션과 같은지 확인해요. 응답이 늦게 와서 그사이 바뀐 세션을 지우지 않게 해요.
+- 없는 데이터를 가리키는 서버 값이 있으면 그 값도 정리해요. 그룹이 없을 때 세션의 `groupId`만 지우면, 다음 유저 조회가 서버의 예전 `groupId`를 다시 저장해요. 서버 쓰기가 필요한 정리는 `removeLocal`이 아니라 결과 스트림에서 해요. (`GroupUsecaseImpl.leaveGroupIfNotFound`)
 - 구독할 때 캐시를 읽고 서버에 요청해요. 응답 전에 구독을 해제하면 서버 결과를 캐시에 반영하지 않아요.
 - 서버 결과를 보낸 뒤 끝나요. Session이 다른 곳에서 바뀌어도 이미 끝난 조회는 다시 보내지 않아요.
 

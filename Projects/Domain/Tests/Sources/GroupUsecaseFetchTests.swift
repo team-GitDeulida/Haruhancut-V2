@@ -85,7 +85,7 @@ final class GroupUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(userSession.groupId, "group")
     }
 
-    func testLoadAndFetchGroupClearsGroupWhenServerHasNoGroup() {
+    func testLoadAndFetchGroupClearsGroupIdOnServerAndSessionWhenServerHasNoGroup() {
         repository.fetchGroupResponse = .just(nil)
 
         let recorder = record(sut.loadAndFetchGroup())
@@ -93,9 +93,23 @@ final class GroupUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(recorder.values.map(\.groupName), ["cached"])
         XCTAssertEqual(recorder.error as? FetchError, .notFound)
         XCTAssertNil(groupSession.session)
+        // 서버의 groupId도 지워야 다음 유저 조회가 없는 그룹의 id를 되살리지 않습니다.
+        XCTAssertEqual(repository.deletedPaths, ["users/user/groupId"])
         XCTAssertNil(userSession.groupId)
         // 유저 세션은 남겨 둡니다. AppCoordinator가 그룹 화면으로 보냅니다.
         XCTAssertNotNil(userSession.session)
+    }
+
+    func testLoadAndFetchGroupKeepsGroupIdWhenServerGroupIdDeletionFails() {
+        repository.fetchGroupResponse = .just(nil)
+        repository.groupIdDeletionResponse = .error(TestError.remote)
+
+        let recorder = record(sut.loadAndFetchGroup())
+
+        XCTAssertEqual(recorder.error as? TestError, .remote)
+        XCTAssertNil(groupSession.session)
+        // 서버에서 지우지 못하면 세션의 groupId도 남겨 다음 조회에서 다시 정리합니다.
+        XCTAssertEqual(userSession.groupId, "group")
     }
 
     func testLoadAndFetchGroupKeepsNewGroupWhenUserMovedBeforeResponse() {
@@ -109,6 +123,7 @@ final class GroupUsecaseFetchTests: XCTestCase {
 
         XCTAssertEqual(userSession.groupId, "other")
         XCTAssertNotNil(groupSession.session)
+        XCTAssertTrue(repository.deletedPaths.isEmpty)
     }
 
     func testLoadAndFetchGroupFailsWithoutGroupId() {
@@ -204,9 +219,10 @@ private final class Recorder<Element> {
     var isCompleted = false
 }
 
-/// 그룹 조회와 게시물 삭제만 흉내 내는 저장소입니다.
+/// 그룹 조회와 게시물·groupId 삭제만 흉내 내는 저장소입니다.
 private final class FakeGroupRepository: GroupRepositoryProtocol {
     var fetchGroupResponse: Single<HCGroup?> = .never()
+    var groupIdDeletionResponse: Single<Void> = .just(())
     private(set) var fetchGroupCount = 0
     private(set) var deletedPaths: [String] = []
 
@@ -220,6 +236,11 @@ private final class FakeGroupRepository: GroupRepositoryProtocol {
     }
 
     func deleteValue(path: String) -> Single<Void> {
+        if path.hasSuffix("/groupId") {
+            return groupIdDeletionResponse.do(onSuccess: { [weak self] in
+                self?.deletedPaths.append(path)
+            })
+        }
         deletedPaths.append(path)
         return .just(())
     }

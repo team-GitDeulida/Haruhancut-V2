@@ -93,7 +93,7 @@ Projects/
 
 - `Coordinator` 프로토콜(`Coordinator/Sources/App/AppCoordinator.swift`)은 `parentCoordinator`, `childCoordinators`, `start()`를 가지며 `childDidFinish(_:)`를 기본 구현으로 제공해요.
 - `AppCoordinator.routeBySession()`은 온보딩 완료 여부(`UserDefaults "Tutorial"`) → 로그인 세션·`Auth.auth().currentUser` → 그룹 세션 순서로 확인해 Onboarding·Auth·Group·Home 흐름 중 하나를 시작해요. `userSession`이 바뀔 때마다 다시 판단해요.
-  - 서버에 유저가 없어 Usecase가 세션을 지우면 로그인 화면으로, 그룹이 없어 `groupId`를 지우면 그룹 화면으로 가요. 그룹 화면으로 갈 때는 홈 Coordinator를 정리하고 띄운 화면을 닫아요.
+  - 서버에 유저가 없어 Usecase가 세션을 지우면 로그인 화면으로, 그룹이 없어 `groupId`를 지우면 그룹 화면으로 가요. 그룹 화면으로 갈 때는 홈 Coordinator를 정리하고 띄운 화면을 닫아요. 홈으로 갈 때는 남은 GroupCoordinator를 정리해요.
 - ReactorKit 화면(기본): Coordinator가 `XxxRouteTrigger`를 채택하고 `makeXxx(routeTrigger: self)`로 ViewController를 받아요. `HomeV2Coordinator`와 `AdminCoordinator`가 이 방식이에요.
 - 기존 Input/Output 화면: `XFeatureBuilder().makeX()`로 `(vc, vm)`을 받고, `vm`의 RouteTrigger 클로저(예: `onSignInSuccess`)에 다음 흐름을 연결해요.
 
@@ -177,7 +177,7 @@ Repository 프로토콜은 Domain에, 구현은 Data에 있어요. Feature는 `A
 1. `HomeV2Coordinator`가 `HomeFeatureBuilder().makeHome(mode:routeTrigger:)`로 `HomeViewController`를 만들어요. Builder는 `GroupUsecaseProtocol`을 resolve하고, `HomeGroupLoaderFactory`로 모드별 그룹 조회 클로저(`loadGroup`)를 만들어 `FeedReactor`와 `CalendarReactor`에 넘겨요. `.currentGroup`은 `groupUsecase.loadAndFetchGroup()`, `.adminPreview(groupID:)`는 `AdminUsecaseProtocol.fetchGroup(groupId:)`를 사용해요.
 2. `HomeViewController`에 들어 있는 `FeedViewController`가 `viewDidLoad`에서 `reactor?.action.onNext(.viewDidLoad)`를 보내요.
 3. `FeedReactor.mutate`는 `loadFeed()`에서 `loadGroup`을 호출하고, 결과를 `setFeed(components, didTodayUpload)` Mutation으로 바꿔 State의 `components`와 `didTodayUpload`를 갱신해요. 읽기 전용 모드에서는 `groupUsecase`를 `nil`로 받아 삭제를 막아요.
-4. `GroupUsecaseImpl.loadAndFetchGroup()`은 `Fetcher`로 `GroupSession`에 캐시된 그룹을 먼저 방출하고, `GroupRepositoryProtocol.fetchGroup(groupId:)`의 서버 결과를 이어서 방출해요. 서버 결과는 `GroupSession`에 다시 저장해요. 서버에 그룹이 없으면 `GroupSession`과 `UserSession.groupId`를 지우고, 서버에 확인하지 못하면 캐시를 유지한 채 에러로 끝내요.
+4. `GroupUsecaseImpl.loadAndFetchGroup()`은 `Fetcher`로 `GroupSession`에 캐시된 그룹을 먼저 방출하고, `GroupRepositoryProtocol.fetchGroup(groupId:)`의 서버 결과를 이어서 방출해요. 서버 결과는 `GroupSession`에 다시 저장해요. 서버에 그룹이 없으면 `GroupSession`을 지우고 서버(`users/{uid}/groupId`)와 `UserSession`의 `groupId`를 지워요. 서버의 값도 지워야 다음 유저 조회가 없는 그룹의 id를 되살리지 않아요. 서버에 확인하지 못하면 캐시를 유지한 채 에러로 끝내요.
 5. `GroupRepositoryImpl`은 `FirebaseAuthManager`에 요청을 위임해요. `FirebaseAuthManager`가 Realtime Database를 읽고 DTO를 `toModel()`로 Entity로 바꿔 돌려줘요. 쓰기 요청은 Repository가 `toDTO()`로 변환해 넘겨요.
 6. `FeedViewController`와 `HomeViewController`는 Reactor State를 구독해 피드 목록과 오늘 업로드 문구·카메라 버튼 상태를 갱신해요.
 

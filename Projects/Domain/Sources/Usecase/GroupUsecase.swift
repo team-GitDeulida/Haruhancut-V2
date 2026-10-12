@@ -154,7 +154,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     }
     
     /// 캐시된 그룹을 먼저 보내고 서버 그룹으로 갱신한다
-    /// - 서버에 그룹이 없으면 그룹 정보를 지우고 `FetchError.notFound`로 끝낸다
+    /// - 서버에 그룹이 없으면 그룹 캐시와 유저의 groupId(서버·세션)를 지우고 `FetchError.notFound`로 끝낸다
     /// - 서버에 확인하지 못하면 캐시를 유지하고 그 에러로 끝낸다
     public func loadAndFetchGroup() -> Observable<HCGroup> {
         guard let groupId = userSession.groupId else {
@@ -163,6 +163,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
 
         return groupFetcher(groupId: groupId)
             .fetch()
+            .concatMap { self.leaveGroupIfNotFound($0, groupId: groupId) }
             .fetchedValues()
     }
     
@@ -251,6 +252,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
                 // 삭제가 반영된 서버 그룹만 다시 받아 세션에 저장
                 self.groupFetcher(groupId: groupId)
                     .refresh()
+                    .concatMap { self.leaveGroupIfNotFound($0, groupId: groupId) }
                     .fetchedValues()
             }
             .mapToVoid()
@@ -310,7 +312,7 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
 // MARK: - Fetcher
 private extension GroupUsecaseImpl {
     /// 그룹 세션과 서버 그룹을 맞추는 Fetcher
-    /// - 서버에 그룹이 없으면 그룹 세션과 유저의 groupId를 지운다. AppCoordinator가 그룹 화면으로 보낸다
+    /// - 서버에 그룹이 없으면 그룹 캐시를 지운다. 유저의 groupId는 `leaveGroupIfNotFound`가 지운다
     func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
         let userSession = userSession
         let groupSession = groupSession
@@ -323,11 +325,37 @@ private extension GroupUsecaseImpl {
                 groupSession.update(group.toSession())
             },
             removeLocal: {
-                // 다른 그룹으로 바뀐 뒤 늦게 온 응답이면 아무것도 지우지 않는다
+                // 다른 그룹으로 바뀐 뒤 늦게 온 응답이면 지우지 않는다
                 guard userSession.groupId == groupId else { return }
                 groupSession.clear()
-                userSession.update(\.groupId, nil)
             }
         )
+    }
+
+    /// 서버에 그룹이 없으면 서버와 세션에서 유저의 groupId를 지운 뒤 결과를 그대로 보낸다
+    /// - 서버의 groupId도 지워야 다음 유저 조회가 없는 그룹의 id를 세션에 되살리지 않는다
+    /// - 세션의 groupId가 지워지면 AppCoordinator가 그룹 화면으로 보낸다
+    func leaveGroupIfNotFound(
+        _ result: FetchResult<HCGroup>,
+        groupId: String
+    ) -> Observable<FetchResult<HCGroup>> {
+        guard
+            case .notFound = result.status,
+            let userId = userSession.userId,
+            userSession.groupId == groupId
+        else {
+            return .just(result)
+        }
+
+        let userSession = userSession
+        return groupRepository
+            .deleteValue(path: "users/\(userId)/groupId")
+            .do(onSuccess: {
+                // 지우는 동안 다른 그룹으로 바뀌었으면 세션을 바꾸지 않는다
+                guard userSession.groupId == groupId else { return }
+                userSession.update(\.groupId, nil)
+            })
+            .map { result }
+            .asObservable()
     }
 }
