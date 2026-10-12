@@ -228,7 +228,7 @@ Relay는 메인 스레드를 자동으로 보장하지 않아요. 여러 스레�
 | `Maybe<Element>` | 값 0개 또는 1개 | 가능 | 값이 없을 수 있는 단일 조회 |
 | `Infallible<Element>` | 값 0개 이상 | 불가능 | 실패하지 않는 일반 스트림 |
 
-하루한컷의 Usecase·Repository는 대부분 `Single`을 반환하고, ViewModel에서 `.asObservable()`로 바꿔 `flatMapLatest`에 연결해요. `GroupUsecase.loadAndFetchGroup()`처럼 캐시 값과 서버 값을 차례로 방출하는 API는 `Observable`이에요. 마지막 값만 필요하면 `takeLast(1)`을 붙여요. (예: `FeedReactor`)
+하루한컷의 Usecase·Repository는 대부분 `Single`을 반환하고, ViewModel에서 `.asObservable()`로 바꿔 `flatMapLatest`에 연결해요. `GroupUsecase.loadAndFetchGroup()`처럼 캐시 값과 서버 값을 차례로 방출하는 API는 `Observable`이고, Core의 `Fetcher`로 만들어요. 서버 값만 필요하면 호출부에서 `takeLast(1)`을 붙이지 말고 Usecase에서 `Fetcher.refresh()`를 써요. ([Fetcher로 캐시 우선 조회하기](#fetcher로-캐시-우선-조회하기))
 
 ```swift
 let coordinate: Single<Coordinate> = provider.requestLocation()
@@ -236,6 +236,49 @@ let save: Completable = Completable.empty()
 let cachedValue: Maybe<String> = Maybe.empty()
 let safeValues: Infallible<Int> = Infallible.just(1)
 ```
+
+## Fetcher로 캐시 우선 조회하기
+
+Core의 `Fetcher`(`Core/Sources/Fetcher/Fetcher.swift`)는 Session에 저장된 값을 먼저 보내고 서버 값으로 갱신해요. Usecase마다 `concat(cached, remote)`로 같은 정책을 다시 짜지 않아요.
+
+서버 응답은 세 가지로 나눠요.
+
+| 서버 응답 | Fetcher 동작 | 보내는 결과 |
+| --- | --- | --- |
+| 값 | `updateLocal`로 저장해요. | `(.success, 서버 값)` |
+| 없음 (`nil`) | `removeLocal`로 캐시를 지워요. | `(.notFound, nil)` |
+| 실패 (에러) | 캐시를 그대로 둬요. | `(.failure(에러), 캐시)` |
+
+```swift
+// GroupUsecase.swift
+func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
+    Fetcher(
+        local: { groupSession.entity },
+        remote: { groupRepository.fetchGroup(groupId: groupId) },  // nil = 없음, 에러 = 실패
+        updateLocal: { group in groupSession.update(group.toSession()) },
+        removeLocal: {
+            guard userSession.groupId == groupId else { return }
+            groupSession.clear()
+            userSession.update(\.groupId, nil)
+        }
+    )
+}
+
+public func loadAndFetchGroup() -> Observable<HCGroup> {
+    groupFetcher(groupId: groupId).fetch().fetchedValues()
+}
+```
+
+| 메서드 | 보내는 결과 | 쓰는 곳 |
+| --- | --- | --- |
+| `fetch()` | `(.loading, 캐시)`를 먼저 보내고 서버 결과를 이어서 보내요. 캐시가 없으면 `(.loading, nil)`이에요. | 화면 진입 조회 (`loadAndFetchUser`, `loadAndFetchGroup`) |
+| `refresh()` | 서버 결과만 보내요. | 쓰기 후 다시 읽기 (`updateNicknameAndReloadSession`, `deletePostAndReload`) |
+| `fetchedValues()` | 값만 보내요. `.notFound`는 `FetchError.notFound`로, `.failure`는 그 에러로 끝나요. | 기존 `Observable<Value>` 반환 API |
+
+- Repository는 서버에 데이터가 없을 때만 `nil`을 돌려주고, 읽거나 변환하지 못하면 에러를 보내요. `nil`과 에러를 섞지 않아야 Fetcher가 캐시를 잘못 지우지 않아요.
+- `removeLocal`은 지우기 전에 요청한 대상(유저 ID·그룹 ID)이 지금 세션과 같은지 확인해요. 응답이 늦게 와서 그사이 바뀐 세션을 지우지 않게 해요.
+- 구독할 때 캐시를 읽고 서버에 요청해요. 응답 전에 구독을 해제하면 서버 결과를 캐시에 반영하지 않아요.
+- 서버 결과를 보낸 뒤 끝나요. Session이 다른 곳에서 바뀌어도 이미 끝난 조회는 다시 보내지 않아요.
 
 ## RxCocoa 타입은 UI에 필요한 규칙을 보장해요
 
