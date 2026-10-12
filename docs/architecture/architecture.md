@@ -129,6 +129,7 @@ Projects/
   - 테스트·Demo의 메모리 저장소는 `StorageProtocol`을 직접 채택해요.
 - Core Fetcher: 로컬 캐시를 먼저 보여 주고 서버 값으로 갱신하는 조회 정책이에요. 서버 응답을 값·없음(`nil`)·실패(에러)로 나눠 처리해요. 사용법은 [RxSwift](rxswift.md#fetcher로-캐시-우선-조회하기)를 확인해요.
   - 값이면 `updateLocal`로 저장하고 `.success`, 없으면 `removeLocal`로 캐시를 지우고 `.notFound`, 실패면 캐시를 그대로 두고 `.failure`를 보내요.
+  - 응답이 왔을 때 요청한 유저·그룹이 그사이 바뀌었으면(`isCurrent`가 `false`) 응답을 버려요.
   - Repository는 서버에 데이터가 없을 때만 `nil`을 돌려줘요. 읽거나 변환하지 못하면 에러를 보내요. (`fetchUser(uid:)`, `fetchGroup(groupId:)`)
 - DSKit: 공통 UI 컴포넌트, 색상·폰트 리소스, `ImagePreViewController` 등
 - CollectionViewAdapter: 외부 의존성 없이 `UICollectionView`의 섹션·셀 구성을 선언형으로 다루는 사내 모듈이에요. V2 Feature와 AdminFeature가 사용해요. 화면에서 쓰는 방법은 [화면 그리기](view-rendering.md)를 확인해요.

@@ -19,12 +19,15 @@ final class FetcherTests: XCTestCase {
     private var cache: TestCache!
     private var remote: TestRemote!
     private var disposeBag: DisposeBag!
+    /// 응답이 왔을 때 아직 같은 대상인지입니다.
+    private var isCurrent = true
 
     override func setUp() {
         super.setUp()
         cache = TestCache()
         remote = TestRemote()
         disposeBag = DisposeBag()
+        isCurrent = true
     }
 
     override func tearDown() {
@@ -117,6 +120,43 @@ final class FetcherTests: XCTestCase {
         XCTAssertEqual(cache.value, 10)
     }
 
+    func test_fetch_dropsServerValue_whenTargetChangedBeforeResponse() {
+        cache.value = 10
+        let recorder = record(makeSUT().fetch())
+
+        isCurrent = false
+        remote.succeed(20)
+
+        XCTAssertEqual(recorder.steps, [.loading(10)])
+        XCTAssertTrue(recorder.isCompleted)
+        XCTAssertEqual(cache.value, 10)
+        XCTAssertTrue(cache.updatedValues.isEmpty)
+    }
+
+    func test_fetch_keepsCache_whenTargetChangedBeforeNoDataResponse() {
+        cache.value = 10
+        let recorder = record(makeSUT().fetch())
+
+        isCurrent = false
+        remote.succeed(nil)
+
+        XCTAssertEqual(recorder.steps, [.loading(10)])
+        XCTAssertTrue(recorder.isCompleted)
+        XCTAssertEqual(cache.value, 10)
+        XCTAssertEqual(cache.removeCount, 0)
+    }
+
+    func test_fetch_dropsFailure_whenTargetChangedBeforeResponse() {
+        cache.value = 10
+        let recorder = record(makeSUT().fetch())
+
+        isCurrent = false
+        remote.fail(TestError.remote)
+
+        XCTAssertEqual(recorder.steps, [.loading(10)])
+        XCTAssertTrue(recorder.isCompleted)
+    }
+
     // MARK: - refresh
 
     func test_refresh_sendsOnlyRemoteResult() {
@@ -150,6 +190,18 @@ final class FetcherTests: XCTestCase {
 
         XCTAssertEqual(recorder.steps, [.notFound])
         XCTAssertNil(cache.value)
+    }
+
+    func test_refresh_sendsNothing_whenTargetChangedBeforeResponse() {
+        cache.value = 10
+        let recorder = record(makeSUT().refresh())
+
+        isCurrent = false
+        remote.succeed(20)
+
+        XCTAssertTrue(recorder.steps.isEmpty)
+        XCTAssertTrue(recorder.isCompleted)
+        XCTAssertEqual(cache.value, 10)
     }
 
     // MARK: - fetchedValues
@@ -204,7 +256,8 @@ private extension FetcherTests {
             local: { cache.value },
             remote: { remote.request() },
             updateLocal: { cache.update($0) },
-            removeLocal: { cache.remove() }
+            removeLocal: { cache.remove() },
+            isCurrent: { [weak self] in self?.isCurrent ?? false }
         )
     }
 

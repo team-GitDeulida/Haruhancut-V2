@@ -95,10 +95,43 @@ final class AuthUsecaseFetchTests: XCTestCase {
             return .just(nil)
         }
 
-        _ = record(sut.loadAndFetchUser())
+        let recorder = record(sut.loadAndFetchUser())
 
+        // 늦게 온 응답은 버리고 끝납니다.
+        XCTAssertEqual(recorder.values.map(\.nickname), ["cached"])
+        XCTAssertTrue(recorder.isCompleted)
         XCTAssertEqual(userSession.userId, "other")
         XCTAssertNotNil(groupSession.session)
+    }
+
+    func testLoadAndFetchUserDoesNotSaveLateUserAfterSignOut() {
+        // 응답이 오기 전에 로그아웃했습니다.
+        repository.fetchUserResponse = .deferred { [userSession] in
+            userSession?.clear()
+            return .just(self.makeUser(nickname: "server"))
+        }
+
+        let recorder = record(sut.loadAndFetchUser())
+
+        XCTAssertEqual(recorder.values.map(\.nickname), ["cached"])
+        XCTAssertTrue(recorder.isCompleted)
+        XCTAssertNil(userSession.session)
+    }
+
+    func testLoadAndFetchUserDoesNotSaveLateUserAfterUserChanged() {
+        // 응답이 오기 전에 다른 유저로 바뀌었습니다.
+        repository.fetchUserResponse = .deferred { [userSession] in
+            userSession?.update(self.makeUser(uid: "other", nickname: "other"))
+            return .just(self.makeUser(nickname: "server"))
+        }
+
+        let recorder = record(sut.loadAndFetchUser())
+
+        // 예전 유저의 응답을 저장하지도, 화면에 보내지도 않습니다.
+        XCTAssertEqual(recorder.values.map(\.nickname), ["cached"])
+        XCTAssertTrue(recorder.isCompleted)
+        XCTAssertEqual(userSession.userId, "other")
+        XCTAssertEqual(userSession.session?.nickname, "other")
     }
 
     func testLoadAndFetchUserFailsWithoutSession() {

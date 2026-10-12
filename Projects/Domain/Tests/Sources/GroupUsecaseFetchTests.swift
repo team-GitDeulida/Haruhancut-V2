@@ -119,11 +119,30 @@ final class GroupUsecaseFetchTests: XCTestCase {
             return .just(nil)
         }
 
-        _ = record(sut.loadAndFetchGroup())
+        let recorder = record(sut.loadAndFetchGroup())
 
+        // 늦게 온 응답은 버리고 끝납니다.
+        XCTAssertEqual(recorder.values.map(\.groupName), ["cached"])
+        XCTAssertTrue(recorder.isCompleted)
         XCTAssertEqual(userSession.groupId, "other")
         XCTAssertNotNil(groupSession.session)
         XCTAssertTrue(repository.deletedPaths.isEmpty)
+    }
+
+    func testLoadAndFetchGroupDoesNotSaveLateGroupAfterUserMoved() {
+        // 응답이 오기 전에 다른 그룹에 참여해 새 그룹을 저장했습니다.
+        repository.fetchGroupResponse = .deferred { [userSession, groupSession] in
+            userSession?.update(\.groupId, "other")
+            groupSession?.update(self.makeGroup(name: "other").toSession())
+            return .just(self.makeGroup(name: "server"))
+        }
+
+        let recorder = record(sut.loadAndFetchGroup())
+
+        // 예전 그룹의 응답을 저장하지도, 화면에 보내지도 않습니다.
+        XCTAssertEqual(recorder.values.map(\.groupName), ["cached"])
+        XCTAssertTrue(recorder.isCompleted)
+        XCTAssertEqual(groupSession.groupName, "other")
     }
 
     func testLoadAndFetchGroupFailsWithoutGroupId() {
@@ -155,6 +174,28 @@ final class GroupUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(repository.fetchGroupCount, 1)
         XCTAssertEqual(repository.deletedPaths.count, 1)
         XCTAssertEqual(groupSession.groupName, "server")
+    }
+
+    func testDeletePostAndReloadSendsOnceWhenReloadIsDropped() {
+        // 삭제 후 다시 읽는 동안 다른 그룹으로 바뀌었습니다.
+        repository.fetchGroupResponse = .deferred { [userSession] in
+            userSession?.update(\.groupId, "other")
+            return .just(self.makeGroup(name: "server"))
+        }
+        var count = 0
+        var isCompleted = false
+
+        sut.deletePostAndReload(post: makePost())
+            .subscribe(
+                onNext: { count += 1 },
+                onCompleted: { isCompleted = true }
+            )
+            .disposed(by: disposeBag)
+
+        // 삭제는 서버에서 성공했으므로 호출부가 위젯 정리를 이어 갈 수 있게 한 번 보냅니다.
+        XCTAssertEqual(count, 1)
+        XCTAssertTrue(isCompleted)
+        XCTAssertEqual(groupSession.groupName, "cached")
     }
 }
 

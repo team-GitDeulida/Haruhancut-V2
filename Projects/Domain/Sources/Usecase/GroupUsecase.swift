@@ -254,8 +254,10 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
                     .refresh()
                     .concatMap { self.leaveGroupIfNotFound($0, groupId: groupId) }
                     .fetchedValues()
+                    .mapToVoid()
+                    // 그사이 그룹이 바뀌어 다시 읽은 결과를 버려도 삭제는 성공했으므로 완료를 한 번 알린다
+                    .ifEmpty(default: ())
             }
-            .mapToVoid()
     }
 
     #if DEBUG
@@ -325,10 +327,10 @@ private extension GroupUsecaseImpl {
                 groupSession.update(group.toSession())
             },
             removeLocal: {
-                // 다른 그룹으로 바뀐 뒤 늦게 온 응답이면 지우지 않는다
-                guard userSession.groupId == groupId else { return }
                 groupSession.clear()
-            }
+            },
+            // 다른 그룹으로 바뀐 뒤 늦게 온 응답은 버린다
+            isCurrent: { userSession.groupId == groupId }
         )
     }
 

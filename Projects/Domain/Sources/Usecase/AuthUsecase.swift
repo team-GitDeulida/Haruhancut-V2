@@ -365,15 +365,16 @@ private extension AuthUsecaseImpl {
                 userSession.update(user)
             },
             removeLocal: {
-                // 이미 로그아웃했거나 다른 유저로 바뀐 뒤 늦게 온 응답이면 아무것도 지우지 않는다
-                guard userSession.userId == userId else { return }
                 groupSession.clear()
                 userSession.clear()
-            }
+            },
+            // 이미 로그아웃했거나 다른 유저로 바뀐 뒤 늦게 온 응답은 버린다
+            isCurrent: { userSession.userId == userId }
         )
     }
 
     /// 서버에 쓴 뒤 서버 유저만 다시 받아 세션에 저장한다
+    /// - 그사이 로그아웃했거나 다른 유저로 바뀌면 값 없이 끝나 에러가 된다
     func reloadUser(userId: String) -> Single<User> {
         userFetcher(userId: userId)
             .refresh()
