@@ -125,7 +125,6 @@ private extension FeedReactor {
 
         let synchronizeDeletion = groupUsecase
             .deletePostAndReload(post: post)
-            .takeLast(1)
             .flatMap { [weak self] _ -> Observable<Mutation> in
                 guard let self = self else { return .empty() }
                 // 서버에서 삭제된 뒤에만 위젯 사진을 지우고, 남은 오늘 사진으로 다시 맞춥니다.

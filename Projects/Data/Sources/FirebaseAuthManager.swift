@@ -111,7 +111,7 @@ public protocol FirebaseAuthManagerProtocol {
     // 내 정보 조회
     // func fetchMyInfo() -> Single<Domain.User?>
     
-    // 특정 유저 조회
+    // 특정 유저 조회 (유저가 없으면 nil)
     func fetchUser(uid: String) -> Single<Domain.User?>
     
     // 유저 업데이트
@@ -131,8 +131,8 @@ public protocol FirebaseAuthManagerProtocol {
     // 유저 groupId 업데이트
     func updateUserGroupId(groupId: String) -> Single<Void>
     
-    // 그룹 조회
-    func fetchGroup(groupId: String) -> Single<HCGroup>
+    // 그룹 조회 (그룹이 없으면 nil)
+    func fetchGroup(groupId: String) -> Single<HCGroup?>
 
     // 전체 그룹 조회 (관리자 전용 Usecase에서만 사용)
     func fetchGroups() -> Single<[HCGroup]>
@@ -223,28 +223,46 @@ extension FirebaseAuthManager {
     /// - Parameters:
     ///   - path: 경로
     ///   - type: 값
-    /// - Returns: Observable<T>
+    /// - Returns: 경로에 값이 없으면 `pathNotFound`, 형식이 맞지 않으면 `decodingFailed`, 읽기가 취소되면 `unknown` 에러
     public func readValue<T: Decodable>(path: String, type: T.Type) -> Single<T> {
         return Single.create { single in
-            self.databaseRef.child(path).observeSingleEvent(of: .value) { snapshot in
-                guard let value = snapshot.value else {
-                    single(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "값이 존재하지 않음"])))
-                    return
-                }
-                
-                do {
-                    guard JSONSerialization.isValidJSONObject(value) else {
-                        throw NSError(domain: "", code: -2, userInfo: [NSLocalizedDescriptionKey: "유효하지 않은 JSON 객체"])
+            self.databaseRef.child(path).observeSingleEvent(
+                of: .value,
+                with: { snapshot in
+                    do {
+                        single(.success(try Self.decode(type, from: snapshot.value)))
+                    } catch {
+                        single(.failure(error))
                     }
-                    
-                    let data = try JSONSerialization.data(withJSONObject: value, options: [])
-                    let decoded = try JSONDecoder().decode(T.self, from: data)
-                    single(.success(decoded))
-                } catch {
-                    single(.failure(FirebaseError.decodingFailed))
+                },
+                withCancel: { error in
+                    // 권한 거부 등으로 읽기가 취소되면 응답 없이 멈추지 않도록 에러로 끝낸다
+                    single(.failure(FirebaseError.unknown(error)))
                 }
-            }
+            )
             return Disposables.create()
+        }
+    }
+
+    /// 스냅샷 값을 모델로 바꾼다
+    /// - Parameters:
+    ///   - type: 모델 타입
+    ///   - value: `DataSnapshot.value`. 경로에 값이 없으면 `NSNull`
+    /// - Returns: 값이 없으면 `pathNotFound`, 형식이 맞지 않으면 `decodingFailed` 에러
+    static func decode<T: Decodable>(_ type: T.Type, from value: Any?) throws -> T {
+        guard let value, !(value is NSNull) else {
+            throw FirebaseError.pathNotFound
+        }
+
+        guard JSONSerialization.isValidJSONObject(value) else {
+            throw FirebaseError.decodingFailed
+        }
+
+        do {
+            let data = try JSONSerialization.data(withJSONObject: value, options: [])
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            throw FirebaseError.decodingFailed
         }
     }
 
@@ -415,18 +433,18 @@ extension FirebaseAuthManager {
     
     /// Uid기반 유저 정보 가져오기 - read
     /// - Parameter uid: uid
-    /// - Returns: Observable<User?>
+    /// - Returns: 유저. 서버에 유저가 없으면 `nil`, 읽거나 변환하지 못하면 에러
     public func fetchUser(uid: String) -> Single<Domain.User?> {
         let path = "users/\(uid)"
-            
-            return readValue(path: path, type: UserDTO.self)
-                .map { dto in
-                    return dto.toModel()
+
+        return readValue(path: path, type: UserDTO.self)
+            .flatMap { dto -> Single<Domain.User> in
+                guard let user = dto.toModel() else {
+                    return .error(FirebaseError.decodingFailed)
                 }
-                .catch { error in
-                    print("❌ 유저 정보 디코딩 실패: \(error.localizedDescription)")
-                    return Single.just(nil)
-                }
+                return .just(user)
+            }
+            .nilIfPathNotFound()
     }
     
     /// 유저 업데이트 - update
@@ -574,8 +592,8 @@ extension FirebaseAuthManager {
     
     /// 그룹 Read
     /// - Parameter groupId: 그룹 ID
-    /// - Returns: Observable<Result<HCGroup, GroupError>>
-    public func fetchGroup(groupId: String) -> Single<HCGroup> {
+    /// - Returns: 그룹. 서버에 그룹이 없으면 `nil`, 읽거나 변환하지 못하면 에러
+    public func fetchGroup(groupId: String) -> Single<HCGroup?> {
         return readValue(path: "groups/\(groupId)", type: HCGroupDTO.self)
             .flatMap { dto -> Single<HCGroup> in
                 if let model = dto.toModel() {
@@ -584,6 +602,7 @@ extension FirebaseAuthManager {
                     return .error(FirebaseError.decodingFailed)
                 }
             }
+            .nilIfPathNotFound()
     }
 
     /// 전체 그룹을 조회합니다.
@@ -744,5 +763,18 @@ extension FirebaseAuthManager {
             }
             return Disposables.create()
         }
+    }
+}
+
+extension PrimitiveSequence where Trait == SingleTrait {
+    /// 경로에 값이 없다는 에러(`pathNotFound`)만 `nil`로 바꾸고, 나머지 에러는 그대로 보낸다
+    func nilIfPathNotFound() -> Single<Element?> {
+        map { Optional($0) }
+            .catch { error in
+                if case FirebaseError.pathNotFound = error {
+                    return .just(nil)
+                }
+                return .error(error)
+            }
     }
 }

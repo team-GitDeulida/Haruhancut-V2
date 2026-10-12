@@ -105,9 +105,7 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
         currentUser.nickname = nickname
         return repository.updateUser(user: currentUser)
             .flatMap { _ in
-                self.loadAndFetchUser()
-                    .takeLast(1)
-                    .asSingle()
+                self.reloadUser(userId: currentUser.uid)
             }
     }
     
@@ -123,9 +121,7 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
                 return self.repository.updateUser(user: updatedUser)
             }
             .flatMap { _ in
-                self.loadAndFetchUser()
-                    .takeLast(1)
-                    .asSingle()
+                self.reloadUser(userId: currentUser.uid)
             }
     }
 }
@@ -321,31 +317,17 @@ extension AuthUsecaseImpl {
 }
 
 extension AuthUsecaseImpl {
+    /// 캐시된 유저를 먼저 보내고 서버 유저로 갱신한다
+    /// - 서버에 유저가 없으면 세션을 지우고 `FetchError.notFound`로 끝낸다
+    /// - 서버에 확인하지 못하면 캐시를 유지하고 그 에러로 끝낸다
     public func loadAndFetchUser() -> Observable<User> {
         guard let userId = userSession.userId else {
             return .error(DomainError.missingDomainSession)
         }
-        
-        // 1. 캐시에서 유저 가져옴
-        let cached = userSession.session
-            .map { Observable.just($0) } ?? .empty()
-        
-        // 2. 서버에서 유저 가져옴
-        let remote = repository.fetchUser(uid: userId)
-            .compactMap { $0 } // nil 제거(PrimitiveSequence<MaybeTrait, User>)
-            .asObservable()
-            .do(onNext: { user in
-                self.userSession.update(user)
-            })
 
-        // 3. 캐시 -> 서버 순서로 방출
-        return Observable.concat(cached, remote)
-            .enumerated()
-            .do(onNext: { index, user in
-                // Logger.d("\n[\(index)]번째 방출: \(user.description)")
-                Logger.d("[\(index)]번째 방출")
-            })
-            .map { $0.element }
+        return userFetcher(userId: userId)
+            .fetch()
+            .fetchedValues()
     }
 }
 
@@ -366,3 +348,36 @@ extension AuthUsecaseImpl {
     }
 }
 #endif
+
+// MARK: - Fetcher
+private extension AuthUsecaseImpl {
+    /// 유저 세션과 서버 유저를 맞추는 Fetcher
+    /// - 서버에 유저가 없으면 유저·그룹 세션을 지운다. AppCoordinator가 로그인 화면으로 보낸다
+    func userFetcher(userId: String) -> Fetcher<User> {
+        let userSession = userSession
+        let groupSession = groupSession
+        let repository = repository
+
+        return Fetcher(
+            local: { userSession.session },
+            remote: { repository.fetchUser(uid: userId) },
+            updateLocal: { user in
+                userSession.update(user)
+            },
+            removeLocal: {
+                // 이미 로그아웃했거나 다른 유저로 바뀐 뒤 늦게 온 응답이면 아무것도 지우지 않는다
+                guard userSession.userId == userId else { return }
+                groupSession.clear()
+                userSession.clear()
+            }
+        )
+    }
+
+    /// 서버에 쓴 뒤 서버 유저만 다시 받아 세션에 저장한다
+    func reloadUser(userId: String) -> Single<User> {
+        userFetcher(userId: userId)
+            .refresh()
+            .fetchedValues()
+            .asSingle()
+    }
+}

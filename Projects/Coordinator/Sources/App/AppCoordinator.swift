@@ -129,7 +129,14 @@ public final class AppCoordinator: Coordinator {
         if childCoordinators.contains(where: { $0 is GroupCoordinator }) {
             return
         }
-        
+
+        // 서버에 그룹이 없어 홈에서 넘어온 경우 홈 플로우를 정리한다
+        // 남겨 두면 새 그룹을 만든 뒤 startHomeFlowCoordinator()가 중복으로 보고 홈을 열지 않는다
+        if childCoordinators.contains(where: { $0 is HomeV2Coordinator }) {
+            childCoordinators.removeAll { $0 is HomeV2Coordinator }
+            navigationController.dismiss(animated: false)
+        }
+
         let coordinator = GroupCoordinator(navigationController: navigationController)
         coordinator.parentCoordinator = self
         childCoordinators.append(coordinator)

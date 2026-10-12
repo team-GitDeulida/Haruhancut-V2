@@ -13,6 +13,7 @@ public enum DomainError: Error {
     case missingGroupId
     case missingDomainSession
     case userNotFound
+    case groupNotFound
     case groupMemberPermissionRequired
     case adminPermissionRequired
 }
@@ -119,15 +120,6 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             })
     }
     
-    /// Fetches the group associated with the current user's session.
-    /// - Returns: An `HCGroup` if a groupId exists for the current user; otherwise emits `DomainError.missingGroupId`.
-    private func fetchGroup() -> Single<HCGroup> {
-        guard let groupId = userSession.groupId else {
-            return .error(DomainError.missingGroupId)
-        }
-        return groupRepository.fetchGroup(groupId: groupId)
-    }
-    
     // Comment
     private func addComment(path: String, value: Comment) -> Single<Void> {
         return groupRepository.addComment(path: path, value: value)
@@ -161,31 +153,17 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             }
     }
     
+    /// 캐시된 그룹을 먼저 보내고 서버 그룹으로 갱신한다
+    /// - 서버에 그룹이 없으면 그룹 정보를 지우고 `FetchError.notFound`로 끝낸다
+    /// - 서버에 확인하지 못하면 캐시를 유지하고 그 에러로 끝낸다
     public func loadAndFetchGroup() -> Observable<HCGroup> {
         guard let groupId = userSession.groupId else {
             return .error(DomainError.missingGroupId)
         }
-        
-        // 1. 캐시 먼저 방출
-        let cached = groupSession.entity
-            .map { Observable.just($0) } ?? .empty()
-        
-        // 2. 서버
-        let remote = groupRepository.fetchGroup(groupId: groupId)
-            .do(onSuccess: { [weak self] group in
-                // 서버 결과 세션에 캐시
-                self?.groupSession.update(group.toSession())
-            })
-            .asObservable()
 
-        // 3. 캐시 -> 서버 순서로 방출
-        return Observable.concat(cached, remote)
-            .enumerated()
-            .do(onNext: { index, group in
-                // Logger.d("\n[\(index)]번째 방출: \(group.description)")
-                Logger.d("[\(index)]번째 방출")
-            })
-            .map { $0.element }
+        return groupFetcher(groupId: groupId)
+            .fetch()
+            .fetchedValues()
     }
     
     
@@ -270,7 +248,10 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
                 self.groupRepository.deleteValue(path: dbPath)
             }.asObservable()
             .flatMap { _ in
-                self.loadAndFetchGroup()
+                // 삭제가 반영된 서버 그룹만 다시 받아 세션에 저장
+                self.groupFetcher(groupId: groupId)
+                    .refresh()
+                    .fetchedValues()
             }
             .mapToVoid()
     }
@@ -286,6 +267,10 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return repository
             .fetchGroup(groupId: groupId)
             .flatMap { [weak self] group -> Single<Int> in
+                guard let group else {
+                    return .error(DomainError.groupNotFound)
+                }
+
                 let posts = group.postsByDate.values.flatMap { $0 }
                 let postsPath = "groups/\(groupId)/postsByDate"
 
@@ -320,4 +305,29 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             }
     }
     #endif
+}
+
+// MARK: - Fetcher
+private extension GroupUsecaseImpl {
+    /// 그룹 세션과 서버 그룹을 맞추는 Fetcher
+    /// - 서버에 그룹이 없으면 그룹 세션과 유저의 groupId를 지운다. AppCoordinator가 그룹 화면으로 보낸다
+    func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
+        let userSession = userSession
+        let groupSession = groupSession
+        let groupRepository = groupRepository
+
+        return Fetcher(
+            local: { groupSession.entity },
+            remote: { groupRepository.fetchGroup(groupId: groupId) },
+            updateLocal: { group in
+                groupSession.update(group.toSession())
+            },
+            removeLocal: {
+                // 다른 그룹으로 바뀐 뒤 늦게 온 응답이면 아무것도 지우지 않는다
+                guard userSession.groupId == groupId else { return }
+                groupSession.clear()
+                userSession.update(\.groupId, nil)
+            }
+        )
+    }
 }
