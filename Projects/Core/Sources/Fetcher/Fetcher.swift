@@ -28,7 +28,7 @@ import RxSwift
 
  // 단계별 로그 (Debug 빌드)
  fetcher.logging("Group").fetch()
- // [Group] 캐시: 있음 → [Group] 서버 요청 → [Group] 서버 응답: 값 → [Group] 캐시 저장
+ // [Group] 캐시 읽기: 있음 → [Group] 서버 요청 → [Group] 서버 응답: 값 → [Group] 캐시 저장
  */
 
 /// Fetcher가 전달하는 조회 단계입니다.
@@ -134,7 +134,7 @@ public extension Fetcher {
     ///
     /// ```swift
     /// Fetcher(...).logging("Group").fetch()
-    /// // [Group] 캐시: 있음 → [Group] 서버 요청 → [Group] 서버 응답: 값 → [Group] 캐시 저장
+    /// // [Group] 캐시 읽기: 있음 → [Group] 서버 요청 → [Group] 서버 응답: 값 → [Group] 캐시 저장
     /// ```
     ///
     /// - Parameter label: 로그 앞에 붙일 이름. 어느 Fetcher의 로그인지 구분합니다.
@@ -156,7 +156,7 @@ public extension Fetcher {
         return Fetcher(
             local: {
                 let value = local()
-                log("캐시: \(value == nil ? "없음" : "있음")", false)
+                log("캐시 읽기: \(value == nil ? "없음" : "있음")", false)
                 return value
             },
             remote: {

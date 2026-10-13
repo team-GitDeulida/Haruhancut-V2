@@ -280,7 +280,7 @@ public func loadAndFetchGroup() -> Observable<HCGroup> {
 `logging(_:)`을 붙이면 다음처럼 남아요. 응답이 버려지거나 서버 확인에 실패하면 경고(🟡)로 남아요.
 
 ```
-[🟢] [GroupUsecase:335] Fetcher — [Group] 캐시: 있음
+[🟢] [GroupUsecase:335] Fetcher — [Group] 캐시 읽기: 있음
 [🟢] [GroupUsecase:335] Fetcher — [Group] 서버 요청
 [🟢] [GroupUsecase:335] Fetcher — [Group] 서버 응답: 값
 [🟢] [GroupUsecase:335] Fetcher — [Group] 캐시 저장
