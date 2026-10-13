@@ -269,21 +269,60 @@ final class GroupUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(repository.addedCommentPaths.count, 1)
     }
 
-    func testAddCommentWritesToServerWhenNoGroupIsStored() {
+    func testAddCommentWritesThenSavesServerGroupWhenNoGroupIsStored() {
         groupSession.clear()
+        repository.fetchGroupResponse = .just(makeGroup(name: "server", posts: [makePost()]))
         var isSucceeded = false
 
         sut.addComment(post: makePost(), text: "hello")
             .subscribe(onSuccess: { isSucceeded = true })
             .disposed(by: disposeBag)
 
-        // 바꿀 캐시가 없어도 서버에는 씁니다.
+        // 바꿀 캐시가 없으면 서버에 쓰고 서버 그룹을 받아 저장합니다.
         XCTAssertTrue(isSucceeded)
         XCTAssertEqual(repository.addedCommentPaths.count, 1)
+        XCTAssertEqual(repository.fetchGroupCount, 1)
+        XCTAssertEqual(groupSession.entity?.groupName, "server")
     }
 
-    func testDeletePostDeletesOnServerWhenNoGroupIsStored() {
+    func testAddCommentSavesServerGroupWhenPostIsNotStored() {
+        let comment = Comment(
+            commentId: "comment",
+            userId: "user",
+            nickname: "user",
+            profileImageURL: nil,
+            text: "hello",
+            createdAt: .now
+        )
+        var serverPost = makePost()
+        serverPost.comments = ["comment": comment]
+        repository.fetchGroupResponse = .just(makeGroup(name: "server", posts: [serverPost]))
+
+        // 저장된 그룹에는 아직 이 게시물이 없습니다.
+        sut.addComment(post: makePost(), text: "hello")
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(repository.fetchGroupCount, 1)
+        XCTAssertEqual(storedPosts().first?.comments.values.map(\.text), ["hello"])
+    }
+
+    func testAddCommentSucceedsWhenGroupReloadAfterWriteFails() {
         groupSession.clear()
+        repository.fetchGroupResponse = .error(TestError.remote)
+        var isSucceeded = false
+
+        sut.addComment(post: makePost(), text: "hello")
+            .subscribe(onSuccess: { isSucceeded = true })
+            .disposed(by: disposeBag)
+
+        // 서버 쓰기는 끝났으므로 다시 받기가 실패해도 성공입니다.
+        XCTAssertTrue(isSucceeded)
+    }
+
+    func testDeletePostDeletesOnServerThenSavesServerGroupWhenNoGroupIsStored() {
+        groupSession.clear()
+        repository.fetchGroupResponse = .just(makeGroup(name: "server"))
         var isCompleted = false
 
         sut.deletePostAndReload(post: makePost())
@@ -292,6 +331,7 @@ final class GroupUsecaseFetchTests: XCTestCase {
 
         XCTAssertTrue(isCompleted)
         XCTAssertEqual(repository.deletedPaths.count, 1)
+        XCTAssertEqual(groupSession.entity?.groupName, "server")
     }
 
     func testAddCommentRemovesCommentWhenServerFails() {

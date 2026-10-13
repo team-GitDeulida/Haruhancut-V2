@@ -346,6 +346,61 @@ final class FetcherTests: XCTestCase {
         XCTAssertEqual(error as? TestError, .remote)
     }
 
+    func test_update_asksServerAfterOtherWriteFinishes_whenFailedChangeRemains() {
+        cache.value = 10
+        let requests = FetchRequests<Int>()
+        let first = PublishSubject<Void>()
+        let second = PublishSubject<Void>()
+        var error: Error?
+        makeSUT().sharing(requests, key: "group")
+            .update({ $0 += 1 }, remote: { _ in first.take(1).asSingle() })
+            .subscribe(onFailure: { error = $0 })
+            .disposed(by: disposeBag)
+        makeSUT().sharing(requests, key: "group")
+            .update({ $0 += 100 }, remote: { _ in second.take(1).asSingle() })
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        // 두 번째 쓰기가 진행 중일 때 첫 번째 쓰기가 실패합니다.
+        // 지금 다시 받으면 쓰기와 겹친 응답이라 버려지므로 두 번째 쓰기가 끝날 때까지 기다립니다.
+        first.onError(TestError.remote)
+
+        XCTAssertEqual(cache.value, 111)
+        XCTAssertEqual(remote.requestCount, 0)
+        XCTAssertNil(error)
+
+        second.onNext(())
+        remote.succeed(110)
+
+        // 실패한 변경(+1)이 빠진 서버 값으로 바로잡습니다.
+        XCTAssertEqual(remote.requestCount, 1)
+        XCTAssertEqual(cache.value, 110)
+        XCTAssertEqual(error as? TestError, .remote)
+    }
+
+    func test_update_letsNextFetchAskServer_whenServerValueCouldNotBeReceivedAfterFailure() {
+        cache.value = 10
+        let requests = FetchRequests<Int>(maxAge: 10)
+        _ = record(makeSUT().sharing(requests, key: "group").refresh())
+        remote.succeed(10)
+        let write = PublishSubject<Void>()
+        makeSUT().sharing(requests, key: "group")
+            .update({ $0 += 1 }, remote: { _ in write.take(1).asSingle() })
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        cache.update(50)
+        write.onError(TestError.remote)
+        // 바로잡으려고 다시 받는 요청도 실패합니다.
+        remote.fail(TestError.remote)
+
+        // 최근에 받은 값이 있어도 다음 fetch()는 서버에 묻습니다.
+        let recorder = record(makeSUT().sharing(requests, key: "group").fetch())
+
+        XCTAssertEqual(remote.requestCount, 3)
+        XCTAssertEqual(recorder.steps, [.loading(50)])
+    }
+
     func test_update_doesNotRestoreCache_whenTargetChangedBeforeFailure() {
         cache.value = 10
         let write = PublishSubject<Void>()
@@ -369,6 +424,55 @@ final class FetcherTests: XCTestCase {
 
         XCTAssertEqual(error as? FetchError, .missingLocal)
         XCTAssertTrue(cache.updatedValues.isEmpty)
+    }
+
+    // MARK: - writeThenRefresh
+
+    func test_writeThenRefresh_savesServerValueAfterWrite() {
+        let write = PublishSubject<Void>()
+        let recorder = record(
+            makeSUT().writeThenRefresh { write.take(1).asSingle() }
+        )
+
+        // 쓰기가 끝나기 전에는 서버에 묻지 않습니다.
+        XCTAssertEqual(remote.requestCount, 0)
+
+        write.onNext(())
+        remote.succeed(20)
+
+        XCTAssertEqual(cache.value, 20)
+        XCTAssertEqual(recorder.steps, [.success(20)])
+        XCTAssertTrue(recorder.isCompleted)
+    }
+
+    func test_writeThenRefresh_failsWithoutAskingServer_whenWriteFails() {
+        let recorder = record(
+            makeSUT().writeThenRefresh { .error(TestError.remote) }
+        )
+
+        XCTAssertEqual(remote.requestCount, 0)
+        XCTAssertEqual(recorder.error as? TestError, .remote)
+    }
+
+    func test_writeThenRefresh_sendsNewRequest_insteadOfJoiningRequestStartedBeforeWrite() {
+        cache.value = 10
+        let requests = FetchRequests<Int>()
+        let reading = record(makeSUT().sharing(requests, key: "group").fetch())
+        let refreshing = record(
+            makeSUT().sharing(requests, key: "group")
+                .writeThenRefresh { .just(()) }
+        )
+
+        // 쓰기 전에 시작된 요청(첫 번째)에 합류하지 않고 새로 요청합니다.
+        XCTAssertEqual(remote.requestCount, 2)
+
+        remote.succeed(20, request: 1)
+        remote.succeed(5, request: 0)
+
+        // 쓰기 전에 시작된 요청이 늦게 받은 예전 값은 저장하지 않습니다.
+        XCTAssertEqual(cache.value, 20)
+        XCTAssertEqual(refreshing.steps, [.success(20)])
+        XCTAssertEqual(reading.steps, [.loading(10)])
     }
 
     // MARK: - timeout
@@ -685,24 +789,30 @@ private final class TestCache {
 private final class TestRemote {
     private(set) var requestCount = 0
     private(set) var isDisposed = false
-    private var observer: ((SingleEvent<Int?>) -> Void)?
+    private var observers: [(SingleEvent<Int?>) -> Void] = []
 
     func request() -> Single<Int?> {
         Single.create { [weak self] observer in
             guard let self = self else { return Disposables.create() }
             self.requestCount += 1
-            self.observer = observer
+            self.observers.append(observer)
             return Disposables.create { [weak self] in
                 self?.isDisposed = true
             }
         }
     }
 
+    /// 마지막 요청에 응답합니다.
     func succeed(_ value: Int?) {
-        observer?(.success(value))
+        observers.last?(.success(value))
+    }
+
+    /// 몇 번째(0부터) 요청에 응답할지 정합니다.
+    func succeed(_ value: Int?, request index: Int) {
+        observers[index](.success(value))
     }
 
     func fail(_ error: Error) {
-        observer?(.failure(error))
+        observers.last?(.failure(error))
     }
 }

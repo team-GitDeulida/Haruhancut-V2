@@ -114,10 +114,10 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
         }
         
         currentUser.nickname = nickname
-        return repository.updateUser(user: currentUser)
-            .flatMap { _ in
-                self.reloadUser(userId: currentUser.uid)
-            }
+        let repository = repository
+        return writeUserThenReload(userId: currentUser.uid) {
+            repository.updateUser(user: currentUser).map { _ in () }
+        }
     }
     
     public func updatePushEnabled(_ isEnabled: Bool) -> Single<User> {
@@ -140,14 +140,14 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
             return .error(DomainError.missingDomainSession)
         }
         
+        let repository = repository
         return repository.uploadImage(user: currentUser, image: image)
             .flatMap { url -> Single<User> in
                 var updatedUser = currentUser
                 updatedUser.profileImageURL = url.absoluteString
-                return self.repository.updateUser(user: updatedUser)
-            }
-            .flatMap { _ in
-                self.reloadUser(userId: currentUser.uid)
+                return self.writeUserThenReload(userId: currentUser.uid) {
+                    repository.updateUser(user: updatedUser).map { _ in () }
+                }
             }
     }
 }
@@ -404,10 +404,14 @@ private extension AuthUsecaseImpl {
     }
 
     /// 서버에 쓴 뒤 서버 유저만 다시 받아 세션에 저장한다
+    /// - 쓰기 전에 시작된 유저 요청에 합류하지 않으므로 다시 받은 유저에는 방금 쓴 내용이 들어 있다
     /// - 그사이 로그아웃했거나 다른 유저로 바뀌면 값 없이 끝나 에러가 된다
-    func reloadUser(userId: String) -> Single<User> {
+    func writeUserThenReload(
+        userId: String,
+        write: @escaping () -> Single<Void>
+    ) -> Single<User> {
         userFetcher(userId: userId)
-            .refresh()
+            .writeThenRefresh(write)
             .fetchedValues()
             .asSingle()
     }

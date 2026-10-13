@@ -344,7 +344,33 @@ userFetcher(userId: userId)
 | 2-a. 서버 저장 성공 | 알림 꺼짐 | 그대로예요. |
 | 2-b. 서버 저장 실패 | 알림 켜짐 (되돌림) | 스위치가 다시 켜지고 에러로 끝나요. |
 
-실패했을 때 저장된 값이 바꾼 값 그대로면 원래 값으로 되돌려요. 그사이 다른 쓰기나 서버 값이 저장됐다면 그 변경까지 지우지 않도록 원래 값으로 덮어쓰지 않고, 서버 값을 다시 받아 저장해요. 이 비교 때문에 `update`는 `Equatable` 값에서만 쓸 수 있어요. `sharing(_:key:)`을 붙였다면 쓰는 동안이나 쓰기 전에 시작된 서버 응답은 예전 값일 수 있어 저장하지 않고 버려요. 그래서 피드가 그룹을 읽는 중에 게시물을 지워도, 뒤늦게 온 예전 응답이 지운 게시물을 되살리지 않아요. 바꿀 캐시가 없으면 `FetchError.missingLocal`로 끝나고, 그사이 대상이 바뀌었으면(`isCurrent`가 `false`) 아무것도 바꾸지 않아요.
+실패했을 때 저장된 값이 바꾼 값 그대로면 원래 값으로 되돌려요. 그사이 다른 쓰기나 서버 값이 저장됐다면 그 변경까지 지우지 않도록 원래 값으로 덮어쓰지 않고, 서버 값을 다시 받아 저장해요. 다른 쓰기가 아직 진행 중이면 그 쓰기가 끝난 뒤에 다시 받아요. 쓰는 동안 받은 응답은 버려지기 때문이에요. 다시 받기가 실패해도 다음 `fetch()`는 최근 값 여부와 상관없이 서버에 물어요. 이 비교 때문에 `update`는 `Equatable` 값에서만 쓸 수 있어요. `sharing(_:key:)`을 붙였다면 쓰는 동안이나 쓰기 전에 시작된 서버 응답은 예전 값일 수 있어 저장하지 않고 버려요. 그래서 피드가 그룹을 읽는 중에 게시물을 지워도, 뒤늦게 온 예전 응답이 지운 게시물을 되살리지 않아요. 바꿀 캐시가 없으면 `FetchError.missingLocal`로 끝나고, 그사이 대상이 바뀌었으면(`isCurrent`가 `false`) 아무것도 바꾸지 않아요.
+
+| 순서 (댓글 A·B를 연달아 작성) | 저장된 값 | 화면 |
+| --- | --- | --- |
+| 1. A·B 호출 | 댓글 A·B | 두 댓글이 바로 보여요. |
+| 2. A 서버 저장 실패, B는 진행 중 | 댓글 A·B | 지금 다시 받으면 B와 겹쳐 버려지므로 B를 기다려요. |
+| 3. B 서버 저장 성공 → 서버 값을 다시 받음 | 댓글 B | 실패한 A만 사라져요. |
+
+#### `writeThenRefresh(_:)`: 먼저 바꿀 수 없으면 서버에 쓰고 다시 받아요
+
+저장된 값을 먼저 바꿀 수 없을 때 써요. 서버에 쓰고, 쓰기가 끝나면 서버 값을 새 요청으로 받아 저장해요. 쓰기 전이나 쓰는 동안 시작된 요청에 합류하지 않아서, 다시 받은 값에는 방금 쓴 내용이 들어 있어요. 서버 쓰기가 실패하면 다시 받지 않고 그 에러로 끝나요. (`updateNicknameAndReloadSession`, `updateProfileImageAndReloadSession`, `writeGroup`)
+
+```swift
+// AuthUsecase.updateNicknameAndReloadSession
+userFetcher(userId: userId)
+    .writeThenRefresh { repository.updateUser(user: renamedUser).map { _ in () } }
+    .fetchedValues()   // 다시 받은 서버 유저
+    .asSingle()
+```
+
+| 상황 | `writeThenRefresh` 없이 `updateUser` → `refresh()` | `writeThenRefresh` |
+| --- | --- | --- |
+| 프로필 화면이 유저를 읽는 중에 닉네임 저장 | `refresh()`가 저장 전에 시작된 요청에 합류해 예전 닉네임을 저장할 수 있어요. | 저장이 끝난 뒤 새로 요청해 새 닉네임을 저장해요. 늦게 온 예전 응답은 버려요. |
+| 앱을 처음 열어 저장된 그룹이 없을 때 댓글 작성 | 서버에만 쓰고 저장된 그룹이 없어 댓글 화면이 바뀌지 않아요. | 서버 그룹을 받아 저장하고, 그룹을 구독하는 댓글 화면에 댓글이 보여요. |
+| 저장된 그룹에 아직 없는 게시물에 댓글 작성 | 바꿀 게시물이 없어 아무것도 바뀌지 않아요. | 같아요. 서버 그룹을 받아 게시물과 댓글이 함께 보여요. |
+
+`GroupUsecaseImpl.writeGroup`은 바꿔도 저장된 그룹이 달라지지 않으면(그룹이 없거나 게시물이 없음) `writeThenRefresh`로, 아니면 `update`로 써요. 다시 받기가 실패해도 서버 쓰기는 끝났으므로 성공으로 끝내요.
 
 #### `fetchedValues()`: 상태를 떼고 값만 꺼내요
 
@@ -395,7 +421,7 @@ groupFetcher(groupId: groupId).fetch().fetchedValues()  // Observable<HCGroup>
 [Group] 없음 뒷정리 완료
 ```
 
-실제 로그에는 앞에 `[🟢] [GroupUsecase:424] Fetcher —`처럼 `.logging`을 붙인 위치가 찍혀요.
+실제 로그에는 앞에 `[🟢] [GroupUsecase:409] Fetcher —`처럼 `.logging`을 붙인 위치가 찍혀요.
 
 ### 지킬 점
 
@@ -403,8 +429,8 @@ groupFetcher(groupId: groupId).fetch().fetchedValues()  // Observable<HCGroup>
 - `isCurrent`에 요청한 대상(유저 ID·그룹 ID)이 지금 세션과 같은지 확인하는 조건을 넘겨요. 응답이 왔을 때 `false`면 Fetcher가 응답을 버려요. 캐시를 덮어쓰거나 지우지 않고, 예전 대상의 값을 화면에 보내지도 않아요.
 - 없는 데이터를 가리키는 서버 값이 있으면 `cleanUpNotFound`에서 정리해요. 그룹이 없을 때 세션의 `groupId`만 지우면, 다음 유저 조회가 서버의 예전 `groupId`를 다시 저장해요. 정리가 실패하면 `.failure`로 끝나고 세션의 `groupId`는 남아 다음 조회에서 다시 정리해요.
 - `FetchRequests`는 Usecase처럼 오래 사는 객체가 하나만 가져요. Fetcher를 만들 때마다 새로 만들면 요청을 합치지 못해요.
-- 서버에 쓴 뒤에는 `update(_:remote:)`로 저장된 값을 같이 바꾸거나 `refresh()`로 다시 받아요. 저장된 값을 바꾸지 않고 서버에만 쓰면, 10초 안의 `fetch()`가 예전 캐시를 보여 줄 수 있어요.
-- 바꿀 캐시가 없으면 `update`는 `FetchError.missingLocal`로 끝나요. `GroupUsecaseImpl.writeGroup`처럼 저장된 값이 없을 때는 서버에만 쓰도록 나눠요.
+- 서버에 쓸 때는 `update(_:remote:)`로 저장된 값을 같이 바꾸거나 `writeThenRefresh(_:)`로 다시 받아요. Repository로 직접 쓰고 `refresh()`를 부르면 쓰기 전에 시작된 요청에 합류해 예전 값을 저장할 수 있어요. 저장된 값을 바꾸지 않고 서버에만 쓰면, 10초 안의 `fetch()`가 예전 캐시를 보여 줄 수도 있어요.
+- 바꿀 캐시가 없으면 `update`는 `FetchError.missingLocal`로 끝나요. `GroupUsecaseImpl.writeGroup`처럼 저장된 값을 먼저 바꿀 수 없을 때는 `writeThenRefresh(_:)`로 나눠요.
 - `observe()`는 끝나지 않아요. Reactor는 `transform(mutation:)`에서 한 번만 구독하고, `mutate`에서는 끝나는 `fetch()`·`refresh()`를 써요.
 
 ## RxCocoa 타입은 UI에 필요한 규칙을 보장해요

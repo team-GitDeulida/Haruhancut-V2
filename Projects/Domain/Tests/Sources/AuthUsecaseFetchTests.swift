@@ -184,6 +184,25 @@ final class AuthUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(userSession.session?.nickname, "server")
     }
 
+    func testUpdateNicknameReloadsWithNewRequestInsteadOfRequestStartedBeforeSave() {
+        let earlierResponse = PublishSubject<User?>()
+        repository.fetchUserResponse = earlierResponse.take(1).asSingle()
+        sut.loadAndFetchUser()
+            .subscribe()
+            .disposed(by: disposeBag)
+        repository.fetchUserResponse = .just(makeUser(nickname: "new"))
+
+        let recorder = record(
+            sut.updateNicknameAndReloadSession(nickname: "new").asObservable()
+        )
+        // 저장 전에 시작된 요청이 늦게 예전 유저를 받습니다.
+        earlierResponse.onNext(makeUser(nickname: "cached"))
+
+        XCTAssertEqual(repository.fetchUserCount, 2)
+        XCTAssertEqual(recorder.values.map(\.nickname), ["new"])
+        XCTAssertEqual(userSession.session?.nickname, "new")
+    }
+
     func testUpdateNicknameFailsWhenReloadFails() {
         repository.fetchUserResponse = .error(TestError.remote)
 

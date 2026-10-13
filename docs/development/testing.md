@@ -16,10 +16,10 @@
 
 | 스킴 | 테스트 타깃 | 대상 | 외부 의존 | CI 실행 |
 | --- | --- | --- | --- | --- |
-| `Core` | `CoreTests` | `SessionContext`(`StorageProtocol`로 저장), `UserDefaultsStorage`, `FileStorage`, `Fetcher`(서버 응답 값·없음·실패, 구독, 쓰기·되돌리기, 시간 제한, 요청 합치기·최신성), `SessionContext.asObservable()` | 없음 | 실행 |
+| `Core` | `CoreTests` | `SessionContext`(`StorageProtocol`로 저장), `UserDefaultsStorage`, `FileStorage`, `Fetcher`(서버 응답 값·없음·실패, 구독, 쓰기·되돌리기·쓰고 다시 받기, 시간 제한, 요청 합치기·최신성), `SessionContext.asObservable()` | 없음 | 실행 |
 | `Data` | `DataTests` | `FirebaseAuthManager`의 FCM 토큰 생성(토큰 제공자 주입), Realtime Database 읽기 결과 구분(경로 없음·변환 실패), DTO 변환 | 없음 | 실행 |
 | `App` | `AppTests`, `AppUITests` | FCM 토큰 동기화, Firebase 사용자 조회 통합 테스트(`DataIntegrationTests`), 홈 업로드·삭제 UI 흐름 | **실제 Firebase** | 실행 |
-| `Domain` | `DomainTests` | 위젯 동기화 Usecase(`WidgetUsecaseImpl`), 유저·그룹 Usecase의 `Fetcher` 사용(조회·구독·요청 합치기, 댓글·게시물·푸시 설정 쓰기와 되돌리기) | 없음 | 실행하지 않음 |
+| `Domain` | `DomainTests` | 위젯 동기화 Usecase(`WidgetUsecaseImpl`), 유저·그룹 Usecase의 `Fetcher` 사용(조회·구독·요청 합치기, 댓글·게시물·푸시 설정 쓰기와 되돌리기, 닉네임 저장 후 다시 받기, 저장된 그룹이 없을 때 쓰고 다시 받기) | 없음 | 실행하지 않음 |
 | `WidgetSupport` | `WidgetSupportTests` | 위젯 사진·사용자 저장소, `WidgetRepositoryImpl` (임시 폴더의 `FileStorage` 사용) | 없음 | 실행하지 않음 |
 | `HomeFeatureV2` | `HomeFeatureV2Tests` | 오늘 업로드 상태, Feed 레이어, 상세 새로고침, `FeedReactor`의 그룹 구독·위젯 동기화·로딩·실패 안내 | 없음 | 실행하지 않음 |
 | `MemberFeatureV2` | `MemberFeatureV2Tests` | 멤버 화면 ViewModel | 없음 | 실행하지 않음 |
@@ -69,8 +69,8 @@ xcodebuild test \
 
 | 스킴 | 로컬 확인 (2026-09-30, Xcode 26.4, iPhone 16 Pro Max / iOS 26.0) |
 | --- | --- |
-| `Core` | 67개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `Domain` | 42개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `Core` | 72개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `Domain` | 45개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `WidgetSupport` | 13개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `HomeFeatureV2` | 18개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `CollectionViewAdapter` | 63개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |

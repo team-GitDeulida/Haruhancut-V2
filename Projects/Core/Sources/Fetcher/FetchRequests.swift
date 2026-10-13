@@ -11,7 +11,7 @@ import RxSwift
 /// 같은 대상의 서버 요청을 하나로 합치고, 마지막으로 서버 값을 받은 시각과 진행 중인 쓰기를 기억합니다.
 ///
 /// Usecase처럼 오래 사는 객체가 하나를 만들고, 같은 데이터를 다루는 Fetcher들이 `sharing(_:key:)`로 함께 씁니다.
-/// 쓰기(`update(_:remote:)`)가 진행 중이거나 쓰기 전에 시작된 서버 응답은 오래된 값일 수 있어 저장하지 않습니다.
+/// 쓰기(`update(_:remote:)`, `writeThenRefresh(_:)`)가 진행 중이거나 쓰기 전에 시작된 서버 응답은 오래된 값일 수 있어 저장하지 않습니다.
 ///
 /// ```swift
 /// private let groupRequests = FetchRequests<HCGroup>(maxAge: 10)
@@ -26,6 +26,7 @@ public final class FetchRequests<Value> {
     private var receivedAt: [String: Date] = [:]
     private var writeVersions: [String: Int] = [:]
     private var pendingWrites: [String: Set<UUID>] = [:]
+    private var idleWaiters: [String: [() -> Void]] = [:]
 
     /// 진행 중인 서버 요청과, 요청을 시작할 때의 쓰기 버전입니다.
     fileprivate struct InFlightRequest {
@@ -117,16 +118,46 @@ extension FetchRequests {
     ///   - token: `beginWrite(key:)`가 돌려준 값.
     func endWrite(key: String, token: UUID) {
         lock.lock()
-        defer { lock.unlock() }
         guard pendingWrites[key]?.remove(token) != nil else {
+            lock.unlock()
             return
         }
+        var waiters: [() -> Void] = []
         if pendingWrites[key]?.isEmpty == true {
             pendingWrites[key] = nil
+            waiters = idleWaiters.removeValue(forKey: key) ?? []
         }
         writeVersions[key, default: 0] += 1
         // 쓰는 동안 시작된 요청에 새 조회가 합류하지 않게 한다
         inFlight[key] = nil
+        lock.unlock()
+
+        waiters.forEach { $0() }
+    }
+
+    /// 진행 중인 쓰기가 모두 끝나면 완료합니다. 쓰기가 없으면 바로 완료합니다.
+    ///
+    /// 쓰기가 끝난 뒤에 시작한 서버 응답만 저장되므로, 실패한 쓰기를 서버 값으로 바로잡을 때 기다립니다.
+    ///
+    /// - Parameter key: 기다릴 대상.
+    func waitUntilWritesFinish(key: String) -> Completable {
+        Completable.create { [weak self] observer in
+            guard let self = self else {
+                observer(.completed)
+                return Disposables.create()
+            }
+            self.lock.lock()
+            guard self.pendingWrites[key] != nil else {
+                self.lock.unlock()
+                observer(.completed)
+                return Disposables.create()
+            }
+            self.idleWaiters[key, default: []].append {
+                observer(.completed)
+            }
+            self.lock.unlock()
+            return Disposables.create()
+        }
     }
 }
 

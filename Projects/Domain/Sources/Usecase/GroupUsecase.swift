@@ -410,17 +410,26 @@ private extension GroupUsecaseImpl {
     }
 
     /// 저장된 그룹을 먼저 바꾸고 서버에 쓴다. 서버 쓰기가 실패하면 Fetcher가 되돌린다
-    /// - 저장된 그룹이 없으면(첫 실행, 저장 실패 등) 바꿀 캐시가 없으므로 서버에만 쓴다. 다음 조회가 서버에서 받아 온다
+    /// - 저장된 그룹이 없거나(첫 실행, 저장 실패 등) 바꿀 게시물이 저장된 그룹에 없으면 먼저 바꿀 수 없다.
+    ///   서버에 쓰고 서버 그룹을 다시 받아 저장해, 그룹을 구독하는 화면에 보낸다
+    /// - 다시 받기가 실패해도 서버 쓰기는 끝났으므로 성공으로 끝낸다
     func writeGroup(
         groupId: String,
         change: @escaping (inout HCGroup) -> Void,
         write: @escaping () -> Single<Void>
     ) -> Single<Void> {
         Single.deferred {
-            guard self.groupSession.entity != nil else {
-                return write()
+            let fetcher = self.groupFetcher(groupId: groupId)
+            guard
+                let group = self.groupSession.entity,
+                group.isChanged(by: change)
+            else {
+                return fetcher.writeThenRefresh(write)
+                    .ignoreElements()
+                    .asCompletable()
+                    .andThen(.just(()))
             }
-            return self.groupFetcher(groupId: groupId)
+            return fetcher
                 .update(change, remote: { _ in write() })
                 .map { _ in () }
         }
@@ -451,6 +460,13 @@ private extension GroupUsecaseImpl {
 
 // MARK: - 저장된 그룹 고치기
 private extension HCGroup {
+    /// 바꾸는 방법을 적용하면 값이 달라지는지 돌려준다
+    func isChanged(by change: (inout HCGroup) -> Void) -> Bool {
+        var changed = self
+        change(&changed)
+        return changed != self
+    }
+
     /// 게시물 하나를 바꾼다. 저장된 그룹에 그 게시물이 없으면 아무것도 하지 않는다
     mutating func updatePost(_ post: Post, _ change: (inout Post) -> Void) {
         let dateKey = post.createdAt.toDateKey()

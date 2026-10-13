@@ -28,6 +28,8 @@ import RxSwift
  fetcher.observe()    // 저장된 값이 바뀔 때마다 받기 (서버에 묻지 않음)
  fetcher.update({ $0.isPushEnabled = true }, remote: { repository.updateUser(user: $0) })
                       // 로컬을 먼저 바꾸고 서버에 쓰기, 실패하면 되돌리기
+ fetcher.writeThenRefresh { repository.addComment(path: path, value: comment) }
+                      // 로컬을 먼저 바꿀 수 없을 때 서버에 쓰고 서버 값을 다시 받기
 
  fetcher.fetch().fetchedValues()  // 기존 Observable<Value> 모양으로 사용
  */
@@ -90,6 +92,8 @@ public struct Fetcher<Value> {
     private var isFresh: () -> Bool
     private var beginWrite: () -> UUID?
     private var endWrite: (UUID?) -> Void
+    private var waitUntilWritesFinish: () -> Completable
+    private var invalidateFreshness: () -> Void
     private var log: (String, Bool) -> Void
 
     /// 캐시와 서버를 다루는 클로저로 Fetcher를 만듭니다.
@@ -123,6 +127,8 @@ public struct Fetcher<Value> {
         self.isFresh = { false }
         self.beginWrite = { nil }
         self.endWrite = { _ in }
+        self.waitUntilWritesFinish = { .empty() }
+        self.invalidateFreshness = {}
         self.log = { _, _ in }
     }
 }
@@ -184,6 +190,43 @@ public extension Fetcher where Value: Equatable {
 
 // MARK: - 쓰기
 
+public extension Fetcher {
+    /// 서버에 쓰고, 쓰기가 끝나면 서버 값을 다시 받아 저장합니다.
+    ///
+    /// 로컬을 먼저 바꿀 수 없을 때 씁니다. (예: 저장된 그룹이 없거나, 댓글을 달 게시물이 저장된 그룹에 없을 때)
+    /// 쓰기 전이나 쓰는 동안 시작된 서버 요청에 합류하지 않으므로, 다시 받은 값에는 방금 쓴 내용이 들어 있습니다.
+    ///
+    /// - Parameter write: 서버에 쓰는 요청.
+    /// - Returns: 다시 받은 결과. `refresh()`와 같습니다. 서버 쓰기가 실패하면 다시 받지 않고 그 에러로 끝납니다.
+    func writeThenRefresh(
+        _ write: @escaping () -> Single<Void>
+    ) -> Observable<FetchResult<Value>> {
+        Observable.deferred {
+            // 쓰는 동안 도착하는 서버 응답이 쓰기 전 값을 저장하지 않게 한다
+            let writeToken = beginWrite()
+            return write()
+                .do(
+                    onSuccess: { _ in
+                        // 다시 받는 요청이 새로 나가도록 쓰기를 먼저 끝낸다
+                        endWrite(writeToken)
+                        log("쓰기: 서버 반영 완료, 서버 값을 다시 받음", false)
+                    },
+                    onError: { error in
+                        endWrite(writeToken)
+                        log("쓰기 실패 (\(error))", true)
+                    },
+                    onDispose: {
+                        endWrite(writeToken)
+                    }
+                )
+                .asObservable()
+                .flatMap { _ in
+                    requestRemote()
+                }
+        }
+    }
+}
+
 public extension Fetcher where Value: Equatable {
     /// 로컬을 먼저 바꾸고 서버에 씁니다. 서버 쓰기가 실패하면 로컬을 원래 값으로 되돌립니다.
     ///
@@ -224,11 +267,16 @@ public extension Fetcher where Value: Equatable {
                         return .error(error)
                     }
                     guard local() == changed else {
-                        // 다른 변경까지 지우지 않도록 원래 값으로 덮어쓰지 않고 서버 값을 다시 받는다
-                        log("쓰기 실패: 그사이 바뀐 캐시가 있어 서버 값을 다시 받음 (\(error))", true)
-                        return requestRemote()
-                            .ignoreElements()
-                            .asCompletable()
+                        // 다른 변경까지 지우지 않도록 원래 값으로 덮어쓰지 않고 서버 값을 다시 받는다.
+                        // 다시 받기가 실패해도 다음 fetch()가 서버에 묻도록 최신성 기록을 지운다
+                        log("쓰기 실패: 그사이 바뀐 캐시가 있어 다른 쓰기가 끝난 뒤 서버 값을 다시 받음 (\(error))", true)
+                        invalidateFreshness()
+                        return waitUntilWritesFinish()
+                            .andThen(
+                                requestRemote()
+                                    .ignoreElements()
+                                    .asCompletable()
+                            )
                             .andThen(.error(error))
                     }
                     log("쓰기 실패: 캐시를 원래 값으로 되돌림 (\(error))", true)
@@ -273,7 +321,7 @@ public extension Fetcher {
     /// 같은 대상의 서버 요청을 하나로 합치고, 최근에 받은 값이면 `fetch()`가 서버를 건너뛰는 Fetcher를 돌려줍니다.
     ///
     /// 여러 화면이 동시에 같은 그룹을 요청하면 서버 요청 하나의 결과를 함께 받습니다.
-    /// `update(_:remote:)`가 진행 중이거나 쓰기 전에 시작된 서버 응답은 저장하지 않고 버립니다.
+    /// 쓰기(`update(_:remote:)`, `writeThenRefresh(_:)`)가 진행 중이거나 쓰기 전에 시작된 서버 응답은 저장하지 않고 버립니다.
     /// `FetchRequests`를 만들 때 정한 시간 안에 서버 값을 받았다면 `fetch()`는 캐시를 `.success`로 보냅니다.
     /// `refresh()`는 항상 서버에 묻습니다.
     ///
@@ -297,6 +345,12 @@ public extension Fetcher {
         fetcher.endWrite = { token in
             guard let token else { return }
             requests.endWrite(key: key, token: token)
+        }
+        fetcher.waitUntilWritesFinish = {
+            requests.waitUntilWritesFinish(key: key)
+        }
+        fetcher.invalidateFreshness = {
+            requests.invalidate(key: key)
         }
         return fetcher
     }

@@ -127,7 +127,7 @@ Projects/
   - 저장소에만 필요한 기능은 구현체 익스텐션에 더해요. (`FileStorage`의 `contentsOfDirectory`·`exists`)
   - 쓰는 쪽은 CRUD만 필요하면 `StorageProtocol`에 의존해요. (`SessionContext`, `WidgetSessionStore`) 추가 기능이 필요하면 구현체에 의존해요. (`WidgetPhotoStore` → `FileStorage`)
   - 테스트·Demo의 메모리 저장소는 `StorageProtocol`을 직접 채택해요.
-- Core Fetcher: 로컬 캐시를 먼저 보여 주고 서버 값으로 갱신하는 조회 정책이에요. 저장된 값의 변화 구독(`observe()`)과 "먼저 바꾸고, 실패하면 되돌리는" 쓰기(`update(_:remote:)`)도 맡아요. 사용법은 [RxSwift](rxswift.md#fetcher로-캐시-우선-조회하기)를 확인해요.
+- Core Fetcher: 로컬 캐시를 먼저 보여 주고 서버 값으로 갱신하는 조회 정책이에요. 저장된 값의 변화 구독(`observe()`)과 "먼저 바꾸고, 실패하면 되돌리는" 쓰기(`update(_:remote:)`), 먼저 바꿀 수 없을 때 "서버에 쓰고 다시 받는" 쓰기(`writeThenRefresh(_:)`)도 맡아요. 사용법은 [RxSwift](rxswift.md#fetcher로-캐시-우선-조회하기)를 확인해요.
   - 값이면 `updateLocal`로 저장하고 `.success`, 없으면 `removeLocal`과 `cleanUpNotFound`로 정리한 뒤 `.notFound`, 실패면 캐시를 그대로 두고 `.failure`를 보내요.
   - 응답이 왔을 때 요청한 유저·그룹이 그사이 바뀌었으면(`isCurrent`가 `false`) 응답을 버려요.
   - `timeout(_:)`은 응답이 없을 때 실패로 끝내고, `sharing(_:key:)`은 같은 요청을 합치고 `FetchRequests(maxAge:)` 안에 받은 값이면 서버를 건너뛰어요.
@@ -204,7 +204,7 @@ Repository 프로토콜은 Domain에, 구현은 Data에 있어요. Feature는 `A
 | Service Locator DI | App 등록, Builder·일부 Reactor·ViewModel·Coordinator resolve | `DIContainer.swift`, `AppDelegate+Dependency.swift` |
 | Repository | Domain 프로토콜, Data 구현 | `RepositoryProtocol/`, `RepositoryImpl/` |
 | Session | 로그인 사용자·그룹 상태 저장과 관찰 | `Core/Sources/Session/Session.swift` |
-| Fetcher | 캐시 우선 조회, 저장된 값 구독, 먼저 바꾸고 실패하면 되돌리는 쓰기 | `Core/Sources/Fetcher/`, `AuthUsecase.swift`, `GroupUsecase.swift`, `HomeGroupLoader.swift` |
+| Fetcher | 캐시 우선 조회, 저장된 값 구독, 먼저 바꾸고 실패하면 되돌리는 쓰기, 서버에 쓰고 다시 받는 쓰기 | `Core/Sources/Fetcher/`, `AuthUsecase.swift`, `GroupUsecase.swift`, `HomeGroupLoader.swift` |
 
 ### 외부 라이브러리
 
