@@ -37,6 +37,8 @@ public protocol AuthUsecaseProtocol {
     func updateProfileImageAndReloadSession(image: UIImage) -> Single<User>
     /// 푸시 알림 설정을 세션에 먼저 반영하고 서버에 저장합니다. 저장에 실패하면 세션을 원래 값으로 되돌립니다.
     func updatePushEnabled(_ isEnabled: Bool) -> Single<User>
+    /// 생일을 세션에 먼저 반영하고 서버에 저장합니다. 저장에 실패하면 세션을 원래 값으로 되돌립니다.
+    func updateBirthday(_ birthdayDate: Date) -> Single<User>
     
     // MARK: - Sign
     func signIn(platform: User.LoginPlatform) -> Single<SignInResult>
@@ -48,6 +50,8 @@ public protocol AuthUsecaseProtocol {
     func generateFcmToken() -> Single<String>
     func syncFcmIfNeeded() -> Single<Void>
     func loadAndFetchUser() -> Observable<User>
+    /// 저장된 유저를 먼저 보내고, 저장된 유저가 바뀔 때마다 보냅니다. 서버에는 묻지 않습니다.
+    func observeUser() -> Observable<User>
 
     // MARK: - Test
     #if DEBUG
@@ -59,6 +63,16 @@ public extension AuthUsecaseProtocol {
     /// 푸시 설정을 저장하지 않는 Demo·테스트 구현을 위한 기본 동작입니다.
     func updatePushEnabled(_ isEnabled: Bool) -> Single<User> {
         .error(DomainError.missingDomainSession)
+    }
+
+    /// 생일을 저장하지 않는 Demo·테스트 구현을 위한 기본 동작입니다.
+    func updateBirthday(_ birthdayDate: Date) -> Single<User> {
+        .error(DomainError.missingDomainSession)
+    }
+
+    /// 구독을 지원하지 않는 Demo·테스트 구현을 위한 기본 동작입니다. 조회한 유저만 보냅니다.
+    func observeUser() -> Observable<User> {
+        loadAndFetchUser()
     }
 }
 
@@ -127,6 +141,16 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
 
         return updateSessionUser(userId: userId) { user in
             user.isPushEnabled = isEnabled
+        }
+    }
+
+    public func updateBirthday(_ birthdayDate: Date) -> Single<User> {
+        guard let userId = userSession.userId else {
+            return .error(DomainError.missingDomainSession)
+        }
+
+        return updateSessionUser(userId: userId) { user in
+            user.birthdayDate = birthdayDate
         }
     }
 
@@ -347,6 +371,16 @@ extension AuthUsecaseImpl {
         return userFetcher(userId: userId)
             .fetch()
             .fetchedValues()
+    }
+
+    public func observeUser() -> Observable<User> {
+        guard let userId = userSession.userId else {
+            return .error(DomainError.missingDomainSession)
+        }
+
+        return userFetcher(userId: userId)
+            .observe()
+            .compactMap { $0 }
     }
 }
 

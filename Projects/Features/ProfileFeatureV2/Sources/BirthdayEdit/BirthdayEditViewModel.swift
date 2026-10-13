@@ -71,36 +71,16 @@ final class BirthdayEditViewModel:
                     -> Observable<
                         Event<User>
                     > in
-                guard
-                    var user =
-                        owner
-                            .userSession
-                            .session
-                else {
-                    return Observable
-                        .error(
-                            DomainError
-                                .missingDomainSession
-                        )
-                        .materialize()
-                }
-
                 owner.isSavingRelay
                     .accept(true)
-                user.birthdayDate =
-                    Self.normalizedBirthday(
-                        birthdayDate
-                    )
-
+                // 세션의 생일을 먼저 바꾸고 서버에 저장한다. 실패하면 Usecase가 되돌린다
                 return owner
                     .authUsecase
-                    .updateUser(user: user)
-                    .do(onSuccess: {
-                        [weak owner] user in
-                        owner?
-                            .userSession
-                            .update(user)
-                    })
+                    .updateBirthday(
+                        Self.normalizedBirthday(
+                            birthdayDate
+                        )
+                    )
                     .asObservable()
                     .materialize()
             }

@@ -119,7 +119,9 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             let group =
                 groupSession.session,
             let userId =
-                userSession.userId
+                userSession.userId,
+            let groupId =
+                userSession.groupId
         else {
             return .error(
                 DomainError
@@ -135,18 +137,16 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             )
         }
 
-        return groupRepository
-            .updateBirthdaySettings(
-                groupId: group.groupId,
+        let groupRepository = groupRepository
+        // 저장된 그룹의 생일 설정을 먼저 바꾸고 서버에 쓴다. 실패하면 Fetcher가 되돌린다
+        return writeGroup(groupId: groupId, change: { group in
+            group.birthdaySettings = settings
+        }, write: {
+            groupRepository.updateBirthdaySettings(
+                groupId: groupId,
                 settings: settings
             )
-            .do(onSuccess: {
-                [weak self] in
-                self?.groupSession.update(
-                    \.birthdaySettings,
-                    settings
-                )
-            })
+        })
     }
     
     // Comment

@@ -317,7 +317,7 @@ func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
 
 #### `observe()`: 저장된 값이 바뀔 때마다 받아요
 
-화면이 서로 새로고침을 알려 주지 않아도 되게 해요. 저장된 그룹을 먼저 보내고, 다른 화면이 서버 값이나 쓰기 결과를 저장하면 바로 다시 보내요. 서버에는 묻지 않고, 같은 값을 다시 저장하면 보내지 않아요. 끝나지 않는 스트림이라 화면이 사라질 때 구독을 해제해요. (`observeGroup`)
+화면이 서로 새로고침을 알려 주지 않아도 되게 해요. 저장된 그룹을 먼저 보내고, 다른 화면이 서버 값이나 쓰기 결과를 저장하면 바로 다시 보내요. 서버에는 묻지 않고, 같은 값을 다시 저장하면 보내지 않아요. 끝나지 않는 스트림이라 화면이 사라질 때 구독을 해제해요. (`observeGroup`, `observeUser`)
 
 | 일어난 일 | `observe()`로 받는 것 |
 | --- | --- |
@@ -325,11 +325,11 @@ func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
 | 피드 화면이 서버에서 3개 그룹을 받아 저장 | 게시물 3개 그룹 |
 | 댓글 시트에서 댓글 작성 | 댓글이 붙은 그룹 |
 
-피드·캘린더·상세·댓글 화면이 `observeGroup()`을 구독해요. 그래서 댓글 시트를 닫을 때 Coordinator가 상세 화면에 `refresh()`를 알리던 코드를 지웠고, 위젯도 피드가 구독하는 그룹 변화로 맞춰요.
+피드·캘린더·상세·댓글·프로필 화면이 `observeGroup()`을 구독해요. 그래서 댓글 시트를 닫을 때 Coordinator가 상세 화면에 `refresh()`를 알리던 코드를 지웠고, 위젯도 피드가 구독하는 그룹 변화로 맞춰요. 프로필 화면은 `observeUser()`도 구독해서 닉네임·프로필 사진·생일을 바꾸면 다시 읽지 않고 바로 그려요. 화면에 들어올 때 서버에 묻는 일(`loadAndFetchUser()`, `fetchGroupResult()`)은 따로 하고, 받은 값은 Session에 저장돼 구독으로 와요.
 
 #### `update(_:remote:)`: 먼저 바꾸고, 실패하면 되돌려요
 
-쓰기에 써요. 저장된 값을 먼저 바꾸고 서버에 써요. 서버 쓰기가 실패하면 원래 값으로 되돌려요. 화면은 `observe()`로 바뀐 값과 되돌린 값을 그대로 따라가요. (`updatePushEnabled`, `updateNicknameAndReloadSession`, `updateProfileImageAndReloadSession`, `addComment`, `deleteComment`, `deletePostAndReload`, `uploadImageAndUploadPost`)
+쓰기에 써요. 저장된 값을 먼저 바꾸고 서버에 써요. 서버 쓰기가 실패하면 원래 값으로 되돌려요. 화면은 `observe()`로 바뀐 값과 되돌린 값을 그대로 따라가요. (`updatePushEnabled`, `updateNicknameAndReloadSession`, `updateProfileImageAndReloadSession`, `updateBirthday`, `updateBirthdaySettings`, `addComment`, `deleteComment`, `deletePostAndReload`, `uploadImageAndUploadPost`)
 
 ```swift
 // AuthUsecase.updatePushEnabled
@@ -804,7 +804,7 @@ button.rx.tap
 let buttonTapped = button.rx.tap.asObservable()
 ```
 
-다른 스트림 안에서 `subscribe`를 다시 호출하는 중첩 구독도 피해야 해요. `flatMap`, `flatMapLatest`, `flatMapFirst` 중 동시 실행 정책에 맞는 연산자를 사용해요. 하루한컷은 요청 연결에 주로 `flatMapLatest`를 사용해요. ProfileFeatureV2 `ProfileViewModel`의 프로필 이미지 변경 흐름에는 중첩 구독이 남아 있어요.
+다른 스트림 안에서 `subscribe`를 다시 호출하는 중첩 구독도 피해야 해요. `flatMap`, `flatMapLatest`, `flatMapFirst` 중 동시 실행 정책에 맞는 연산자를 사용해요. 하루한컷은 요청 연결에 주로 `flatMapLatest`를 사용해요. ProfileFeatureV2 `ProfileViewModel`의 프로필 이미지 변경 흐름에는 중첩 구독이 남아 있어요. 변경 뒤 유저를 다시 읽던 구독은 `observeUser()` 구독으로 바꿔 지웠어요.
 
 ## 피드 화면(ReactorKit)에서는 이렇게 사용해요
 

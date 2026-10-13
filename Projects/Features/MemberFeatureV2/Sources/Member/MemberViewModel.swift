@@ -127,7 +127,8 @@ final class MemberViewModel:
                 .share(replay: 1)
 
         let groupState =
-            observeGroupSession()
+            groupSession
+                .asObservable()
                 .share(replay: 1)
 
         let screenState =
@@ -237,31 +238,5 @@ final class MemberViewModel:
             birthdaySettingsUpdateFailed:
                 birthdaySettingsUpdateFailed
         )
-    }
-
-    private func observeGroupSession()
-        -> Observable<SessionGroup?>
-    {
-        Observable.create {
-            [weak groupSession] observer in
-            guard let groupSession else {
-                observer.onNext(nil)
-                observer.onCompleted()
-                return Disposables
-                    .create()
-            }
-            let observerID =
-                groupSession.bind {
-                    group in
-                    observer.onNext(group)
-                }
-            return Disposables
-                .create {
-                    groupSession
-                        .removeObserver(
-                            observerID
-                        )
-                }
-        }
     }
 }

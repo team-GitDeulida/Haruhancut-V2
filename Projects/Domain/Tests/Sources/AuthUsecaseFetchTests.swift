@@ -170,6 +170,45 @@ final class AuthUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(userSession.session?.isPushEnabled, true)
     }
 
+    // MARK: - 생일 (먼저 바꾸고, 실패하면 되돌리기)
+
+    func testUpdateBirthdayChangesSessionBeforeServerResponds() {
+        let birthday = Date(timeIntervalSince1970: 86_400)
+        let write = PublishSubject<User>()
+        repository.updateUserResponse = write.take(1).asSingle()
+
+        sut.updateBirthday(birthday)
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(userSession.session?.birthdayDate, birthday)
+        XCTAssertEqual(repository.updatedUsers.map(\.birthdayDate), [birthday])
+    }
+
+    func testUpdateBirthdayRestoresSessionWhenServerFails() {
+        let original = userSession.session?.birthdayDate
+        repository.updateUserResponse = .error(TestError.remote)
+        var error: Error?
+
+        sut.updateBirthday(Date(timeIntervalSince1970: 86_400))
+            .subscribe(onFailure: { error = $0 })
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(error as? TestError, .remote)
+        XCTAssertEqual(userSession.session?.birthdayDate, original)
+    }
+
+    // MARK: - observeUser
+
+    func testObserveUserSendsStoredUserAndChangesWithoutServer() {
+        let recorder = record(sut.observeUser())
+
+        userSession.update(makeUser(nickname: "changed"))
+
+        XCTAssertEqual(recorder.values.map(\.nickname), ["cached", "changed"])
+        XCTAssertEqual(repository.fetchUserCount, 0)
+    }
+
     // MARK: - 닉네임 (먼저 바꾸고, 실패하면 되돌리기)
 
     func testUpdateNicknameSavesToSessionAndServerWithoutReading() {

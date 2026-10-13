@@ -365,6 +365,35 @@ final class GroupUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(storedPosts().first?.comments.isEmpty, true)
     }
 
+    // MARK: - 생일 설정 (먼저 바꾸고, 실패하면 되돌리기)
+
+    func testUpdateBirthdaySettingsChangesStoredGroupBeforeServerResponds() {
+        storeGroupWithMe()
+        let write = PublishSubject<Void>()
+        repository.birthdaySettingsResponse = write.take(1).asSingle()
+        let settings = GroupBirthdaySettings(isEnabled: false, calendarMode: .solar)
+
+        sut.updateBirthdaySettings(settings)
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(groupSession.entity?.birthdaySettings, settings)
+        XCTAssertEqual(repository.updatedBirthdaySettings, [settings])
+    }
+
+    func testUpdateBirthdaySettingsRestoresStoredGroupWhenServerFails() {
+        storeGroupWithMe()
+        repository.birthdaySettingsResponse = .error(TestError.remote)
+        var error: Error?
+
+        sut.updateBirthdaySettings(GroupBirthdaySettings(isEnabled: false, calendarMode: .solar))
+            .subscribe(onFailure: { error = $0 })
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(error as? TestError, .remote)
+        XCTAssertNil(groupSession.entity?.birthdaySettings)
+    }
+
     func testDeleteCommentRestoresCommentWhenServerFails() {
         let comment = Comment(
             commentId: "comment",
@@ -427,6 +456,13 @@ private extension GroupUsecaseFetchTests {
         )
     }
 
+    /// 생일 설정을 바꿀 수 있도록 내가 멤버인 그룹을 저장합니다.
+    func storeGroupWithMe() {
+        var group = makeGroup(name: "cached")
+        group.members = ["user": "joined"]
+        groupSession.update(group.toSession())
+    }
+
     func storedPosts() -> [Post] {
         groupSession.postsByDate.values.flatMap { $0 }
     }
@@ -459,6 +495,8 @@ private final class FakeGroupRepository: GroupRepositoryProtocol {
     var postDeletionResponse: Single<Void> = .just(())
     var addCommentResponse: Single<Void> = .just(())
     var deleteCommentResponse: Single<Void> = .just(())
+    var birthdaySettingsResponse: Single<Void> = .just(())
+    private(set) var updatedBirthdaySettings: [GroupBirthdaySettings] = []
     private(set) var fetchGroupCount = 0
     private(set) var deletedPaths: [String] = []
     private(set) var addedCommentPaths: [String] = []
@@ -486,7 +524,10 @@ private final class FakeGroupRepository: GroupRepositoryProtocol {
     func createGroup(groupName _: String) -> Single<(groupId: String, inviteCode: String)> { .never() }
     func joinGroup(inviteCode _: String) -> Single<HCGroup> { .never() }
     func updateGroup(path _: String, post _: Post) -> Single<Void> { .never() }
-    func updateBirthdaySettings(groupId _: String, settings _: GroupBirthdaySettings) -> Single<Void> { .never() }
+    func updateBirthdaySettings(groupId _: String, settings: GroupBirthdaySettings) -> Single<Void> {
+        updatedBirthdaySettings.append(settings)
+        return birthdaySettingsResponse
+    }
     func updateUserGroupId(groupId _: String) -> Single<Void> { .never() }
     func uploadImage(image _: UIImage, path _: String) -> Single<URL> { .never() }
     func addComment(path: String, value _: Comment) -> Single<Void> {
