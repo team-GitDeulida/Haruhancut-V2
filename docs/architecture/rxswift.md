@@ -249,17 +249,26 @@ Core의 `Fetcher`(`Core/Sources/Fetcher/Fetcher.swift`)는 Session에 저장된 
 | 없음 (`nil`) | `removeLocal`로 캐시를 지워요. | `(.notFound, nil)` |
 | 실패 (에러) | 캐시를 그대로 둬요. | `(.failure(에러), 캐시)` |
 
+### Fetcher 만들기
+
+Fetcher에는 다섯 가지만 알려 주면 돼요. 캐시를 먼저 보내고, 서버에 묻고, 결과에 따라 저장하거나 지우는 순서는 Fetcher가 맡아요.
+
 ```swift
 // GroupUsecase.swift
 func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
     Fetcher(
+        // 1. 캐시는 어디 있나요? → GroupSession
         local: { groupSession.entity },
-        remote: { groupRepository.fetchGroup(groupId: groupId) },  // nil = 없음, 에러 = 실패
+        // 2. 서버에는 어떻게 묻나요? → 그룹이 없으면 nil, 읽지 못하면 에러
+        remote: { groupRepository.fetchGroup(groupId: groupId) },
+        // 3. 서버 값을 받으면? → GroupSession에 저장
         updateLocal: { group in groupSession.update(group.toSession()) },
+        // 4. 서버에 그룹이 없으면? → GroupSession을 비움
         removeLocal: { groupSession.clear() },
-        isCurrent: { userSession.groupId == groupId }  // 다른 그룹으로 바뀐 뒤 온 응답은 버림
+        // 5. 응답이 왔을 때 아직 이 그룹인가요? → 아니면 응답을 버림 (생략하면 항상 반영)
+        isCurrent: { userSession.groupId == groupId }
     )
-    .logging("Group")  // Debug 빌드에서 단계별 로그
+    .logging("Group")
 }
 
 public func loadAndFetchGroup() -> Observable<HCGroup> {
@@ -270,21 +279,102 @@ public func loadAndFetchGroup() -> Observable<HCGroup> {
 }
 ```
 
-| 메서드 | 보내는 결과 | 쓰는 곳 |
+다른 데이터도 이 다섯 가지만 바꿔 끼우면 돼요. 내 유저 정보는 `userSession`과 `repository.fetchUser(uid:)`를 넣어 만들어요(`AuthUsecaseImpl.userFetcher`).
+
+### 연산자
+
+아래 예시는 모두 같은 상황이에요.
+
+- 휴대폰 캐시: 어제 받아 둔 그룹 (게시물 2개)
+- 서버: 오늘 게시물이 하나 더 올라온 그룹 (게시물 3개)
+
+#### `fetch()`: 캐시를 먼저 보여 주고 서버 값으로 바꿔요
+
+화면에 들어올 때 써요. 사용자는 서버를 기다리지 않고 저장된 피드를 먼저 보고, 서버 응답이 오면 새 게시물이 붙어요. (`loadAndFetchUser`, `loadAndFetchGroup`)
+
+```swift
+groupFetcher(groupId: groupId).fetch()
+```
+
+| 순서 | 받는 결과 | 화면 |
 | --- | --- | --- |
-| `fetch()` | `(.loading, 캐시)`를 먼저 보내고 서버 결과를 이어서 보내요. 캐시가 없으면 `(.loading, nil)`이에요. | 화면 진입 조회 (`loadAndFetchUser`, `loadAndFetchGroup`) |
-| `refresh()` | 서버 결과만 보내요. | 쓰기 후 다시 읽기 (`updateNicknameAndReloadSession`, `deletePostAndReload`) |
-| `fetchedValues()` | 값만 보내요. `.notFound`는 `FetchError.notFound`로, `.failure`는 그 에러로 끝나요. | 기존 `Observable<Value>` 반환 API |
-| `logging(_:)` | 결과와 캐시 처리는 그대로 두고, 단계마다 로그를 남겨요. 값의 내용 대신 있음·없음만 남기고, Release 빌드에서는 남기지 않아요. | 조회 흐름 확인 (`userFetcher`, `groupFetcher`) |
+| 1. 구독하자마자 | `(.loading, 게시물 2개 그룹)` | 저장된 피드를 바로 보여 줘요. |
+| 2. 서버 응답 | `(.success, 게시물 3개 그룹)` | 새 게시물까지 보여 줘요. 캐시도 3개로 바뀌어요. |
 
-`logging(_:)`을 붙이면 다음처럼 남아요. 응답이 버려지거나 서버 확인에 실패하면 경고(🟡)로 남아요.
+서버 응답에 따라 2번이 달라져요.
+
+| 서버 응답 | 2번에 받는 결과 | 화면 |
+| --- | --- | --- |
+| 확인 실패 (네트워크 오류 등) | `(.failure(에러), 게시물 2개 그룹)` | 저장된 피드를 그대로 둬요. 캐시도 그대로예요. |
+| 그룹 없음 | `(.notFound, nil)` | 캐시를 지우고 그룹 화면으로 가요. |
+
+캐시가 비어 있으면(앱 첫 실행) 1번은 `(.loading, nil)`이에요.
+
+#### `refresh()`: 캐시는 건너뛰고 서버 값만 받아요
+
+서버에 쓴 직후 써요. 게시물을 지운 뒤 `fetch()`를 쓰면 "지우기 전 캐시"가 먼저 와서, 지운 게시물이 잠깐 다시 보일 수 있어요. `refresh()`는 처음부터 서버 결과 하나만 보내므로 `takeLast(1)`로 마지막 값을 고를 필요가 없어요. (`updateNicknameAndReloadSession`, `deletePostAndReload`)
+
+```swift
+// GroupUsecase.deletePostAndReload (요약)
+groupRepository.deleteValue(path: postPath)
+    .asObservable()
+    .flatMap { _ in groupFetcher(groupId: groupId).refresh() }
+```
+
+| 받는 결과 | 화면 |
+| --- | --- |
+| `(.success, 삭제가 반영된 그룹)` 하나 | 지운 게시물이 다시 보이지 않아요. |
+
+#### `fetchedValues()`: 상태를 떼고 값만 꺼내요
+
+`Observable<HCGroup>`처럼 값만 받는 화면에 연결할 때 써요. 결과에서 상태를 떼고 값만 보내므로 `loadAndFetchGroup()` 같은 기존 API의 반환 타입을 바꾸지 않아도 돼요.
+
+```swift
+groupFetcher(groupId: groupId).fetch().fetchedValues()  // Observable<HCGroup>
+```
+
+| `fetch()`가 보낸 결과 | `fetchedValues()`가 보내는 것 |
+| --- | --- |
+| `(.loading, 게시물 2개 그룹)` | 게시물 2개 그룹 |
+| `(.success, 게시물 3개 그룹)` | 게시물 3개 그룹 |
+| `(.loading, nil)` (캐시 없음) | 아무것도 보내지 않고 건너뛰어요. |
+| `(.failure(에러), 캐시)` | 그 에러로 끝나요. 화면의 `catch`가 처리해요. |
+| `(.notFound, nil)` | `FetchError.notFound`로 끝나요. |
+
+`fetchedValues()`를 붙이지 않으면 상태를 직접 받아 로딩·실패를 표시할 수 있어요. 아직 상태를 직접 쓰는 화면은 없어요.
+
+| 상태 | 화면에서 할 일 (예) |
+| --- | --- |
+| `.loading` | 캐시가 있으면 먼저 보여 주고, 없으면 로딩을 표시해요. |
+| `.success` | 서버 값으로 갱신하고 로딩을 숨겨요. |
+| `.failure` | 캐시는 그대로 두고 "최신 정보를 불러오지 못했어요"를 안내해요. |
+| `.notFound` | 따로 할 일이 없어요. 세션이 지워져서 AppCoordinator가 화면을 바꿔요. |
+
+#### `logging(_:)`: 무슨 일이 있었는지 로그로 남겨요
+
+Fetcher 뒤에 붙이면 단계마다 로그가 남아요. 결과와 캐시 처리는 바뀌지 않아요. Debug 빌드에서만 남기고, 개인정보가 남지 않도록 값의 내용 대신 있음·없음만 남겨요. 실제 로그에는 앞에 `[🟢] [GroupUsecase:335] Fetcher —`처럼 `.logging`을 붙인 위치가 찍혀요.
 
 ```
-[🟢] [GroupUsecase:335] Fetcher — [Group] 캐시 읽기: 있음
-[🟢] [GroupUsecase:335] Fetcher — [Group] 서버 요청
-[🟢] [GroupUsecase:335] Fetcher — [Group] 서버 응답: 값
-[🟢] [GroupUsecase:335] Fetcher — [Group] 캐시 저장
+// 정상
+[Group] 캐시 읽기: 있음
+[Group] 서버 요청
+[Group] 서버 응답: 값
+[Group] 캐시 저장
+
+// 서버 확인 실패
+[Group] 캐시 읽기: 있음
+[Group] 서버 요청
+[Group] 서버 응답: 실패 (에러 내용)    ← 🟡 경고
+[Group] 캐시 읽기: 있음                ← 실패 결과에 담을 캐시를 다시 읽어요
+
+// 응답이 오기 전에 다른 그룹으로 바뀜
+[Group] 캐시 읽기: 있음
+[Group] 서버 요청
+[Group] 서버 응답: 값
+[Group] 요청 대상이 바뀌어 응답을 버림  ← 🟡 경고
 ```
+
+### 지킬 점
 
 - Repository는 서버에 데이터가 없을 때만 `nil`을 돌려주고, 읽거나 변환하지 못하면 에러를 보내요. `nil`과 에러를 섞지 않아야 Fetcher가 캐시를 잘못 지우지 않아요.
 - `isCurrent`에 요청한 대상(유저 ID·그룹 ID)이 지금 세션과 같은지 확인하는 조건을 넘겨요. 응답이 왔을 때 `false`면 Fetcher가 응답을 버려요. 캐시를 덮어쓰거나 지우지 않고, 예전 대상의 값을 화면에 보내지도 않아요. `fetch()`는 `.loading`만 보내고, `refresh()`는 아무것도 보내지 않고 끝나요.
