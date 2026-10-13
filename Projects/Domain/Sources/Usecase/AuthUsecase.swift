@@ -31,7 +31,9 @@ public protocol AuthUsecaseProtocol {
     func fetchUser(uid: String) -> Single<User?>
     func updateUser(user: User) -> Single<User>
     func uploadImage(user: User, image: UIImage) -> Single<URL>
+    /// 닉네임을 세션에 먼저 반영하고 서버에 저장합니다. 저장에 실패하면 세션을 원래 값으로 되돌립니다.
     func updateNicknameAndReloadSession(nickname: String) -> Single<User>
+    /// 이미지를 올린 뒤 이미지 주소를 세션에 먼저 반영하고 서버에 저장합니다. 저장에 실패하면 세션을 원래 값으로 되돌립니다.
     func updateProfileImageAndReloadSession(image: UIImage) -> Single<User>
     /// 푸시 알림 설정을 세션에 먼저 반영하고 서버에 저장합니다. 저장에 실패하면 세션을 원래 값으로 되돌립니다.
     func updatePushEnabled(_ isEnabled: Bool) -> Single<User>
@@ -109,14 +111,12 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     /// - Parameter nickname: 새 닉네임
     /// - Returns: 변경된 유저
     public func updateNicknameAndReloadSession(nickname: String) -> Single<User> {
-        guard var currentUser = userSession.session else {
+        guard let currentUser = userSession.session else {
             return .error(DomainError.missingDomainSession)
         }
         
-        currentUser.nickname = nickname
-        let repository = repository
-        return writeUserThenReload(userId: currentUser.uid) {
-            repository.updateUser(user: currentUser).map { _ in () }
+        return updateSessionUser(userId: currentUser.uid) { user in
+            user.nickname = nickname
         }
     }
     
@@ -125,14 +125,9 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
             return .error(DomainError.missingDomainSession)
         }
 
-        let repository = repository
-        // 세션을 먼저 바꾸고 서버에 저장한다. 실패하면 Fetcher가 되돌린다
-        return userFetcher(userId: userId)
-            .update({ user in
-                user.isPushEnabled = isEnabled
-            }, remote: { user in
-                repository.updateUser(user: user).map { _ in () }
-            })
+        return updateSessionUser(userId: userId) { user in
+            user.isPushEnabled = isEnabled
+        }
     }
 
     public func updateProfileImageAndReloadSession(image: UIImage) -> Single<User> {
@@ -140,13 +135,11 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
             return .error(DomainError.missingDomainSession)
         }
         
-        let repository = repository
+        // 이미지를 올린 뒤 세션의 이미지 주소를 먼저 바꾸고 서버에 저장한다
         return repository.uploadImage(user: currentUser, image: image)
             .flatMap { url -> Single<User> in
-                var updatedUser = currentUser
-                updatedUser.profileImageURL = url.absoluteString
-                return self.writeUserThenReload(userId: currentUser.uid) {
-                    repository.updateUser(user: updatedUser).map { _ in () }
+                self.updateSessionUser(userId: currentUser.uid) { user in
+                    user.profileImageURL = url.absoluteString
                 }
             }
     }
@@ -403,16 +396,17 @@ private extension AuthUsecaseImpl {
         .logging("User")
     }
 
-    /// 서버에 쓴 뒤 서버 유저만 다시 받아 세션에 저장한다
-    /// - 쓰기 전에 시작된 유저 요청에 합류하지 않으므로 다시 받은 유저에는 방금 쓴 내용이 들어 있다
-    /// - 그사이 로그아웃했거나 다른 유저로 바뀌면 값 없이 끝나 에러가 된다
-    func writeUserThenReload(
+    /// 세션 유저를 먼저 바꾸고 서버에 저장한다. 서버 저장이 실패하면 Fetcher가 되돌린다
+    /// - 저장 전에 시작된 유저 요청이 늦게 예전 유저를 받아도 세션에 저장하지 않는다
+    /// - 다른 쓰기(푸시 설정 등)가 진행 중이어도 다시 읽지 않으므로 서버 저장 결과대로 끝난다
+    func updateSessionUser(
         userId: String,
-        write: @escaping () -> Single<Void>
+        _ change: @escaping (inout User) -> Void
     ) -> Single<User> {
-        userFetcher(userId: userId)
-            .writeThenRefresh(write)
-            .fetchedValues()
-            .asSingle()
+        let repository = repository
+        return userFetcher(userId: userId)
+            .update(change, remote: { user in
+                repository.updateUser(user: user).map { _ in () }
+            })
     }
 }

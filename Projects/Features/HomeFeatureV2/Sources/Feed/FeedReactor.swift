@@ -133,6 +133,12 @@ private extension FeedReactor {
             .just(.setLoading(true)),
             groupLoader
                 .fetch(force)
+                .do(onNext: { [weak self] result in
+                    // 날짜가 바뀌면 같은 그룹이어도 위젯에 보일 사진이 달라지므로 조회가 끝날 때마다 맞춘다.
+                    // 그룹 구독은 같은 그룹을 다시 보내지 않는다
+                    guard case .success = result.status, let group = result.value else { return }
+                    self?.widgetUsecase?.synchronize(postsByDate: group.postsByDate)
+                })
                 .withUnretained(self)
                 .flatMap { owner, result in
                     Observable.from(owner.mutations(for: result))

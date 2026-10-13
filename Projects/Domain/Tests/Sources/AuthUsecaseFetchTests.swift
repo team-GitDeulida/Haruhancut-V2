@@ -170,49 +170,63 @@ final class AuthUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(userSession.session?.isPushEnabled, true)
     }
 
-    // MARK: - 쓰기 후 다시 읽기
+    // MARK: - 닉네임 (먼저 바꾸고, 실패하면 되돌리기)
 
-    func testUpdateNicknameReturnsServerUserOnly() {
-        repository.fetchUserResponse = .just(makeUser(nickname: "server"))
+    func testUpdateNicknameSavesToSessionAndServerWithoutReading() {
+        let recorder = record(
+            sut.updateNicknameAndReloadSession(nickname: "new").asObservable()
+        )
+
+        XCTAssertEqual(recorder.values.map(\.nickname), ["new"])
+        XCTAssertEqual(repository.updatedUsers.map(\.nickname), ["new"])
+        XCTAssertEqual(userSession.session?.nickname, "new")
+        XCTAssertEqual(repository.fetchUserCount, 0)
+    }
+
+    func testUpdateNicknameRestoresSessionWhenServerFails() {
+        repository.updateUserResponse = .error(TestError.remote)
 
         let recorder = record(
             sut.updateNicknameAndReloadSession(nickname: "new").asObservable()
         )
 
-        XCTAssertEqual(recorder.values.map(\.nickname), ["server"])
-        XCTAssertEqual(repository.updatedUsers.map(\.nickname), ["new"])
-        XCTAssertEqual(userSession.session?.nickname, "server")
+        XCTAssertEqual(recorder.error as? TestError, .remote)
+        XCTAssertEqual(userSession.session?.nickname, "cached")
     }
 
-    func testUpdateNicknameReloadsWithNewRequestInsteadOfRequestStartedBeforeSave() {
+    func testUpdateNicknameIsNotOverwrittenByRequestStartedBeforeSave() {
         let earlierResponse = PublishSubject<User?>()
         repository.fetchUserResponse = earlierResponse.take(1).asSingle()
         sut.loadAndFetchUser()
             .subscribe()
             .disposed(by: disposeBag)
-        repository.fetchUserResponse = .just(makeUser(nickname: "new"))
 
-        let recorder = record(
-            sut.updateNicknameAndReloadSession(nickname: "new").asObservable()
-        )
+        sut.updateNicknameAndReloadSession(nickname: "new")
+            .subscribe()
+            .disposed(by: disposeBag)
         // 저장 전에 시작된 요청이 늦게 예전 유저를 받습니다.
         earlierResponse.onNext(makeUser(nickname: "cached"))
 
-        XCTAssertEqual(repository.fetchUserCount, 2)
-        XCTAssertEqual(recorder.values.map(\.nickname), ["new"])
         XCTAssertEqual(userSession.session?.nickname, "new")
     }
 
-    func testUpdateNicknameFailsWhenReloadFails() {
-        repository.fetchUserResponse = .error(TestError.remote)
+    func testUpdateNicknameSucceedsWhileOtherUserWriteIsPending() {
+        let pushWrite = PublishSubject<User>()
+        repository.updateUserResponse = pushWrite.take(1).asSingle()
+        sut.updatePushEnabled(false)
+            .subscribe()
+            .disposed(by: disposeBag)
+        repository.updateUserResponse = nil
 
         let recorder = record(
             sut.updateNicknameAndReloadSession(nickname: "new").asObservable()
         )
 
-        // 예전에는 캐시된 유저로 성공했습니다. 이제 다시 읽기 실패를 그대로 알립니다.
-        XCTAssertTrue(recorder.values.isEmpty)
-        XCTAssertEqual(recorder.error as? TestError, .remote)
+        // 푸시 설정 저장이 끝나지 않아도 닉네임 저장은 성공으로 끝나고 두 변경이 모두 남습니다.
+        XCTAssertEqual(recorder.values.map(\.nickname), ["new"])
+        XCTAssertNil(recorder.error)
+        XCTAssertEqual(userSession.session?.nickname, "new")
+        XCTAssertEqual(userSession.session?.isPushEnabled, false)
     }
 }
 

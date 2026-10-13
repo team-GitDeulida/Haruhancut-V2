@@ -445,6 +445,30 @@ final class FetcherTests: XCTestCase {
         XCTAssertTrue(recorder.isCompleted)
     }
 
+    func test_writeThenRefresh_asksServerAfterOtherWriteFinishes() {
+        cache.value = 10
+        let requests = FetchRequests<Int>()
+        let otherWrite = PublishSubject<Void>()
+        makeSUT().sharing(requests, key: "group")
+            .update({ $0 += 1 }, remote: { _ in otherWrite.take(1).asSingle() })
+            .subscribe()
+            .disposed(by: disposeBag)
+        let recorder = record(
+            makeSUT().sharing(requests, key: "group")
+                .writeThenRefresh { .just(()) }
+        )
+
+        // 다른 쓰기가 진행 중이면 지금 받은 응답은 버려지므로 기다립니다.
+        XCTAssertEqual(remote.requestCount, 0)
+
+        otherWrite.onNext(())
+        remote.succeed(30)
+
+        XCTAssertEqual(remote.requestCount, 1)
+        XCTAssertEqual(cache.value, 30)
+        XCTAssertEqual(recorder.steps, [.success(30)])
+    }
+
     func test_writeThenRefresh_failsWithoutAskingServer_whenWriteFails() {
         let recorder = record(
             makeSUT().writeThenRefresh { .error(TestError.remote) }

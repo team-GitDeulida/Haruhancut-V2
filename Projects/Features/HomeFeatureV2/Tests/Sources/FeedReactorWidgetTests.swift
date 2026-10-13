@@ -60,6 +60,27 @@ final class FeedReactorWidgetTests: XCTestCase {
         XCTAssertEqual(widgetUsecase.synchronizedPostIDs, [["today-post"]])
     }
 
+    func testEveryFetchSuccessSynchronizesWidget_evenWhenStoredGroupIsUnchanged() {
+        // 자정이 지나 다시 조회해도 그룹은 같아 구독은 아무것도 보내지 않습니다.
+        let group = makeGroup(posts: [makePost(id: "yesterday-post")])
+        let widgetUsecase = SpyWidgetUsecase()
+        let reactor = FeedReactor(
+            groupLoader: makeLoader(fetch: { _ in
+                .of(
+                    FetchResult(status: .loading, value: group),
+                    FetchResult(status: .success, value: group)
+                )
+            }),
+            groupUsecase: nil,
+            widgetUsecase: widgetUsecase
+        )
+
+        reactor.action.onNext(.viewDidAppear)
+        reactor.action.onNext(.viewDidAppear)
+
+        XCTAssertEqual(widgetUsecase.synchronizedPostIDs, [["yesterday-post"], ["yesterday-post"]])
+    }
+
     func testLoadingStaysVisibleUntilServerResponds() {
         let fetch = PublishSubject<FetchResult<HCGroup>>()
         let reactor = FeedReactor(

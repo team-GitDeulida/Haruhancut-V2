@@ -195,6 +195,7 @@ public extension Fetcher {
     ///
     /// 로컬을 먼저 바꿀 수 없을 때 씁니다. (예: 저장된 그룹이 없거나, 댓글을 달 게시물이 저장된 그룹에 없을 때)
     /// 쓰기 전이나 쓰는 동안 시작된 서버 요청에 합류하지 않으므로, 다시 받은 값에는 방금 쓴 내용이 들어 있습니다.
+    /// 다른 쓰기가 진행 중이면 그 쓰기가 끝난 뒤에 다시 받습니다. 쓰는 동안 받은 응답은 버려지기 때문입니다.
     ///
     /// - Parameter write: 서버에 쓰는 요청.
     /// - Returns: 다시 받은 결과. `refresh()`와 같습니다. 서버 쓰기가 실패하면 다시 받지 않고 그 에러로 끝납니다.
@@ -209,7 +210,7 @@ public extension Fetcher {
                     onSuccess: { _ in
                         // 다시 받는 요청이 새로 나가도록 쓰기를 먼저 끝낸다
                         endWrite(writeToken)
-                        log("쓰기: 서버 반영 완료, 서버 값을 다시 받음", false)
+                        log("쓰기: 서버 반영 완료, 다른 쓰기가 끝난 뒤 서버 값을 다시 받음", false)
                     },
                     onError: { error in
                         endWrite(writeToken)
@@ -221,7 +222,8 @@ public extension Fetcher {
                 )
                 .asObservable()
                 .flatMap { _ in
-                    requestRemote()
+                    waitUntilWritesFinish()
+                        .andThen(requestRemote())
                 }
         }
     }

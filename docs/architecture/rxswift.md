@@ -329,7 +329,7 @@ func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
 
 #### `update(_:remote:)`: 먼저 바꾸고, 실패하면 되돌려요
 
-쓰기에 써요. 저장된 값을 먼저 바꾸고 서버에 써요. 서버 쓰기가 실패하면 원래 값으로 되돌려요. 화면은 `observe()`로 바뀐 값과 되돌린 값을 그대로 따라가요. (`updatePushEnabled`, `addComment`, `deleteComment`, `deletePostAndReload`, `uploadImageAndUploadPost`)
+쓰기에 써요. 저장된 값을 먼저 바꾸고 서버에 써요. 서버 쓰기가 실패하면 원래 값으로 되돌려요. 화면은 `observe()`로 바뀐 값과 되돌린 값을 그대로 따라가요. (`updatePushEnabled`, `updateNicknameAndReloadSession`, `updateProfileImageAndReloadSession`, `addComment`, `deleteComment`, `deletePostAndReload`, `uploadImageAndUploadPost`)
 
 ```swift
 // AuthUsecase.updatePushEnabled
@@ -344,7 +344,7 @@ userFetcher(userId: userId)
 | 2-a. 서버 저장 성공 | 알림 꺼짐 | 그대로예요. |
 | 2-b. 서버 저장 실패 | 알림 켜짐 (되돌림) | 스위치가 다시 켜지고 에러로 끝나요. |
 
-실패했을 때 저장된 값이 바꾼 값 그대로면 원래 값으로 되돌려요. 그사이 다른 쓰기나 서버 값이 저장됐다면 그 변경까지 지우지 않도록 원래 값으로 덮어쓰지 않고, 서버 값을 다시 받아 저장해요. 다른 쓰기가 아직 진행 중이면 그 쓰기가 끝난 뒤에 다시 받아요. 쓰는 동안 받은 응답은 버려지기 때문이에요. 다시 받기가 실패해도 다음 `fetch()`는 최근 값 여부와 상관없이 서버에 물어요. 이 비교 때문에 `update`는 `Equatable` 값에서만 쓸 수 있어요. `sharing(_:key:)`을 붙였다면 쓰는 동안이나 쓰기 전에 시작된 서버 응답은 예전 값일 수 있어 저장하지 않고 버려요. 그래서 피드가 그룹을 읽는 중에 게시물을 지워도, 뒤늦게 온 예전 응답이 지운 게시물을 되살리지 않아요. 바꿀 캐시가 없으면 `FetchError.missingLocal`로 끝나고, 그사이 대상이 바뀌었으면(`isCurrent`가 `false`) 아무것도 바꾸지 않아요.
+실패했을 때 저장된 값이 바꾼 값 그대로면 원래 값으로 되돌려요. 그사이 다른 쓰기나 서버 값이 저장됐다면 그 변경까지 지우지 않도록 원래 값으로 덮어쓰지 않고, 서버 값을 다시 받아 저장해요. 다른 쓰기가 아직 진행 중이면 그 쓰기가 끝난 뒤에 다시 받아요. 쓰는 동안 받은 응답은 버려지기 때문이에요. 다시 받기가 실패해도 다음 `fetch()`는 최근 값 여부와 상관없이 서버에 물어요. 이 비교 때문에 `update`는 `Equatable` 값에서만 쓸 수 있어요. `sharing(_:key:)`을 붙였다면 쓰는 동안이나 쓰기 전에 시작된 서버 응답은 예전 값일 수 있어 저장하지 않고 버려요. 그래서 피드가 그룹을 읽는 중에 게시물을 지워도, 뒤늦게 온 예전 응답이 지운 게시물을 되살리지 않아요. 프로필 화면이 유저를 읽는 중에 닉네임을 바꿔도 마찬가지예요. 저장 뒤에 서버 값을 다시 읽지 않으므로, 푸시 설정 저장이 진행 중이어도 닉네임 저장은 서버 저장 결과대로 끝나요. 바꿀 캐시가 없으면 `FetchError.missingLocal`로 끝나고, 그사이 대상이 바뀌었으면(`isCurrent`가 `false`) 아무것도 바꾸지 않아요.
 
 | 순서 (댓글 A·B를 연달아 작성) | 저장된 값 | 화면 |
 | --- | --- | --- |
@@ -354,21 +354,20 @@ userFetcher(userId: userId)
 
 #### `writeThenRefresh(_:)`: 먼저 바꿀 수 없으면 서버에 쓰고 다시 받아요
 
-저장된 값을 먼저 바꿀 수 없을 때 써요. 서버에 쓰고, 쓰기가 끝나면 서버 값을 새 요청으로 받아 저장해요. 쓰기 전이나 쓰는 동안 시작된 요청에 합류하지 않아서, 다시 받은 값에는 방금 쓴 내용이 들어 있어요. 서버 쓰기가 실패하면 다시 받지 않고 그 에러로 끝나요. (`updateNicknameAndReloadSession`, `updateProfileImageAndReloadSession`, `writeGroup`)
+저장된 값을 먼저 바꿀 수 없을 때 써요. 서버에 쓰고, 쓰기가 끝나면 서버 값을 새 요청으로 받아 저장해요. 쓰기 전이나 쓰는 동안 시작된 요청에 합류하지 않아서, 다시 받은 값에는 방금 쓴 내용이 들어 있어요. 다른 쓰기가 진행 중이면 그 쓰기가 끝난 뒤에 받아요. 서버 쓰기가 실패하면 다시 받지 않고 그 에러로 끝나요. (`writeGroup`)
 
 ```swift
-// AuthUsecase.updateNicknameAndReloadSession
-userFetcher(userId: userId)
-    .writeThenRefresh { repository.updateUser(user: renamedUser).map { _ in () } }
-    .fetchedValues()   // 다시 받은 서버 유저
-    .asSingle()
+// GroupUsecaseImpl.writeGroup: 저장된 그룹이 없거나 댓글을 달 게시물이 없을 때
+groupFetcher(groupId: groupId)
+    .writeThenRefresh { groupRepository.addComment(path: path, value: newComment) }
+    .ignoreElements()   // 다시 받은 그룹은 저장돼 observeGroup()으로 화면에 가요
 ```
 
-| 상황 | `writeThenRefresh` 없이 `updateUser` → `refresh()` | `writeThenRefresh` |
+| 상황 | `writeThenRefresh` 없이 서버에만 쓰기 | `writeThenRefresh` |
 | --- | --- | --- |
-| 프로필 화면이 유저를 읽는 중에 닉네임 저장 | `refresh()`가 저장 전에 시작된 요청에 합류해 예전 닉네임을 저장할 수 있어요. | 저장이 끝난 뒤 새로 요청해 새 닉네임을 저장해요. 늦게 온 예전 응답은 버려요. |
-| 앱을 처음 열어 저장된 그룹이 없을 때 댓글 작성 | 서버에만 쓰고 저장된 그룹이 없어 댓글 화면이 바뀌지 않아요. | 서버 그룹을 받아 저장하고, 그룹을 구독하는 댓글 화면에 댓글이 보여요. |
-| 저장된 그룹에 아직 없는 게시물에 댓글 작성 | 바꿀 게시물이 없어 아무것도 바뀌지 않아요. | 같아요. 서버 그룹을 받아 게시물과 댓글이 함께 보여요. |
+| 앱을 처음 열어 저장된 그룹이 없을 때 댓글 작성 | 저장된 그룹이 없어 댓글 화면이 바뀌지 않아요. | 서버 그룹을 받아 저장하고, 그룹을 구독하는 댓글 화면에 댓글이 보여요. |
+| 저장된 그룹에 아직 없는 게시물에 댓글 작성 | 바꿀 게시물이 없어 아무것도 바뀌지 않아요. | 서버 그룹을 받아 게시물과 댓글이 함께 보여요. |
+| 피드가 그룹을 읽는 중에 위 댓글 작성 | 쓰기 전에 시작된 읽기가 댓글 없는 그룹을 저장할 수 있어요. | 그 읽기에 합류하지 않고 쓰기가 끝난 뒤 새로 받아요. 늦게 온 예전 응답은 버려요. |
 
 `GroupUsecaseImpl.writeGroup`은 바꿔도 저장된 그룹이 달라지지 않으면(그룹이 없거나 게시물이 없음) `writeThenRefresh`로, 아니면 `update`로 써요. 다시 받기가 실패해도 서버 쓰기는 끝났으므로 성공으로 끝내요.
 

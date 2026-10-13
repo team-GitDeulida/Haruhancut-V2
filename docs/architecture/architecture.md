@@ -189,7 +189,7 @@ Repository 프로토콜은 Domain에, 구현은 Data에 있어요. Feature는 `A
 ### 홈 화면 위젯 동기화
 
 1. `HomeFeatureBuilder`가 `WidgetUsecaseProtocol`을 resolve해 `FeedReactor`에 넘겨요. 관리자 미리보기(`.adminPreview`)는 다른 그룹을 표시하므로 `nil`을 넘겨 내 위젯을 덮어쓰지 않아요.
-2. `FeedReactor`는 저장된 그룹이 바뀔 때마다(`changes()`) `synchronize(postsByDate:)`를 호출해요. 피드·캘린더·상세·댓글 화면 어디에서 그룹이 저장돼도 위젯이 맞춰져요. 게시물 삭제는 저장된 그룹에서 먼저 빠지므로 위젯도 바로 맞춰지고, 서버 삭제가 실패하면 그룹이 되돌아가 위젯도 다시 맞춰져요. 서버에서 삭제된 뒤에는 `removePhoto(of:)`를 호출해 내려받던 사진을 저장하지 않게 해요.
+2. `FeedReactor`는 저장된 그룹이 바뀔 때마다(`changes()`), 그리고 피드 조회가 `.success`로 끝날 때마다 `synchronize(postsByDate:)`를 호출해요. 피드·캘린더·상세·댓글 화면 어디에서 그룹이 저장돼도 위젯이 맞춰져요. 그룹 구독은 같은 그룹을 다시 보내지 않으므로, 자정이 지나 그룹은 같고 위젯에 보일 사진만 달라질 때는 화면에 다시 들어오거나 당겨서 새로고침할 때의 조회 결과로 맞춰요. 게시물 삭제는 저장된 그룹에서 먼저 빠지므로 위젯도 바로 맞춰지고, 서버 삭제가 실패하면 그룹이 되돌아가 위젯도 다시 맞춰져요. 서버에서 삭제된 뒤에는 `removePhoto(of:)`를 호출해 내려받던 사진을 저장하지 않게 해요.
 3. `WidgetUsecaseImpl`은 `UserSession`의 사용자를 위젯용으로 저장하고, 오늘 가장 최근 게시물의 사진만 위젯 저장소에 남겨요. 사진이 없으면 내려받아 저장한 뒤 이전 사진을 지우고 위젯 갱신을 요청해요. 다운로드가 끝났을 때 그 게시물이 더 이상 보여야 할 게시물이 아니거나 날짜가 바뀌었으면 저장하지 않아요.
 4. `WidgetRepositoryImpl`(WidgetSupport)이 `WidgetSessionStore`·`WidgetPhotoStore`로 App Group에 쓰고, `URLSession`으로 이미지를 내려받고, `WidgetCenter`로 `PhotoWidget`을 갱신해요. 위젯(`PhotoWidget`)은 같은 저장소에서 오늘 사진을 읽어요.
 
