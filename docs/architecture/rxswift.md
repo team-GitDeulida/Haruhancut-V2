@@ -306,7 +306,7 @@ groupFetcher(groupId: groupId).fetch()
 | 서버 응답 | 2번에 받는 결과 | 화면 |
 | --- | --- | --- |
 | 확인 실패 (네트워크 오류 등) | `(.failure(에러), 게시물 2개 그룹)` | 저장된 피드를 그대로 둬요. 캐시도 그대로예요. |
-| 그룹 없음 | `(.notFound, nil)` | 캐시를 지우고 그룹 화면으로 가요. |
+| 그룹 없음 | `(.notFound, nil)` | 그룹 캐시를 지워요. 그룹 화면 이동은 `loadAndFetchGroup`의 `leaveGroupIfNotFound`가 `groupId`를 지운 뒤에 일어나요. |
 
 캐시가 비어 있으면(앱 첫 실행) 1번은 `(.loading, nil)`이에요.
 
@@ -348,7 +348,7 @@ groupFetcher(groupId: groupId).fetch().fetchedValues()  // Observable<HCGroup>
 | `.loading` | 캐시가 있으면 먼저 보여 주고, 없으면 로딩을 표시해요. |
 | `.success` | 서버 값으로 갱신하고 로딩을 숨겨요. |
 | `.failure` | 캐시는 그대로 두고 "최신 정보를 불러오지 못했어요"를 안내해요. |
-| `.notFound` | 따로 할 일이 없어요. 세션이 지워져서 AppCoordinator가 화면을 바꿔요. |
+| `.notFound` | 유저는 Fetcher가 세션을 지워서 AppCoordinator가 로그인 화면으로 보내요. 그룹은 Fetcher가 캐시만 지우므로, `loadAndFetchGroup`처럼 `leaveGroupIfNotFound`를 거쳐야 `groupId`가 지워지고 그룹 화면으로 가요. |
 
 #### `logging(_:)`: 무슨 일이 있었는지 로그로 남겨요
 
