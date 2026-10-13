@@ -113,6 +113,24 @@ private final class DemoAuthUsecase:
         return .just(user)
     }
 
+    func updatePushEnabled(
+        _ isEnabled: Bool
+    ) -> Single<User> {
+        guard
+            var user =
+                userSession.session
+        else {
+            return .error(
+                DomainError
+                    .missingDomainSession
+            )
+        }
+        user.isPushEnabled =
+            isEnabled
+        userSession.update(user)
+        return .just(user)
+    }
+
     func uploadImage(
         user: User,
         image: UIImage

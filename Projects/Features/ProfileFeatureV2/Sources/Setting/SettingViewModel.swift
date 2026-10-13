@@ -151,37 +151,17 @@ final class SettingViewModel:
         let previousState =
             sessionUser.isPushEnabled
 
+        // 세션을 먼저 바꾸고 서버에 저장한다. 실패하면 Usecase가 세션을 되돌린다
         guard isOn else {
-            userSession.update(
-                \.isPushEnabled,
-                false
-            )
-            var updatedUser =
-                sessionUser
-            updatedUser.isPushEnabled =
-                false
-
             return authUsecase
-                .updateUser(
-                    user: updatedUser
-                )
+                .updatePushEnabled(false)
                 .map { _ in
-                    (false, false)
+                    (state: false, needsAlert: false)
                 }
                 .asObservable()
-                .catch {
-                    [weak self] _ in
-                    self?.userSession.update(
-                        \.isPushEnabled,
-                        previousState
-                    )
-                    return .just(
-                        (
-                            previousState,
-                            false
-                        )
-                    )
-                }
+                .catchAndReturn(
+                    (state: previousState, needsAlert: false)
+                )
         }
 
         return requestAuthorizationIfNeeded()
@@ -195,7 +175,7 @@ final class SettingViewModel:
                     >
                 in
                 guard
-                    let self,
+                    let self = self,
                     granted
                 else {
                     return .just(
@@ -203,21 +183,10 @@ final class SettingViewModel:
                     )
                 }
 
-                userSession.update(
-                    \.isPushEnabled,
-                    true
-                )
-                var updatedUser =
-                    sessionUser
-                updatedUser.isPushEnabled =
-                    true
-
-                return authUsecase
-                    .updateUser(
-                        user: updatedUser
-                    )
+                return self.authUsecase
+                    .updatePushEnabled(true)
                     .flatMap { [weak self] _ -> Single<Void> in
-                        guard let self else {
+                        guard let self = self else {
                             return .just(())
                         }
 
@@ -231,23 +200,12 @@ final class SettingViewModel:
                             }
                     }
                     .map {
-                        (true, false)
+                        (state: true, needsAlert: false)
                     }
                     .asObservable()
-                    .catch {
-                        [weak self] _ in
-                        self?.userSession
-                            .update(
-                                \.isPushEnabled,
-                                previousState
-                            )
-                        return .just(
-                            (
-                                previousState,
-                                false
-                            )
-                        )
-                    }
+                    .catchAndReturn(
+                        (state: previousState, needsAlert: false)
+                    )
             }
     }
 
