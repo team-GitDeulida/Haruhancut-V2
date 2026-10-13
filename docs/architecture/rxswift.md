@@ -431,6 +431,7 @@ groupFetcher(groupId: groupId).fetch().fetchedValues()  // Observable<HCGroup>
 - 서버에 쓸 때는 `update(_:remote:)`로 저장된 값을 같이 바꾸거나 `writeThenRefresh(_:)`로 다시 받아요. Repository로 직접 쓰고 `refresh()`를 부르면 쓰기 전에 시작된 요청에 합류해 예전 값을 저장할 수 있어요. 저장된 값을 바꾸지 않고 서버에만 쓰면, 10초 안의 `fetch()`가 예전 캐시를 보여 줄 수도 있어요.
 - 바꿀 캐시가 없으면 `update`는 `FetchError.missingLocal`로 끝나요. `GroupUsecaseImpl.writeGroup`처럼 저장된 값을 먼저 바꿀 수 없을 때는 `writeThenRefresh(_:)`로 나눠요.
 - `observe()`는 끝나지 않아요. Reactor는 `transform(mutation:)`에서 한 번만 구독하고, `mutate`에서는 끝나는 `fetch()`·`refresh()`를 써요.
+- 네트워크가 끊겨 있으면 Data가 쓰기를 시작하지 않고 `FirebaseError.offline`으로 바로 끝내요(`NetworkReachability`). `update(_:remote:)`는 이 실패로 먼저 바꾼 값을 되돌리므로, 화면은 다른 저장 실패와 같은 방식으로 처리하면 돼요.
 
 ## RxCocoa 타입은 UI에 필요한 규칙을 보장해요
 

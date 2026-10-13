@@ -114,6 +114,12 @@ Projects/
 ### Data: 계약 구현과 외부 SDK
 
 - `Data/Sources/*Manager.swift`: `FirebaseAuthManager`(Realtime Database CRUD·그룹·FCM·observe), `FirebaseStorageManager`, `KakaoLoginManager`, `AppleLoginManager`. 각 Manager는 자신의 프로토콜을 함께 정의해요.
+- `Data/Sources/NetworkReachability.swift`: 기기의 네트워크 상태(`NWPathMonitor`)를 보고, 끊겨 있으면 Firebase 쓰기를 시작하지 않고 `FirebaseError.offline`으로 끝내요. `FirebaseAuthManager`의 쓰기(`setValue`·`updateValue`·`deleteValue`·`patchUser`)와 `FirebaseStorageManager`의 업로드·삭제가 거쳐요.
+  - 끊긴 채 쓰면 Firebase가 쓰기를 메모리 대기열에 넣고 연결될 때까지 완료를 알리지 않아요. 저장 중 표시가 멈추고, 그사이 앱이 종료되면 쓰기는 사라지는데 먼저 바꾼 값은 Session에 남아요. 그래서 대기열에 넣지 않아요.
+  - Firebase의 `.info/connected`는 쓰지 않아요. Realtime Database는 한동안 요청이 없으면 스스로 연결을 끊어 네트워크가 정상이어도 `false`가 되고, 다음 요청이 와야 다시 연결해요. 이 값으로 막으면 쓰기가 다시 연결시키지 못해요.
+  - 연결할 경로가 없을 때(`.unsatisfied`)만 막아요. 주문형 VPN처럼 요청이 오면 연결을 맺는 상태(`.requiresConnection`)는 막지 않아요.
+  - 처음 쓸 때 만들어 감시를 시작해요(`NetworkReachability.shared`). 첫 상태를 받을 때까지 최대 1초 기다리고, 그래도 모르면 막지 않아요.
+  - 네트워크는 연결돼 있지만 서버에 닿지 못하는 경우(공용 와이파이 로그인 전 등)와 쓰기를 보낸 뒤에 끊긴 경우는 지금처럼 연결될 때까지 기다려요.
 - `Data/Sources/Dto/`: `UserDTO`, `HCGroupDTO`, `PostDTO`, `CommentDTO`와 `toModel()`·`toDTO()` 변환. 읽기 결과의 `toModel()`은 주로 `FirebaseAuthManager`에서 호출해요.
 - `Data/Sources/RepositoryImpl/`: `AuthRepositoryImpl`, `GroupRepositoryImpl`, `AdminRepositoryImpl`. `WidgetRepositoryProtocol`의 구현은 WidgetSupport에 있어요. ([현재 구조의 예외](#현재-구조의-예외) 참고)
 - 별도의 Infrastructure 계층은 없어요. 외부 SDK 래퍼는 Data에, UserDefaults·파일 저장소는 Core의 `Storage`에 있어요.

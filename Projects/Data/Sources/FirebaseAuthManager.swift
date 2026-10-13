@@ -64,6 +64,8 @@ public enum FirebaseError: Error {
     case decodingFailed
     
     // Firebase Realtime Database
+    /// 네트워크가 끊겨 쓰기를 시작하지 않았어요.
+    case offline
     case permissionDenied
     case pathNotFound
     case invalidData
@@ -168,6 +170,8 @@ public final class FirebaseAuthManager: FirebaseAuthManagerProtocol {
 
     private let apnsTokenProvider: () -> Data?
     private let fcmTokenProvider: (@escaping FCMTokenCompletion) -> Void
+    /// 쓰기 전에 네트워크 연결을 확인합니다. 처음 쓸 때 꺼내 감시를 시작합니다.
+    private let connection: () -> NetworkReachability
 
     public convenience init() {
         self.init(
@@ -182,14 +186,26 @@ public final class FirebaseAuthManager: FirebaseAuthManagerProtocol {
 
     init(
         apnsTokenProvider: @escaping () -> Data?,
-        fcmTokenProvider: @escaping (@escaping FCMTokenCompletion) -> Void
+        fcmTokenProvider: @escaping (@escaping FCMTokenCompletion) -> Void,
+        connection: @escaping () -> NetworkReachability = { .shared }
     ) {
         self.apnsTokenProvider = apnsTokenProvider
         self.fcmTokenProvider = fcmTokenProvider
+        self.connection = connection
     }
 
     private var databaseRef: DatabaseReference {
         Database.database(url: Constants.Firebase.realtimeURL).reference()
+    }
+
+    /// 네트워크에 연결돼 있을 때만 쓰기를 시작합니다. 끊겨 있으면 `FirebaseError.offline`으로 끝납니다.
+    ///
+    /// 끊긴 채 쓰면 Firebase가 대기열에 넣고 연결될 때까지 완료를 알리지 않아 저장 중 표시가 멈추고,
+    /// 그사이 앱이 종료되면 쓰기가 사라지기 때문입니다.
+    private func whenConnected<T>(_ write: Single<T>) -> Single<T> {
+        connection()
+            .requireConnection()
+            .andThen(write)
     }
 }
 
@@ -198,7 +214,7 @@ extension FirebaseAuthManager {
     
     
     public func setValue<T: Encodable>(path: String, value: T) -> Single<Void> {
-        return Single.create { single in
+        return whenConnected(Single.create { single in
             do {
                 let data = try JSONEncoder().encode(value)
                 let dict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
@@ -216,7 +232,7 @@ extension FirebaseAuthManager {
                 single(.failure(FirebaseError.encodingFailed))
             }
             return Disposables.create()
-        }
+        })
     }
     
     /// Read - 1회 요청
@@ -277,7 +293,7 @@ extension FirebaseAuthManager {
     ///   - value: 업데이트할 일부 필드를 가진 값 (Encodable → Dictionary로 변환됨)
     /// - Returns: 업데이트 성공 여부를 방출하는 Observable<Bool>
     public func updateValue<T: Encodable>(path: String, value: T) -> Single<Void> {
-        return Single.create { single in
+        return whenConnected(Single.create { single in
             guard let dict = value.toDictionary() else {
                 single(.failure(FirebaseError.encodingFailed))
                 return Disposables.create()
@@ -293,14 +309,14 @@ extension FirebaseAuthManager {
             }
             
             return Disposables.create()
-        }
+        })
     }
 
     /// Delete
     /// - Parameter path: 삭제할 Firebase realtime 데이터 경로
     /// - Returns: 삭제 성공 여부 방출하는 Observable<Bool>
     public func deleteValue(path: String) -> Single<Void> {
-        return Single.create { single in
+        return whenConnected(Single.create { single in
             self.databaseRef.child(path).removeValue { error, _ in
                 if let error = error {
                     print("❌ deleteValue 실패: \(error.localizedDescription)")
@@ -311,7 +327,7 @@ extension FirebaseAuthManager {
                 }
             }
             return Disposables.create()
-        }
+        })
     }
 }
 
@@ -505,7 +521,7 @@ extension FirebaseAuthManager {
     /// - Returns: 업데이트 성공유무
     public func patchUser(uid: String, fields: [String: Any]) -> Single<Void> {
         let path = "users/\(uid)"
-        return Single.create { single in
+        return whenConnected(Single.create { single in
             self.databaseRef
                 .child(path)
                 .updateChildValues(fields) { error, _ in
@@ -516,7 +532,7 @@ extension FirebaseAuthManager {
                     }
                 }
             return Disposables.create()
-        }
+        })
     }
     
     public func signOut() -> Single<Void> {
