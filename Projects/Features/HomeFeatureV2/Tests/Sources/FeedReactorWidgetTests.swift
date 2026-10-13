@@ -72,8 +72,44 @@ final class FeedReactorWidgetTests: XCTestCase {
         XCTAssertTrue(reactor.currentState.isLoading)
 
         fetch.onNext(FetchResult(status: .success, value: makeGroup(posts: [makePost(id: "post")])))
+        fetch.onCompleted()
         XCTAssertFalse(reactor.currentState.isLoading)
         XCTAssertEqual(reactor.currentState.components.map(\.post.postId), ["post"])
+    }
+
+    func testRefreshTurnsLoadingOnAndOff_whenOnlyServerResultArrives() {
+        // refresh()는 .loading 없이 서버 결과만 보냅니다.
+        let reactor = FeedReactor(
+            groupLoader: makeLoader(fetch: { _ in
+                .just(FetchResult(status: .success, value: self.makeGroup(posts: [])))
+            }),
+            groupUsecase: nil
+        )
+        var loadingStates: [Bool] = []
+        reactor.state
+            .map(\.isLoading)
+            .distinctUntilChanged()
+            .subscribe(onNext: { loadingStates.append($0) })
+            .disposed(by: disposeBag)
+
+        reactor.action.onNext(.refresh)
+
+        // 당겨서 새로고침 스피너가 멈추려면 isLoading이 바뀌어야 합니다.
+        XCTAssertEqual(loadingStates, [false, true, false])
+    }
+
+    func testLoadingTurnsOff_whenResponseIsDropped() {
+        // 대상이 바뀌어 응답이 버려지면 .loading만 오고 끝납니다.
+        let reactor = FeedReactor(
+            groupLoader: makeLoader(fetch: { _ in
+                .just(FetchResult(status: .loading, value: nil))
+            }),
+            groupUsecase: nil
+        )
+
+        reactor.action.onNext(.viewDidLoad)
+
+        XCTAssertFalse(reactor.currentState.isLoading)
     }
 
     func testFetchFailureKeepsFeedAndNotifiesOnce() {

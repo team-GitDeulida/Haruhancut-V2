@@ -344,7 +344,7 @@ userFetcher(userId: userId)
 | 2-a. 서버 저장 성공 | 알림 꺼짐 | 그대로예요. |
 | 2-b. 서버 저장 실패 | 알림 켜짐 (되돌림) | 스위치가 다시 켜지고 에러로 끝나요. |
 
-바꿀 캐시가 없으면 `FetchError.missingLocal`로 끝나요. 그사이 대상이 바뀌었으면(`isCurrent`가 `false`) 되돌리지 않아요.
+실패했을 때 저장된 값이 바꾼 값 그대로면 원래 값으로 되돌려요. 그사이 다른 쓰기나 서버 값이 저장됐다면 그 변경까지 지우지 않도록 원래 값으로 덮어쓰지 않고, 서버 값을 다시 받아 저장해요. 이 비교 때문에 `update`는 `Equatable` 값에서만 쓸 수 있어요. 바꿀 캐시가 없으면 `FetchError.missingLocal`로 끝나고, 그사이 대상이 바뀌었으면(`isCurrent`가 `false`) 아무것도 바꾸지 않아요.
 
 #### `fetchedValues()`: 상태를 떼고 값만 꺼내요
 

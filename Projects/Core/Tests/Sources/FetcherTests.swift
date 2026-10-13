@@ -321,6 +321,31 @@ final class FetcherTests: XCTestCase {
         XCTAssertEqual(error as? TestError, .remote)
     }
 
+    func test_update_asksServerInsteadOfRestoring_whenCacheChangedBeforeFailure() {
+        cache.value = 10
+        let write = PublishSubject<Void>()
+        var error: Error?
+        makeSUT()
+            .update({ $0 += 1 }, remote: { _ in write.take(1).asSingle() })
+            .subscribe(onFailure: { error = $0 })
+            .disposed(by: disposeBag)
+
+        // 쓰기가 끝나기 전에 다른 변경(서버 값, 다른 쓰기)이 저장됐습니다.
+        cache.update(50)
+        write.onError(TestError.remote)
+
+        // 원래 값(10)으로 덮어쓰지 않고 서버에 다시 묻습니다.
+        XCTAssertEqual(cache.value, 50)
+        XCTAssertEqual(remote.requestCount, 1)
+        XCTAssertNil(error)
+
+        remote.succeed(60)
+
+        XCTAssertEqual(cache.value, 60)
+        XCTAssertEqual(cache.updatedValues, [11, 50, 60])
+        XCTAssertEqual(error as? TestError, .remote)
+    }
+
     func test_update_doesNotRestoreCache_whenTargetChangedBeforeFailure() {
         cache.value = 10
         let write = PublishSubject<Void>()

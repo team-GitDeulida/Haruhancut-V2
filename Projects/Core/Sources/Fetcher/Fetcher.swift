@@ -178,11 +178,13 @@ public extension Fetcher where Value: Equatable {
 
 // MARK: - 쓰기
 
-public extension Fetcher {
+public extension Fetcher where Value: Equatable {
     /// 로컬을 먼저 바꾸고 서버에 씁니다. 서버 쓰기가 실패하면 로컬을 원래 값으로 되돌립니다.
     ///
-    /// 화면은 서버 응답을 기다리지 않고 바뀐 값을 바로 보여 줍니다. 실패하면 되돌린 값이 다시 저장됩니다.
-    /// 그사이 요청한 대상이 바뀌었으면(`isCurrent`가 `false`) 되돌리지 않습니다.
+    /// 화면은 서버 응답을 기다리지 않고 바뀐 값을 바로 보여 줍니다. 실패하면 이렇게 맞춥니다.
+    /// - 저장된 값이 바꾼 값 그대로면 원래 값으로 되돌립니다.
+    /// - 그사이 다른 변경(다른 쓰기, 서버 값)이 저장됐으면 덮어쓰지 않고 서버 값을 다시 받아 저장합니다.
+    /// - 요청한 대상이 바뀌었으면(`isCurrent`가 `false`) 아무것도 바꾸지 않습니다.
     ///
     /// - Parameters:
     ///   - change: 저장된 값을 바꾸는 방법.
@@ -207,10 +209,19 @@ public extension Fetcher {
                     log("쓰기: 서버 반영 완료", false)
                 })
                 .catch { error in
-                    if isCurrent() {
-                        log("쓰기 실패: 캐시를 원래 값으로 되돌림 (\(error))", true)
-                        updateLocal(original)
+                    guard isCurrent() else {
+                        return .error(error)
                     }
+                    guard local() == changed else {
+                        // 다른 변경까지 지우지 않도록 원래 값으로 덮어쓰지 않고 서버 값을 다시 받는다
+                        log("쓰기 실패: 그사이 바뀐 캐시가 있어 서버 값을 다시 받음 (\(error))", true)
+                        return requestRemote()
+                            .ignoreElements()
+                            .asCompletable()
+                            .andThen(.error(error))
+                    }
+                    log("쓰기 실패: 캐시를 원래 값으로 되돌림 (\(error))", true)
+                    updateLocal(original)
                     return .error(error)
                 }
         }

@@ -128,26 +128,30 @@ private extension FeedReactor {
             }
             .asObservable()
 
-        let loadGroup: Observable<Mutation> = groupLoader
-            .fetch(force)
-            .withUnretained(self)
-            .flatMap { owner, result in
-                Observable.from(owner.mutations(for: result))
-            }
-            .catch { error in
-                Logger.e("FeedReactor fetchGroup failed: \(error)")
-                return .from([.setLoading(false), .notifyLoadFailure])
-            }
+        // 조회가 어떻게 끝나든(성공·실패·응답 버림) 로딩을 끈다
+        let loadGroup: Observable<Mutation> = Observable.concat([
+            .just(.setLoading(true)),
+            groupLoader
+                .fetch(force)
+                .withUnretained(self)
+                .flatMap { owner, result in
+                    Observable.from(owner.mutations(for: result))
+                }
+                .catch { error in
+                    Logger.e("FeedReactor fetchGroup failed: \(error)")
+                    return .just(.notifyLoadFailure)
+                },
+            .just(.setLoading(false))
+        ])
 
         return Observable.merge([loadUser, loadGroup])
     }
 
-    /// 조회 단계를 피드 상태로 바꿉니다.
+    /// 조회 단계를 피드 상태로 바꿉니다. 로딩 표시는 `loadFeed(force:)`가 조회 앞뒤로 켜고 끕니다.
     ///
-    /// - `.loading`: 로딩을 표시합니다. 캐시가 있으면 캐시로 먼저 그립니다.
-    /// - `.success`: 서버 그룹으로 그리고 로딩을 숨깁니다.
+    /// - `.loading`, `.success`: 값이 있으면 그 그룹으로 그립니다.
     /// - `.failure`: 캐시는 그대로 두고 실패를 알립니다.
-    /// - `.notFound`: 로딩만 숨깁니다. 세션이 지워져 AppCoordinator가 화면을 바꿉니다.
+    /// - `.notFound`: 따로 할 일이 없습니다. 세션이 지워져 AppCoordinator가 화면을 바꿉니다.
     func mutations(for result: FetchResult<HCGroup>) -> [Mutation] {
         var mutations: [Mutation] = []
         // 관리자 미리보기는 저장된 그룹 구독이 없으므로 조회 결과로 피드를 그린다
@@ -155,14 +159,8 @@ private extension FeedReactor {
             mutations.append(makeFeedMutation(from: group.postsByDate))
         }
 
-        switch result.status {
-        case .loading:
-            mutations.append(.setLoading(true))
-        case .success, .notFound:
-            mutations.append(.setLoading(false))
-        case .failure(let error):
+        if case let .failure(error) = result.status {
             Logger.e("FeedReactor fetchGroup failed: \(error)")
-            mutations.append(.setLoading(false))
             mutations.append(.notifyLoadFailure)
         }
         return mutations
