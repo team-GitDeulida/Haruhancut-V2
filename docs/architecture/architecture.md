@@ -127,10 +127,12 @@ Projects/
   - 저장소에만 필요한 기능은 구현체 익스텐션에 더해요. (`FileStorage`의 `contentsOfDirectory`·`exists`)
   - 쓰는 쪽은 CRUD만 필요하면 `StorageProtocol`에 의존해요. (`SessionContext`, `WidgetSessionStore`) 추가 기능이 필요하면 구현체에 의존해요. (`WidgetPhotoStore` → `FileStorage`)
   - 테스트·Demo의 메모리 저장소는 `StorageProtocol`을 직접 채택해요.
-- Core Fetcher: 로컬 캐시를 먼저 보여 주고 서버 값으로 갱신하는 조회 정책이에요. 서버 응답을 값·없음(`nil`)·실패(에러)로 나눠 처리해요. 사용법은 [RxSwift](rxswift.md#fetcher로-캐시-우선-조회하기)를 확인해요.
-  - 값이면 `updateLocal`로 저장하고 `.success`, 없으면 `removeLocal`로 캐시를 지우고 `.notFound`, 실패면 캐시를 그대로 두고 `.failure`를 보내요.
+- Core Fetcher: 로컬 캐시를 먼저 보여 주고 서버 값으로 갱신하는 조회 정책이에요. 저장된 값의 변화 구독(`observe()`)과 "먼저 바꾸고, 실패하면 되돌리는" 쓰기(`update(_:remote:)`)도 맡아요. 사용법은 [RxSwift](rxswift.md#fetcher로-캐시-우선-조회하기)를 확인해요.
+  - 값이면 `updateLocal`로 저장하고 `.success`, 없으면 `removeLocal`과 `cleanUpNotFound`로 정리한 뒤 `.notFound`, 실패면 캐시를 그대로 두고 `.failure`를 보내요.
   - 응답이 왔을 때 요청한 유저·그룹이 그사이 바뀌었으면(`isCurrent`가 `false`) 응답을 버려요.
+  - `timeout(_:)`은 응답이 없을 때 실패로 끝내고, `sharing(_:key:)`은 같은 요청을 합치고 `FetchRequests(maxAge:)` 안에 받은 값이면 서버를 건너뛰어요.
   - Repository는 서버에 데이터가 없을 때만 `nil`을 돌려줘요. 읽거나 변환하지 못하면 에러를 보내요. (`fetchUser(uid:)`, `fetchGroup(groupId:)`)
+- Core Session: `SessionContext.asObservable()`은 지금 값을 먼저 보내고 값이 바뀔 때마다 보내요. Fetcher의 `observeLocal`에 연결해요.
 - DSKit: 공통 UI 컴포넌트, 색상·폰트 리소스, `ImagePreViewController` 등
 - CollectionViewAdapter: 외부 의존성 없이 `UICollectionView`의 섹션·셀 구성을 선언형으로 다루는 사내 모듈이에요. V2 Feature와 AdminFeature가 사용해요. 화면에서 쓰는 방법은 [화면 그리기](view-rendering.md)를 확인해요.
 - ThirdPartyLibs: 외부 패키지를 한곳에서 링크하는 모듈이에요. 소스의 `@_exported import`는 주석 처리돼 있어 각 파일에서 필요한 라이브러리를 직접 import해요.
@@ -175,10 +177,10 @@ Repository 프로토콜은 Domain에, 구현은 Data에 있어요. Feature는 `A
 
 ### 화면에서 데이터까지: 오늘 피드 조회
 
-1. `HomeV2Coordinator`가 `HomeFeatureBuilder().makeHome(mode:routeTrigger:)`로 `HomeViewController`를 만들어요. Builder는 `GroupUsecaseProtocol`을 resolve하고, `HomeGroupLoaderFactory`로 모드별 그룹 조회 클로저(`loadGroup`)를 만들어 `FeedReactor`와 `CalendarReactor`에 넘겨요. `.currentGroup`은 `groupUsecase.loadAndFetchGroup()`, `.adminPreview(groupID:)`는 `AdminUsecaseProtocol.fetchGroup(groupId:)`를 사용해요.
+1. `HomeV2Coordinator`가 `HomeFeatureBuilder().makeHome(mode:routeTrigger:)`로 `HomeViewController`를 만들어요. Builder는 `GroupUsecaseProtocol`을 resolve하고, `HomeGroupLoader.make(mode:groupUsecase:)`로 모드별 로더를 만들어 `FeedReactor`와 `CalendarReactor`에 넘겨요. 로더는 조회 단계를 보내는 `fetch(force:)`와 저장된 그룹의 변화를 보내는 `changes()`를 가져요. `.currentGroup`은 `groupUsecase.fetchGroupResult()`·`refreshGroupResult()`·`observeGroup()`, `.adminPreview(groupID:)`는 `AdminUsecaseProtocol.fetchGroup(groupId:)`를 사용하고 변화는 보내지 않아요.
 2. `HomeViewController`에 들어 있는 `FeedViewController`가 `viewDidLoad`에서 `reactor?.action.onNext(.viewDidLoad)`를 보내요.
-3. `FeedReactor.mutate`는 `loadFeed()`에서 `loadGroup`을 호출하고, 결과를 `setFeed(components, didTodayUpload)` Mutation으로 바꿔 State의 `components`와 `didTodayUpload`를 갱신해요. 읽기 전용 모드에서는 `groupUsecase`를 `nil`로 받아 삭제를 막아요.
-4. `GroupUsecaseImpl.loadAndFetchGroup()`은 `Fetcher`로 `GroupSession`에 캐시된 그룹을 먼저 방출하고, `GroupRepositoryProtocol.fetchGroup(groupId:)`의 서버 결과를 이어서 방출해요. 서버 결과는 `GroupSession`에 다시 저장해요. 서버에 그룹이 없으면 `GroupSession`을 지우고 서버(`users/{uid}/groupId`)와 `UserSession`의 `groupId`를 지워요. 서버의 값도 지워야 다음 유저 조회가 없는 그룹의 id를 되살리지 않아요. 서버에 확인하지 못하면 캐시를 유지한 채 에러로 끝내요.
+3. `FeedReactor.transform(mutation:)`은 `changes()`를 한 번 구독해 저장된 그룹이 바뀔 때마다 `setFeed(components, didTodayUpload)`로 피드를 다시 그려요. `mutate`는 `loadFeed(force:)`에서 `fetch(force:)`의 조회 단계를 로딩(`isLoading`)과 실패 안내(`@Pulse loadFailure`)로 바꿔요. 당겨서 새로고침하면 `force: true`로 서버에 다시 물어요. 읽기 전용 모드에서는 `groupUsecase`를 `nil`로 받아 삭제를 막아요.
+4. `GroupUsecaseImpl.fetchGroupResult()`는 `Fetcher`로 `GroupSession`에 캐시된 그룹을 먼저 방출하고, `GroupRepositoryProtocol.fetchGroup(groupId:)`의 서버 결과를 이어서 방출해요. 서버 결과는 `GroupSession`에 다시 저장해요. 서버에 그룹이 없으면 `GroupSession`을 지우고 서버(`users/{uid}/groupId`)와 `UserSession`의 `groupId`를 지워요. 서버의 값도 지워야 다음 유저 조회가 없는 그룹의 id를 되살리지 않아요. 서버에 확인하지 못하면 캐시를 유지한 채 에러로 끝내요.
 5. `GroupRepositoryImpl`은 `FirebaseAuthManager`에 요청을 위임해요. `FirebaseAuthManager`가 Realtime Database를 읽고 DTO를 `toModel()`로 Entity로 바꿔 돌려줘요. 쓰기 요청은 Repository가 `toDTO()`로 변환해 넘겨요.
 6. `FeedViewController`와 `HomeViewController`는 Reactor State를 구독해 피드 목록과 오늘 업로드 문구·카메라 버튼 상태를 갱신해요.
 
@@ -187,7 +189,7 @@ Repository 프로토콜은 Domain에, 구현은 Data에 있어요. Feature는 `A
 ### 홈 화면 위젯 동기화
 
 1. `HomeFeatureBuilder`가 `WidgetUsecaseProtocol`을 resolve해 `FeedReactor`에 넘겨요. 관리자 미리보기(`.adminPreview`)는 다른 그룹을 표시하므로 `nil`을 넘겨 내 위젯을 덮어쓰지 않아요.
-2. `FeedReactor`는 `loadGroup`이 그룹을 내보낼 때마다 `synchronize(postsByDate:)`를 호출해요. 게시물 삭제가 서버에서 성공하면 `removePhoto(of:)`를 호출하고, 남은 게시물로 다시 `synchronize`해요.
+2. `FeedReactor`는 저장된 그룹이 바뀔 때마다(`changes()`) `synchronize(postsByDate:)`를 호출해요. 피드·캘린더·상세·댓글 화면 어디에서 그룹이 저장돼도 위젯이 맞춰져요. 게시물 삭제는 저장된 그룹에서 먼저 빠지므로 위젯도 바로 맞춰지고, 서버 삭제가 실패하면 그룹이 되돌아가 위젯도 다시 맞춰져요. 서버에서 삭제된 뒤에는 `removePhoto(of:)`를 호출해 내려받던 사진을 저장하지 않게 해요.
 3. `WidgetUsecaseImpl`은 `UserSession`의 사용자를 위젯용으로 저장하고, 오늘 가장 최근 게시물의 사진만 위젯 저장소에 남겨요. 사진이 없으면 내려받아 저장한 뒤 이전 사진을 지우고 위젯 갱신을 요청해요. 다운로드가 끝났을 때 그 게시물이 더 이상 보여야 할 게시물이 아니거나 날짜가 바뀌었으면 저장하지 않아요.
 4. `WidgetRepositoryImpl`(WidgetSupport)이 `WidgetSessionStore`·`WidgetPhotoStore`로 App Group에 쓰고, `URLSession`으로 이미지를 내려받고, `WidgetCenter`로 `PhotoWidget`을 갱신해요. 위젯(`PhotoWidget`)은 같은 저장소에서 오늘 사진을 읽어요.
 
@@ -202,7 +204,7 @@ Repository 프로토콜은 Domain에, 구현은 Data에 있어요. Feature는 `A
 | Service Locator DI | App 등록, Builder·일부 Reactor·ViewModel·Coordinator resolve | `DIContainer.swift`, `AppDelegate+Dependency.swift` |
 | Repository | Domain 프로토콜, Data 구현 | `RepositoryProtocol/`, `RepositoryImpl/` |
 | Session | 로그인 사용자·그룹 상태 저장과 관찰 | `Core/Sources/Session/Session.swift` |
-| Fetcher | 캐시 우선 조회와 서버 응답(값·없음·실패) 처리 | `Core/Sources/Fetcher/Fetcher.swift`, `AuthUsecase.swift`, `GroupUsecase.swift` |
+| Fetcher | 캐시 우선 조회, 저장된 값 구독, 먼저 바꾸고 실패하면 되돌리는 쓰기 | `Core/Sources/Fetcher/`, `AuthUsecase.swift`, `GroupUsecase.swift`, `HomeGroupLoader.swift` |
 
 ### 외부 라이브러리
 

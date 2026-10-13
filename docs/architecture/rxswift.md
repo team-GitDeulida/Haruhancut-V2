@@ -22,7 +22,7 @@ Feature 소스(`Projects/Features/*/Sources`)의 grep 결과예요. 버전은 `T
 | ViewController 이벤트 | `rx.tap`, `rx.methodInvoked`, 클로저 이벤트용 `private` `PublishRelay` | `PublishSubject`(V1 `SettingViewController`에만 2곳) |
 | 연결 메서드 | `drive(with:)`, `emit(with:)`, ViewModel 안의 `bind(with:)` | `[unowned self]` |
 | 연산자 | `flatMapLatest`, `withUnretained`, `share(replay: 1)`, `distinctUntilChanged`, `materialize`, `catch`, `withLatestFrom`, `merge`, `startWith` | `debounce`, `throttle`, `flatMapFirst`, `subscribe(on:)` |
-| 상태 관리 | **ReactorKit이 새 화면의 기본 규칙**이에요. 현재 `HomeFeatureV2`의 Feed·Calendar에서 사용해요. 나머지 화면은 Input/Output을 유지하다가 순차 전환해요. | `@Pulse`(새 규칙으로 도입 예정), `transform(mutation:)` |
+| 상태 관리 | **ReactorKit이 새 화면의 기본 규칙**이에요. 현재 `HomeFeatureV2`의 Feed·Calendar에서 사용해요. 저장된 그룹 구독은 `transform(mutation:)`, 피드 실패 안내는 `@Pulse`로 보내요. 나머지 화면은 Input/Output을 유지하다가 순차 전환해요. | |
 | 기타 | RxDataSources(V1 `ProfileFeature` Setting), Core의 `UIView.rx.tap`·`mapToVoid()` | RxGesture, RxTest·RxBlocking(선언만 있고 테스트에서 사용하지 않아요) |
 
 팀 규칙은 [바인딩 정책](rxswift-binding-policy.md)에, ReactorKit 화면 구조는 [View·Reactor·ViewModel 계약](view-viewmodel-protocols.md)에, 기존 화면 연결 예시는 [Input/Output 패턴](rxswift-input-output.md)에 있어요. Rx 학습용 예제는 `Projects/Shared/RxLab/Demo`에 있어요.
@@ -239,47 +239,47 @@ let safeValues: Infallible<Int> = Infallible.just(1)
 
 ## Fetcher로 캐시 우선 조회하기
 
-Core의 `Fetcher`(`Core/Sources/Fetcher/Fetcher.swift`)는 Session에 저장된 값을 먼저 보내고 서버 값으로 갱신해요. Usecase마다 `concat(cached, remote)`로 같은 정책을 다시 짜지 않아요.
+Core의 `Fetcher`(`Core/Sources/Fetcher/`)는 Session에 저장된 값을 먼저 보내고 서버 값으로 갱신해요. 저장된 값의 변화 구독과 "먼저 바꾸고, 실패하면 되돌리는" 쓰기도 맡아요. Usecase마다 `concat(cached, remote)`나 되돌리기 코드를 다시 짜지 않아요.
 
 서버 응답은 세 가지로 나눠요.
 
 | 서버 응답 | Fetcher 동작 | 보내는 결과 |
 | --- | --- | --- |
 | 값 | `updateLocal`로 저장해요. | `(.success, 서버 값)` |
-| 없음 (`nil`) | `removeLocal`로 캐시를 지워요. | `(.notFound, nil)` |
+| 없음 (`nil`) | `removeLocal`로 캐시를 지우고, `cleanUpNotFound`가 있으면 끝날 때까지 기다려요. | `(.notFound, nil)` |
 | 실패 (에러) | 캐시를 그대로 둬요. | `(.failure(에러), 캐시)` |
 
 ### Fetcher 만들기
 
-Fetcher에는 다섯 가지만 알려 주면 돼요. 캐시를 먼저 보내고, 서버에 묻고, 결과에 따라 저장하거나 지우는 순서는 Fetcher가 맡아요.
+Fetcher에는 캐시와 서버를 다루는 방법만 알려 주면 돼요. 순서와 실패 처리는 Fetcher가 맡아요.
 
 ```swift
 // GroupUsecase.swift
+private let groupRequests = FetchRequests<HCGroup>(maxAge: 10)  // Usecase가 하나만 가져요
+
 func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
     Fetcher(
         // 1. 캐시는 어디 있나요? → GroupSession
         local: { groupSession.entity },
-        // 2. 서버에는 어떻게 묻나요? → 그룹이 없으면 nil, 읽지 못하면 에러
+        // 2. 캐시가 바뀌면 어떻게 알 수 있나요? → GroupSession 구독
+        observeLocal: { groupSession.asObservable().map { $0?.toEntity() } },
+        // 3. 서버에는 어떻게 묻나요? → 그룹이 없으면 nil, 읽지 못하면 에러
         remote: { groupRepository.fetchGroup(groupId: groupId) },
-        // 3. 서버 값을 받으면? → GroupSession에 저장
+        // 4. 서버 값을 받으면? → GroupSession에 저장
         updateLocal: { group in groupSession.update(group.toSession()) },
-        // 4. 서버에 그룹이 없으면? → GroupSession을 비움
+        // 5. 서버에 그룹이 없으면? → GroupSession을 비우고, 서버·세션의 groupId도 지움
         removeLocal: { groupSession.clear() },
-        // 5. 응답이 왔을 때 아직 이 그룹인가요? → 아니면 응답을 버림 (생략하면 항상 반영)
+        cleanUpNotFound: { self.leaveMissingGroup(groupId: groupId) },
+        // 6. 응답이 왔을 때 아직 이 그룹인가요? → 아니면 응답을 버림 (생략하면 항상 반영)
         isCurrent: { userSession.groupId == groupId }
     )
-    .logging("Group")
-}
-
-public func loadAndFetchGroup() -> Observable<HCGroup> {
-    groupFetcher(groupId: groupId)
-        .fetch()
-        .concatMap { self.leaveGroupIfNotFound($0, groupId: groupId) }  // 서버·세션의 groupId 정리
-        .fetchedValues()
+    .timeout(.seconds(15))                   // 15초 안에 응답이 없으면 실패
+    .sharing(groupRequests, key: groupId)    // 같은 요청 합치기, 10초 안에 받은 그룹이면 서버 생략
+    .logging("Group")                        // Debug 빌드에서 단계별 로그
 }
 ```
 
-다른 데이터도 이 다섯 가지만 바꿔 끼우면 돼요. 내 유저 정보는 `userSession`과 `repository.fetchUser(uid:)`를 넣어 만들어요(`AuthUsecaseImpl.userFetcher`).
+다른 데이터도 이 항목만 바꿔 끼우면 돼요. 내 유저 정보는 `userSession`과 `repository.fetchUser(uid:)`를 넣어 만들어요(`AuthUsecaseImpl.userFetcher`). `SessionContext.asObservable()`은 지금 값을 먼저 보내고 값이 바뀔 때마다 보내는 스트림이에요.
 
 ### 연산자
 
@@ -290,11 +290,7 @@ public func loadAndFetchGroup() -> Observable<HCGroup> {
 
 #### `fetch()`: 캐시를 먼저 보여 주고 서버 값으로 바꿔요
 
-화면에 들어올 때 써요. 사용자는 서버를 기다리지 않고 저장된 피드를 먼저 보고, 서버 응답이 오면 새 게시물이 붙어요. (`loadAndFetchUser`, `loadAndFetchGroup`)
-
-```swift
-groupFetcher(groupId: groupId).fetch()
-```
+화면에 들어올 때 써요. 사용자는 서버를 기다리지 않고 저장된 피드를 먼저 보고, 서버 응답이 오면 새 게시물이 붙어요. (`fetchGroupResult`, `loadAndFetchUser`, `loadAndFetchGroup`)
 
 | 순서 | 받는 결과 | 화면 |
 | --- | --- | --- |
@@ -305,29 +301,54 @@ groupFetcher(groupId: groupId).fetch()
 
 | 서버 응답 | 2번에 받는 결과 | 화면 |
 | --- | --- | --- |
-| 확인 실패 (네트워크 오류 등) | `(.failure(에러), 게시물 2개 그룹)` | 저장된 피드를 그대로 둬요. 캐시도 그대로예요. |
-| 그룹 없음 | `(.notFound, nil)` | 그룹 캐시를 지워요. 그룹 화면 이동은 `loadAndFetchGroup`의 `leaveGroupIfNotFound`가 `groupId`를 지운 뒤에 일어나요. |
+| 확인 실패 (네트워크 오류, 15초 초과) | `(.failure(에러), 게시물 2개 그룹)` | 저장된 피드를 그대로 두고 실패를 안내해요. |
+| 그룹 없음 | `(.notFound, nil)` | `cleanUpNotFound`가 서버·세션의 `groupId`를 지운 뒤에 보내요. AppCoordinator가 그룹 화면으로 보내요. |
+| 10초 안에 이미 받음 | `(.success, 게시물 2개 그룹)` (캐시) | 서버에 묻지 않아요. |
 
-캐시가 비어 있으면(앱 첫 실행) 1번은 `(.loading, nil)`이에요.
+캐시가 비어 있으면(앱 첫 실행) 1번은 `(.loading, nil)`이고, 피드는 가운데에 로딩을 보여 줘요.
 
 #### `refresh()`: 캐시는 건너뛰고 서버 값만 받아요
 
-서버에 쓴 직후 써요. 게시물을 지운 뒤 `fetch()`를 쓰면 "지우기 전 캐시"가 먼저 와서, 지운 게시물이 잠깐 다시 보일 수 있어요. `refresh()`는 처음부터 서버 결과 하나만 보내므로 `takeLast(1)`로 마지막 값을 고를 필요가 없어요. (`updateNicknameAndReloadSession`, `deletePostAndReload`)
-
-```swift
-// GroupUsecase.deletePostAndReload (요약)
-groupRepository.deleteValue(path: postPath)
-    .asObservable()
-    .flatMap { _ in groupFetcher(groupId: groupId).refresh() }
-```
+당겨서 새로고침할 때와 서버에 쓴 직후 써요. 10초 안에 받은 값이 있어도 서버에 다시 물어요. (`refreshGroupResult`, `updateNicknameAndReloadSession`)
 
 | 받는 결과 | 화면 |
 | --- | --- |
-| `(.success, 삭제가 반영된 그룹)` 하나 | 지운 게시물이 다시 보이지 않아요. |
+| `(.success, 게시물 3개 그룹)` 하나 | 서버의 최신 그룹을 보여 줘요. |
+
+#### `observe()`: 저장된 값이 바뀔 때마다 받아요
+
+화면이 서로 새로고침을 알려 주지 않아도 되게 해요. 저장된 그룹을 먼저 보내고, 다른 화면이 서버 값이나 쓰기 결과를 저장하면 바로 다시 보내요. 서버에는 묻지 않고, 같은 값을 다시 저장하면 보내지 않아요. 끝나지 않는 스트림이라 화면이 사라질 때 구독을 해제해요. (`observeGroup`)
+
+| 일어난 일 | `observe()`로 받는 것 |
+| --- | --- |
+| 구독하자마자 | 게시물 2개 그룹 |
+| 피드 화면이 서버에서 3개 그룹을 받아 저장 | 게시물 3개 그룹 |
+| 댓글 시트에서 댓글 작성 | 댓글이 붙은 그룹 |
+
+피드·캘린더·상세·댓글 화면이 `observeGroup()`을 구독해요. 그래서 댓글 시트를 닫을 때 Coordinator가 상세 화면에 `refresh()`를 알리던 코드를 지웠고, 위젯도 피드가 구독하는 그룹 변화로 맞춰요.
+
+#### `update(_:remote:)`: 먼저 바꾸고, 실패하면 되돌려요
+
+쓰기에 써요. 저장된 값을 먼저 바꾸고 서버에 써요. 서버 쓰기가 실패하면 원래 값으로 되돌려요. 화면은 `observe()`로 바뀐 값과 되돌린 값을 그대로 따라가요. (`updatePushEnabled`, `addComment`, `deleteComment`, `deletePostAndReload`, `uploadImageAndUploadPost`)
+
+```swift
+// AuthUsecase.updatePushEnabled
+userFetcher(userId: userId)
+    .update({ user in user.isPushEnabled = false },
+            remote: { user in repository.updateUser(user: user).map { _ in () } })
+```
+
+| 순서 | 저장된 값 | 화면 |
+| --- | --- | --- |
+| 1. 호출하자마자 | 알림 꺼짐 | 스위치가 바로 꺼져요. |
+| 2-a. 서버 저장 성공 | 알림 꺼짐 | 그대로예요. |
+| 2-b. 서버 저장 실패 | 알림 켜짐 (되돌림) | 스위치가 다시 켜지고 에러로 끝나요. |
+
+바꿀 캐시가 없으면 `FetchError.missingLocal`로 끝나요. 그사이 대상이 바뀌었으면(`isCurrent`가 `false`) 되돌리지 않아요.
 
 #### `fetchedValues()`: 상태를 떼고 값만 꺼내요
 
-`Observable<HCGroup>`처럼 값만 받는 화면에 연결할 때 써요. 결과에서 상태를 떼고 값만 보내므로 `loadAndFetchGroup()` 같은 기존 API의 반환 타입을 바꾸지 않아도 돼요.
+`Observable<HCGroup>`처럼 값만 받는 화면에 연결할 때 써요. `Equatable`인 값은 바로 앞과 같은 값을 다시 보내지 않아요.
 
 ```swift
 groupFetcher(groupId: groupId).fetch().fetchedValues()  // Observable<HCGroup>
@@ -337,22 +358,18 @@ groupFetcher(groupId: groupId).fetch().fetchedValues()  // Observable<HCGroup>
 | --- | --- |
 | `(.loading, 게시물 2개 그룹)` | 게시물 2개 그룹 |
 | `(.success, 게시물 3개 그룹)` | 게시물 3개 그룹 |
-| `(.loading, nil)` (캐시 없음) | 아무것도 보내지 않고 건너뛰어요. |
-| `(.failure(에러), 캐시)` | 그 에러로 끝나요. 화면의 `catch`가 처리해요. |
+| `(.success, 게시물 2개 그룹)` (캐시와 같음) | 보내지 않아요. |
+| `(.loading, nil)` (캐시 없음) | 건너뛰어요. |
+| `(.failure(에러), 캐시)` | 그 에러로 끝나요. |
 | `(.notFound, nil)` | `FetchError.notFound`로 끝나요. |
 
-`fetchedValues()`를 붙이지 않으면 상태를 직접 받아 로딩·실패를 표시할 수 있어요. 아직 상태를 직접 쓰는 화면은 없어요.
+#### `timeout(_:)`, `sharing(_:key:)`, `logging(_:)`: Fetcher를 꾸며요
 
-| 상태 | 화면에서 할 일 (예) |
-| --- | --- |
-| `.loading` | 캐시가 있으면 먼저 보여 주고, 없으면 로딩을 표시해요. |
-| `.success` | 서버 값으로 갱신하고 로딩을 숨겨요. |
-| `.failure` | 캐시는 그대로 두고 "최신 정보를 불러오지 못했어요"를 안내해요. |
-| `.notFound` | 유저는 Fetcher가 세션을 지워서 AppCoordinator가 로그인 화면으로 보내요. 그룹은 Fetcher가 캐시만 지우므로, `loadAndFetchGroup`처럼 `leaveGroupIfNotFound`를 거쳐야 `groupId`가 지워지고 그룹 화면으로 가요. |
-
-#### `logging(_:)`: 무슨 일이 있었는지 로그로 남겨요
-
-Fetcher 뒤에 붙이면 단계마다 로그가 남아요. 결과와 캐시 처리는 바뀌지 않아요. Debug 빌드에서만 남기고, 개인정보가 남지 않도록 값의 내용 대신 있음·없음만 남겨요. 실제 로그에는 앞에 `[🟢] [GroupUsecase:335] Fetcher —`처럼 `.logging`을 붙인 위치가 찍혀요.
+| 꾸미기 | 하는 일 | 예 |
+| --- | --- | --- |
+| `timeout(.seconds(15))` | 서버가 응답하지 않으면 `FetchError.timeout`으로 실패해요. 오프라인에서 로딩이 끝나지 않는 일을 막아요. | 지하철에서 앱을 열면 15초 뒤 "최신 정보를 불러오지 못했어요"를 보여 줘요. |
+| `sharing(requests, key:)` | 같은 key의 요청이 진행 중이면 결과를 함께 받아요. `FetchRequests(maxAge:)` 안에 받은 값이면 `fetch()`가 서버를 건너뛰어요. | 홈에 들어가 피드와 캘린더가 동시에 그룹을 요청해도 서버 요청은 한 번이에요. 탭을 오가도 10초 안에는 다시 받지 않아요. |
+| `logging("Group")` | 단계마다 로그를 남겨요. Debug 빌드에서만 남기고 값의 내용 대신 있음·없음만 남겨요. | 아래 로그 |
 
 ```
 // 정상
@@ -361,26 +378,33 @@ Fetcher 뒤에 붙이면 단계마다 로그가 남아요. 결과와 캐시 처�
 [Group] 서버 응답: 값
 [Group] 캐시 저장
 
+// 최근에 받은 그룹
+[Group] 캐시 읽기: 있음
+[Group] 최근에 받은 값이라 서버 요청 생략
+
 // 서버 확인 실패
 [Group] 캐시 읽기: 있음
 [Group] 서버 요청
-[Group] 서버 응답: 실패 (에러 내용)    ← 🟡 경고
+[Group] 서버 응답: 실패 (timeout)       ← 🟡 경고
 [Group] 캐시 읽기: 있음                ← 실패 결과에 담을 캐시를 다시 읽어요
 
-// 응답이 오기 전에 다른 그룹으로 바뀜
-[Group] 캐시 읽기: 있음
-[Group] 서버 요청
-[Group] 서버 응답: 값
-[Group] 요청 대상이 바뀌어 응답을 버림  ← 🟡 경고
+// 그룹 없음
+[Group] 서버 응답: 없음
+[Group] 캐시 삭제
+[Group] 없음 뒷정리 시작
+[Group] 없음 뒷정리 완료
 ```
+
+실제 로그에는 앞에 `[🟢] [GroupUsecase:424] Fetcher —`처럼 `.logging`을 붙인 위치가 찍혀요.
 
 ### 지킬 점
 
 - Repository는 서버에 데이터가 없을 때만 `nil`을 돌려주고, 읽거나 변환하지 못하면 에러를 보내요. `nil`과 에러를 섞지 않아야 Fetcher가 캐시를 잘못 지우지 않아요.
-- `isCurrent`에 요청한 대상(유저 ID·그룹 ID)이 지금 세션과 같은지 확인하는 조건을 넘겨요. 응답이 왔을 때 `false`면 Fetcher가 응답을 버려요. 캐시를 덮어쓰거나 지우지 않고, 예전 대상의 값을 화면에 보내지도 않아요. `fetch()`는 `.loading`만 보내고, `refresh()`는 아무것도 보내지 않고 끝나요.
-- 없는 데이터를 가리키는 서버 값이 있으면 그 값도 정리해요. 그룹이 없을 때 세션의 `groupId`만 지우면, 다음 유저 조회가 서버의 예전 `groupId`를 다시 저장해요. 서버 쓰기가 필요한 정리는 `removeLocal`이 아니라 결과 스트림에서 해요. (`GroupUsecaseImpl.leaveGroupIfNotFound`)
-- 구독할 때 캐시를 읽고 서버에 요청해요. 응답 전에 구독을 해제하면 서버 결과를 캐시에 반영하지 않아요.
-- 서버 결과를 보낸 뒤 끝나요. Session이 다른 곳에서 바뀌어도 이미 끝난 조회는 다시 보내지 않아요.
+- `isCurrent`에 요청한 대상(유저 ID·그룹 ID)이 지금 세션과 같은지 확인하는 조건을 넘겨요. 응답이 왔을 때 `false`면 Fetcher가 응답을 버려요. 캐시를 덮어쓰거나 지우지 않고, 예전 대상의 값을 화면에 보내지도 않아요.
+- 없는 데이터를 가리키는 서버 값이 있으면 `cleanUpNotFound`에서 정리해요. 그룹이 없을 때 세션의 `groupId`만 지우면, 다음 유저 조회가 서버의 예전 `groupId`를 다시 저장해요. 정리가 실패하면 `.failure`로 끝나고 세션의 `groupId`는 남아 다음 조회에서 다시 정리해요.
+- `FetchRequests`는 Usecase처럼 오래 사는 객체가 하나만 가져요. Fetcher를 만들 때마다 새로 만들면 요청을 합치지 못해요.
+- 서버에 쓴 뒤에는 `update(_:remote:)`로 저장된 값을 같이 바꾸거나 `refresh()`로 다시 받아요. 저장된 값을 바꾸지 않고 서버에만 쓰면, 10초 안의 `fetch()`가 예전 캐시를 보여 줄 수 있어요.
+- `observe()`는 끝나지 않아요. Reactor는 `transform(mutation:)`에서 한 번만 구독하고, `mutate`에서는 끝나는 `fetch()`·`refresh()`를 써요.
 
 ## RxCocoa 타입은 UI에 필요한 규칙을 보장해요
 
