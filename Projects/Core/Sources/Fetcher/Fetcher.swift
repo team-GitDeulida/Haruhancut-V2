@@ -237,6 +237,9 @@ public extension Fetcher where Value: Equatable {
     /// - 그사이 다른 변경(다른 쓰기, 서버 값)이 저장됐으면 덮어쓰지 않고 서버 값을 다시 받아 저장합니다.
     /// - 요청한 대상이 바뀌었으면(`isCurrent`가 `false`) 아무것도 바꾸지 않습니다.
     ///
+    /// 서버 쓰기는 보낸 뒤 취소되지 않으므로, 결과를 기다리던 구독이 먼저 해제돼도
+    /// (화면을 닫거나 `flatMapLatest`로 다음 쓰기를 시작함) 서버 응답까지 기다렸다가 위처럼 맞춥니다.
+    ///
     /// - Parameters:
     ///   - change: 저장된 값을 바꾸는 방법.
     ///   - write: 바뀐 값을 서버에 쓰는 요청.
@@ -256,7 +259,7 @@ public extension Fetcher where Value: Equatable {
             let writeToken = beginWrite()
             updateLocal(changed)
 
-            return write(changed)
+            let writing = write(changed)
                 .map { changed }
                 .do(onSuccess: { _ in
                     endWrite(writeToken)
@@ -288,6 +291,11 @@ public extension Fetcher where Value: Equatable {
                 .do(onDispose: {
                     endWrite(writeToken)
                 })
+
+            // 호출부의 구독과 상관없이 서버 응답까지 기다려 맞춘다. 응답이 오면 구독은 스스로 끝난다
+            let result = AsyncSubject<Value>()
+            _ = writing.asObservable().subscribe(result)
+            return result.asSingle()
         }
     }
 }

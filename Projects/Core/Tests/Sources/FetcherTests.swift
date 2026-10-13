@@ -401,6 +401,21 @@ final class FetcherTests: XCTestCase {
         XCTAssertEqual(recorder.steps, [.loading(50)])
     }
 
+    func test_update_restoresCache_evenWhenSubscriptionWasDisposedBeforeFailure() {
+        cache.value = 10
+        let write = PublishSubject<Void>()
+        let subscription = makeSUT()
+            .update({ $0 += 1 }, remote: { _ in write.take(1).asSingle() })
+            .subscribe()
+
+        // 화면을 닫거나 다음 쓰기로 넘어가 구독이 먼저 해제됩니다. 서버 쓰기는 계속 진행 중입니다.
+        subscription.dispose()
+        write.onError(TestError.remote)
+
+        XCTAssertEqual(cache.value, 10)
+        XCTAssertEqual(cache.updatedValues, [11, 10])
+    }
+
     func test_update_doesNotRestoreCache_whenTargetChangedBeforeFailure() {
         cache.value = 10
         let write = PublishSubject<Void>()

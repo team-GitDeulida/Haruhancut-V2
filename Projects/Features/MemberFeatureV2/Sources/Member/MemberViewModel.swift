@@ -203,7 +203,8 @@ final class MemberViewModel:
             input
                 .birthdaySettingsChanged
                 .withUnretained(self)
-                .flatMapLatest {
+                // 저장 중에 설정을 다시 바꿔도 앞선 저장의 실패를 알리도록 저장을 취소하지 않는다
+                .flatMap {
                     owner, settings in
                     owner.groupUsecase
                         .updateBirthdaySettings(
