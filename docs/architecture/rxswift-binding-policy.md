@@ -100,7 +100,7 @@ reactor.pulse(\.$deleteFailed)
 
 - 로딩 표시는 `Observable.concat([.just(.setLoading(true)), 작업, .just(.setLoading(false))])`로 감싸요.
 - 오류는 작업 스트림 안에서 `.catch`로 처리해요. `mutate` 스트림에서 오류가 나면 해당 Action의 처리가 끝나요.
-- 캐시 후 서버 순서로 여러 번 방출하는 `loadAndFetchGroup()` 같은 API에서 서버 값만 필요하면 `takeLast(1)`을 붙이지 말고, Usecase에서 `Fetcher.refresh()`로 서버 값만 받는 API를 써요. (예: `updateNicknameAndReloadSession`) 쓰기는 `Fetcher.update(_:remote:)`로 저장된 값을 먼저 바꾸고, 화면은 `observeGroup()` 같은 구독으로 따라가요.
+- 캐시 후 서버 순서로 여러 번 방출하는 `loadAndFetchGroup()` 같은 API에서 서버 값만 필요하면 `takeLast(1)`을 붙이지 말고, Usecase에서 `Fetcher.refresh()`로 서버 값만 받는 API를 써요. (예: 당겨서 새로고침할 때 `FeedReactor`가 쓰는 `refreshGroupResult()`) 쓰기는 `Fetcher.update(_:remote:)`로 저장된 값을 먼저 바꾸고(예: `updateNicknameAndReloadSession`), 화면은 `observeGroup()` 같은 구독으로 따라가요.
 - 연산자 체인에서 Reactor를 참조하면 `withUnretained(self)`를 사용해요. `withUnretained`를 쓸 수 없으면 `[weak self]`로 잡고 `guard let self = self else { return .empty() }`로 풀어요.
 
 ## 메모리 참조

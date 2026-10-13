@@ -410,7 +410,8 @@ private extension GroupUsecaseImpl {
     }
 
     /// 저장된 그룹을 먼저 바꾸고 서버에 쓴다. 서버 쓰기가 실패하면 Fetcher가 되돌린다
-    /// - 저장된 그룹이 없거나(첫 실행, 저장 실패 등) 바꿀 게시물이 저장된 그룹에 없으면 먼저 바꿀 수 없다.
+    /// - 저장된 그룹이 없거나(첫 실행, 저장 실패 등), 다른 그룹이거나(그룹 참여 직후 등),
+    ///   바꿀 게시물이 저장된 그룹에 없으면 먼저 바꿀 수 없다.
     ///   서버에 쓰고 서버 그룹을 다시 받아 저장해, 그룹을 구독하는 화면에 보낸다
     /// - 다시 받기가 실패해도 서버 쓰기는 끝났으므로 성공으로 끝낸다
     func writeGroup(
@@ -422,6 +423,7 @@ private extension GroupUsecaseImpl {
             let fetcher = self.groupFetcher(groupId: groupId)
             guard
                 let group = self.groupSession.entity,
+                group.groupId == groupId,
                 group.isChanged(by: change)
             else {
                 return fetcher.writeThenRefresh(write)

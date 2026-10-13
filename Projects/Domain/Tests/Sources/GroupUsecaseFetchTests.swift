@@ -307,6 +307,23 @@ final class GroupUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(storedPosts().first?.comments.values.map(\.text), ["hello"])
     }
 
+    func testAddCommentDoesNotChangeStoredGroupOfAnotherGroup() {
+        // 그룹 참여 직후처럼 세션은 새 그룹을 가리키는데 이전 그룹이 저장돼 있습니다.
+        let post = makePost()
+        groupSession.update(makeGroup(id: "old-group", name: "old", posts: [post]).toSession())
+        repository.fetchGroupResponse = .just(makeGroup(name: "server", posts: [post]))
+
+        sut.addComment(post: post, text: "hello")
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        // 이전 그룹에 댓글을 넣지 않고, 서버에 쓴 뒤 새 그룹을 받아 저장합니다.
+        XCTAssertEqual(repository.addedCommentPaths.first?.hasPrefix("groups/group/"), true)
+        XCTAssertEqual(repository.fetchGroupCount, 1)
+        XCTAssertEqual(groupSession.entity?.groupId, "group")
+        XCTAssertEqual(groupSession.entity?.groupName, "server")
+    }
+
     func testAddCommentSucceedsWhenGroupReloadAfterWriteFails() {
         groupSession.clear()
         repository.fetchGroupResponse = .error(TestError.remote)
@@ -398,9 +415,9 @@ private extension GroupUsecaseFetchTests {
         )
     }
 
-    func makeGroup(name: String, posts: [Post] = []) -> HCGroup {
+    func makeGroup(id: String = "group", name: String, posts: [Post] = []) -> HCGroup {
         HCGroup(
-            groupId: "group",
+            groupId: id,
             groupName: name,
             createdAt: Date(timeIntervalSince1970: 0),
             hostUserId: "user",
