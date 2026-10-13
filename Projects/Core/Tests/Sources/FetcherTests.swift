@@ -245,6 +245,229 @@ final class FetcherTests: XCTestCase {
         XCTAssertEqual(recorder.error as? FetchError, .notFound)
     }
 
+    func test_fetchedValues_sendsOnce_whenServerValueEqualsCache() {
+        cache.value = 10
+        let recorder = recordValues(makeSUT().fetch().fetchedValues())
+
+        remote.succeed(10)
+
+        XCTAssertEqual(recorder.values, [10])
+        XCTAssertTrue(recorder.isCompleted)
+    }
+
+    // MARK: - observe
+
+    func test_observe_sendsStoredValueAndChanges_withoutDuplicates() {
+        let stored = BehaviorSubject<Int?>(value: 10)
+        let sut = makeSUT(observeLocal: { stored.asObservable() })
+        var values: [Int?] = []
+        sut.observe()
+            .subscribe(onNext: { values.append($0) })
+            .disposed(by: disposeBag)
+
+        stored.onNext(10)
+        stored.onNext(20)
+        stored.onNext(nil)
+
+        XCTAssertEqual(values, [10, 20, nil])
+        XCTAssertEqual(remote.requestCount, 0)
+    }
+
+    func test_observe_sendsCurrentValueOnce_withoutObserveLocal() {
+        cache.value = 10
+        var values: [Int?] = []
+        var isCompleted = false
+        makeSUT().observe()
+            .subscribe(
+                onNext: { values.append($0) },
+                onCompleted: { isCompleted = true }
+            )
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(values, [10])
+        XCTAssertTrue(isCompleted)
+    }
+
+    // MARK: - update
+
+    func test_update_changesCacheFirstAndKeepsIt_whenWriteSucceeds() {
+        cache.value = 10
+        let write = PublishSubject<Void>()
+        var result: Int?
+        makeSUT()
+            .update({ $0 += 1 }, remote: { _ in write.take(1).asSingle() })
+            .subscribe(onSuccess: { result = $0 })
+            .disposed(by: disposeBag)
+
+        // 서버 응답 전에 캐시가 먼저 바뀝니다.
+        XCTAssertEqual(cache.value, 11)
+
+        write.onNext(())
+
+        XCTAssertEqual(result, 11)
+        XCTAssertEqual(cache.updatedValues, [11])
+    }
+
+    func test_update_restoresCache_whenWriteFails() {
+        cache.value = 10
+        var error: Error?
+        makeSUT()
+            .update({ $0 += 1 }, remote: { _ in .error(TestError.remote) })
+            .subscribe(onFailure: { error = $0 })
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(cache.value, 10)
+        XCTAssertEqual(cache.updatedValues, [11, 10])
+        XCTAssertEqual(error as? TestError, .remote)
+    }
+
+    func test_update_doesNotRestoreCache_whenTargetChangedBeforeFailure() {
+        cache.value = 10
+        let write = PublishSubject<Void>()
+        makeSUT()
+            .update({ $0 += 1 }, remote: { _ in write.take(1).asSingle() })
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        isCurrent = false
+        write.onError(TestError.remote)
+
+        XCTAssertEqual(cache.updatedValues, [11])
+    }
+
+    func test_update_failsWithMissingLocal_whenCacheIsEmpty() {
+        var error: Error?
+        makeSUT()
+            .update({ $0 += 1 }, remote: { _ in .just(()) })
+            .subscribe(onFailure: { error = $0 })
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(error as? FetchError, .missingLocal)
+        XCTAssertTrue(cache.updatedValues.isEmpty)
+    }
+
+    // MARK: - timeout
+
+    func test_timeout_sendsFailureWithCache_whenServerDoesNotRespond() {
+        cache.value = 10
+        let scheduler = HistoricalScheduler()
+        let recorder = record(
+            makeSUT()
+                .timeout(.seconds(5), scheduler: scheduler)
+                .fetch()
+        )
+
+        scheduler.advanceTo(Date(timeIntervalSince1970: 4))
+        XCTAssertEqual(recorder.steps, [.loading(10)])
+
+        scheduler.advanceTo(Date(timeIntervalSince1970: 5))
+        XCTAssertEqual(recorder.steps, [.loading(10), .failure(10)])
+        XCTAssertEqual(recorder.failureError as? FetchError, .timeout)
+        XCTAssertEqual(cache.value, 10)
+    }
+
+    // MARK: - cleanUpNotFound
+
+    func test_cleanUpNotFound_sendsNotFoundAfterCleanUpCompletes() {
+        cache.value = 10
+        let cleanUp = PublishSubject<Never>()
+        let recorder = record(
+            makeSUT(cleanUpNotFound: { cleanUp.asCompletable() }).fetch()
+        )
+
+        remote.succeed(nil)
+        // 캐시는 바로 지우고, 뒷정리가 끝날 때까지 없음을 보내지 않습니다.
+        XCTAssertNil(cache.value)
+        XCTAssertEqual(recorder.steps, [.loading(10)])
+
+        cleanUp.onCompleted()
+        XCTAssertEqual(recorder.steps, [.loading(10), .notFound])
+    }
+
+    func test_cleanUpNotFound_sendsFailure_whenCleanUpFails() {
+        cache.value = 10
+        let recorder = record(
+            makeSUT(cleanUpNotFound: { .error(TestError.remote) }).fetch()
+        )
+
+        remote.succeed(nil)
+
+        XCTAssertEqual(recorder.steps, [.loading(10), .failure(nil)])
+        XCTAssertEqual(recorder.failureError as? TestError, .remote)
+    }
+
+    // MARK: - sharing
+
+    func test_sharing_sendsOneRequest_whenFetchedTwiceAtTheSameTime() {
+        cache.value = 10
+        let requests = FetchRequests<Int>()
+        let first = record(makeSUT().sharing(requests, key: "group").fetch())
+        let second = record(makeSUT().sharing(requests, key: "group").fetch())
+
+        remote.succeed(20)
+
+        XCTAssertEqual(remote.requestCount, 1)
+        XCTAssertEqual(first.steps, [.loading(10), .success(20)])
+        XCTAssertEqual(second.steps, [.loading(10), .success(20)])
+    }
+
+    func test_sharing_sendsNewRequest_afterPreviousRequestFinished() {
+        let requests = FetchRequests<Int>()
+        _ = record(makeSUT().sharing(requests, key: "group").refresh())
+        remote.succeed(20)
+
+        _ = record(makeSUT().sharing(requests, key: "group").refresh())
+
+        XCTAssertEqual(remote.requestCount, 2)
+    }
+
+    func test_sharing_skipsServer_whenValueWasReceivedWithinMaxAge() {
+        var now = Date(timeIntervalSince1970: 0)
+        let requests = FetchRequests<Int>(maxAge: 10, now: { now })
+        _ = record(makeSUT().sharing(requests, key: "group").fetch())
+        remote.succeed(20)
+
+        now = Date(timeIntervalSince1970: 9)
+        let recorder = record(makeSUT().sharing(requests, key: "group").fetch())
+
+        XCTAssertEqual(remote.requestCount, 1)
+        XCTAssertEqual(recorder.steps, [.loading(20), .success(20)])
+        XCTAssertTrue(recorder.isCompleted)
+    }
+
+    func test_sharing_asksServerAgain_afterMaxAge() {
+        var now = Date(timeIntervalSince1970: 0)
+        let requests = FetchRequests<Int>(maxAge: 10, now: { now })
+        _ = record(makeSUT().sharing(requests, key: "group").fetch())
+        remote.succeed(20)
+
+        now = Date(timeIntervalSince1970: 10)
+        _ = record(makeSUT().sharing(requests, key: "group").fetch())
+
+        XCTAssertEqual(remote.requestCount, 2)
+    }
+
+    func test_sharing_refreshAlwaysAsksServer_evenWithinMaxAge() {
+        let requests = FetchRequests<Int>(maxAge: 10)
+        _ = record(makeSUT().sharing(requests, key: "group").fetch())
+        remote.succeed(20)
+
+        _ = record(makeSUT().sharing(requests, key: "group").refresh())
+
+        XCTAssertEqual(remote.requestCount, 2)
+    }
+
+    func test_sharing_asksServerAgain_afterInvalidate() {
+        let requests = FetchRequests<Int>(maxAge: 10)
+        _ = record(makeSUT().sharing(requests, key: "group").fetch())
+        remote.succeed(20)
+
+        requests.invalidate(key: "group")
+        _ = record(makeSUT().sharing(requests, key: "group").fetch())
+
+        XCTAssertEqual(remote.requestCount, 2)
+    }
+
     // MARK: - logging
 
     func test_logging_keepsResultsAndCacheHandling() {
@@ -284,14 +507,19 @@ final class FetcherTests: XCTestCase {
 // MARK: - Helpers
 
 private extension FetcherTests {
-    func makeSUT() -> Fetcher<Int> {
+    func makeSUT(
+        observeLocal: (() -> Observable<Int?>)? = nil,
+        cleanUpNotFound: (() -> Completable)? = nil
+    ) -> Fetcher<Int> {
         let cache = cache!
         let remote = remote!
         return Fetcher(
             local: { cache.value },
+            observeLocal: observeLocal,
             remote: { remote.request() },
             updateLocal: { cache.update($0) },
             removeLocal: { cache.remove() },
+            cleanUpNotFound: cleanUpNotFound,
             isCurrent: { [weak self] in self?.isCurrent ?? false }
         )
     }
@@ -300,7 +528,12 @@ private extension FetcherTests {
         let recorder = Recorder<Step>()
         observable
             .subscribe(
-                onNext: { recorder.values.append(Step($0)) },
+                onNext: { result in
+                    recorder.values.append(Step(result))
+                    if case let .failure(error) = result.status {
+                        recorder.failureError = error
+                    }
+                },
                 onError: { recorder.error = $0 },
                 onCompleted: { recorder.isCompleted = true }
             )
@@ -350,6 +583,8 @@ private extension Recorder where Element == Step {
 private final class Recorder<Element> {
     var values: [Element] = []
     var error: Error?
+    /// `.failure` 단계에 담긴 에러입니다.
+    var failureError: Error?
     var isCompleted = false
 }
 
