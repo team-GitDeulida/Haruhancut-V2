@@ -493,6 +493,57 @@ final class FetcherTests: XCTestCase {
         XCTAssertEqual(remote.requestCount, 2)
     }
 
+    func test_sharing_dropsServerValue_thatStartedBeforeWrite() {
+        cache.value = 10
+        let requests = FetchRequests<Int>()
+        let reading = record(makeSUT().sharing(requests, key: "group").fetch())
+        let write = PublishSubject<Void>()
+        makeSUT().sharing(requests, key: "group")
+            .update({ $0 += 1 }, remote: { _ in write.take(1).asSingle() })
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        // 쓰기 전에 시작된 읽기가 예전 서버 값을 받습니다.
+        remote.succeed(5)
+
+        XCTAssertEqual(cache.value, 11)
+        XCTAssertEqual(reading.steps, [.loading(10)])
+        XCTAssertTrue(reading.isCompleted)
+    }
+
+    func test_sharing_dropsServerValue_thatStartedDuringWrite() {
+        cache.value = 10
+        let requests = FetchRequests<Int>()
+        let write = PublishSubject<Void>()
+        makeSUT().sharing(requests, key: "group")
+            .update({ $0 += 1 }, remote: { _ in write.take(1).asSingle() })
+            .subscribe()
+            .disposed(by: disposeBag)
+        let reading = record(makeSUT().sharing(requests, key: "group").fetch())
+
+        // 쓰기가 끝난 뒤에 응답이 와도, 쓰는 동안 시작된 읽기라 버립니다.
+        write.onNext(())
+        remote.succeed(5)
+
+        XCTAssertEqual(cache.value, 11)
+        XCTAssertEqual(reading.steps, [.loading(11)])
+    }
+
+    func test_sharing_appliesServerValue_thatStartedAfterWrite() {
+        cache.value = 10
+        let requests = FetchRequests<Int>()
+        makeSUT().sharing(requests, key: "group")
+            .update({ $0 += 1 }, remote: { _ in .just(()) })
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        let reading = record(makeSUT().sharing(requests, key: "group").fetch())
+        remote.succeed(20)
+
+        XCTAssertEqual(cache.value, 20)
+        XCTAssertEqual(reading.steps, [.loading(11), .success(20)])
+    }
+
     // MARK: - logging
 
     func test_logging_keepsResultsAndCacheHandling() {

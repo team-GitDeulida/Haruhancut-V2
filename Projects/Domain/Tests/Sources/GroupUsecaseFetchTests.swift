@@ -269,6 +269,31 @@ final class GroupUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(repository.addedCommentPaths.count, 1)
     }
 
+    func testAddCommentWritesToServerWhenNoGroupIsStored() {
+        groupSession.clear()
+        var isSucceeded = false
+
+        sut.addComment(post: makePost(), text: "hello")
+            .subscribe(onSuccess: { isSucceeded = true })
+            .disposed(by: disposeBag)
+
+        // 바꿀 캐시가 없어도 서버에는 씁니다.
+        XCTAssertTrue(isSucceeded)
+        XCTAssertEqual(repository.addedCommentPaths.count, 1)
+    }
+
+    func testDeletePostDeletesOnServerWhenNoGroupIsStored() {
+        groupSession.clear()
+        var isCompleted = false
+
+        sut.deletePostAndReload(post: makePost())
+            .subscribe(onCompleted: { isCompleted = true })
+            .disposed(by: disposeBag)
+
+        XCTAssertTrue(isCompleted)
+        XCTAssertEqual(repository.deletedPaths.count, 1)
+    }
+
     func testAddCommentRemovesCommentWhenServerFails() {
         let post = makePost()
         groupSession.update(makeGroup(name: "cached", posts: [post]).toSession())

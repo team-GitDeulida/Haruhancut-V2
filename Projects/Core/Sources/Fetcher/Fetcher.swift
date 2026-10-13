@@ -66,6 +66,8 @@ public enum FetchError: Error, Equatable {
     case timeout
     /// 쓰기 전에 바꿀 캐시가 없습니다.
     case missingLocal
+    /// 쓰기와 겹쳐 오래된 값일 수 있는 서버 응답입니다. Fetcher는 이 응답을 저장하지 않고 버립니다.
+    case staleResponse
 }
 
 /// 로컬 캐시를 먼저 보여 주고 서버 값으로 갱신하는 조회 정책입니다.
@@ -86,6 +88,8 @@ public struct Fetcher<Value> {
     private var cleanUpNotFound: (() -> Completable)?
     private var isCurrent: () -> Bool
     private var isFresh: () -> Bool
+    private var beginWrite: () -> UUID?
+    private var endWrite: (UUID?) -> Void
     private var log: (String, Bool) -> Void
 
     /// 캐시와 서버를 다루는 클로저로 Fetcher를 만듭니다.
@@ -117,6 +121,8 @@ public struct Fetcher<Value> {
         self.cleanUpNotFound = cleanUpNotFound
         self.isCurrent = isCurrent
         self.isFresh = { false }
+        self.beginWrite = { nil }
+        self.endWrite = { _ in }
         self.log = { _, _ in }
     }
 }
@@ -201,14 +207,19 @@ public extension Fetcher where Value: Equatable {
 
             var changed = original
             change(&changed)
+            // 쓰는 동안 도착하는 서버 응답이 바꾼 캐시를 덮어쓰지 않게 한다
+            let writeToken = beginWrite()
             updateLocal(changed)
 
             return write(changed)
                 .map { changed }
                 .do(onSuccess: { _ in
+                    endWrite(writeToken)
                     log("쓰기: 서버 반영 완료", false)
                 })
                 .catch { error in
+                    // 서버 값을 다시 받을 수 있도록 쓰기를 먼저 끝낸다
+                    endWrite(writeToken)
                     guard isCurrent() else {
                         return .error(error)
                     }
@@ -224,6 +235,9 @@ public extension Fetcher where Value: Equatable {
                     updateLocal(original)
                     return .error(error)
                 }
+                .do(onDispose: {
+                    endWrite(writeToken)
+                })
         }
     }
 }
@@ -259,6 +273,7 @@ public extension Fetcher {
     /// 같은 대상의 서버 요청을 하나로 합치고, 최근에 받은 값이면 `fetch()`가 서버를 건너뛰는 Fetcher를 돌려줍니다.
     ///
     /// 여러 화면이 동시에 같은 그룹을 요청하면 서버 요청 하나의 결과를 함께 받습니다.
+    /// `update(_:remote:)`가 진행 중이거나 쓰기 전에 시작된 서버 응답은 저장하지 않고 버립니다.
     /// `FetchRequests`를 만들 때 정한 시간 안에 서버 값을 받았다면 `fetch()`는 캐시를 `.success`로 보냅니다.
     /// `refresh()`는 항상 서버에 묻습니다.
     ///
@@ -275,6 +290,13 @@ public extension Fetcher {
         }
         fetcher.isFresh = {
             requests.isFresh(key: key)
+        }
+        fetcher.beginWrite = {
+            requests.beginWrite(key: key)
+        }
+        fetcher.endWrite = { token in
+            guard let token else { return }
+            requests.endWrite(key: key, token: token)
         }
         return fetcher
     }
@@ -318,7 +340,11 @@ public extension Fetcher {
                     log("서버 응답: \(value == nil ? "없음" : "값")", false)
                 },
                 onError: { error in
-                    log("서버 응답: 실패 (\(error))", true)
+                    if case FetchError.staleResponse = error {
+                        log("서버 응답: 쓰기와 겹친 오래된 응답이라 반영하지 않음", true)
+                    } else {
+                        log("서버 응답: 실패 (\(error))", true)
+                    }
                 },
                 onSubscribe: {
                     log("서버 요청", false)
@@ -386,6 +412,10 @@ private extension Fetcher {
                 return .just(FetchResult(status: .success, value: value))
             }
             .catch { error in
+                // 쓰기와 겹친 오래된 응답은 쓰기로 바꾼 캐시를 덮어쓰지 않도록 버린다
+                if case FetchError.staleResponse = error {
+                    return .empty()
+                }
                 // 지금 캐시는 다른 대상의 값이므로 실패와 함께 보내지 않는다
                 guard isCurrent() else {
                     return .empty()

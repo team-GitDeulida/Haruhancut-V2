@@ -241,13 +241,11 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let groupRepository = groupRepository
 
         // 저장된 그룹에 댓글을 먼저 넣고 서버에 쓴다. 실패하면 Fetcher가 되돌린다
-        return groupFetcher(groupId: groupId)
-            .update({ group in
-                group.updatePost(post) { $0.comments[commentId] = newComment }
-            }, remote: { _ in
-                groupRepository.addComment(path: path, value: newComment)
-            })
-            .map { _ in () }
+        return writeGroup(groupId: groupId, change: { group in
+            group.updatePost(post) { $0.comments[commentId] = newComment }
+        }, write: {
+            groupRepository.addComment(path: path, value: newComment)
+        })
     }
 
     public func deleteComment(post: Post, commentId: String) -> Single<Void> {
@@ -260,13 +258,11 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let groupRepository = groupRepository
 
         // 저장된 그룹에서 댓글을 먼저 빼고 서버에서 지운다. 실패하면 Fetcher가 되돌린다
-        return groupFetcher(groupId: groupId)
-            .update({ group in
-                group.updatePost(post) { $0.comments[commentId] = nil }
-            }, remote: { _ in
-                groupRepository.deleteComment(path: path)
-            })
-            .map { _ in () }
+        return writeGroup(groupId: groupId, change: { group in
+            group.updatePost(post) { $0.comments[commentId] = nil }
+        }, write: {
+            groupRepository.deleteComment(path: path)
+        })
     }
     
     public func uploadImageAndUploadPost(image: UIImage) -> Observable<Void> {
@@ -297,22 +293,13 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
                                 likeCount: 0, // 추후 사용 예정
                                 comments: [:])
                 
-                let write = self.groupRepository.updateGroup(path: dbPath, post: post)
-
-                // 저장된 그룹이 없으면 서버에만 쓴다. 다음 조회가 서버에서 받아 온다
-                guard self.groupSession.entity != nil else {
-                    return write.asObservable()
-                }
-
                 // 저장된 그룹에 게시물을 먼저 넣고 서버에 쓴다. 실패하면 Fetcher가 되돌린다
-                return self.groupFetcher(groupId: groupId)
-                    .update({ group in
-                        group.appendPost(post)
-                    }, remote: { _ in
-                        write
-                    })
-                    .asObservable()
-                    .mapToVoid()
+                return self.writeGroup(groupId: groupId, change: { group in
+                    group.appendPost(post)
+                }, write: {
+                    self.groupRepository.updateGroup(path: dbPath, post: post)
+                })
+                .asObservable()
             }
     }
     
@@ -327,16 +314,14 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let groupRepository = groupRepository
 
         // 저장된 그룹에서 게시물을 먼저 빼고 서버에서 지운다. 실패하면 Fetcher가 되돌린다
-        return groupFetcher(groupId: groupId)
-            .update({ group in
-                group.removePost(post)
-            }, remote: { _ in
-                groupRepository.deleteImage(path: storagePath)
-                    .catch { _ in .just(()) }   // 스토리지 삭제 실패는 무시하고 계속 진행
-                    .flatMap { groupRepository.deleteValue(path: dbPath) }
-            })
-            .asObservable()
-            .mapToVoid()
+        return writeGroup(groupId: groupId, change: { group in
+            group.removePost(post)
+        }, write: {
+            groupRepository.deleteImage(path: storagePath)
+                .catch { _ in .just(()) }   // 스토리지 삭제 실패는 무시하고 계속 진행
+                .flatMap { groupRepository.deleteValue(path: dbPath) }
+        })
+        .asObservable()
     }
 
     #if DEBUG
@@ -422,6 +407,23 @@ private extension GroupUsecaseImpl {
         .timeout(.seconds(15))
         .sharing(groupRequests, key: groupId)
         .logging("Group")
+    }
+
+    /// 저장된 그룹을 먼저 바꾸고 서버에 쓴다. 서버 쓰기가 실패하면 Fetcher가 되돌린다
+    /// - 저장된 그룹이 없으면(첫 실행, 저장 실패 등) 바꿀 캐시가 없으므로 서버에만 쓴다. 다음 조회가 서버에서 받아 온다
+    func writeGroup(
+        groupId: String,
+        change: @escaping (inout HCGroup) -> Void,
+        write: @escaping () -> Single<Void>
+    ) -> Single<Void> {
+        Single.deferred {
+            guard self.groupSession.entity != nil else {
+                return write()
+            }
+            return self.groupFetcher(groupId: groupId)
+                .update(change, remote: { _ in write() })
+                .map { _ in () }
+        }
     }
 
     /// 서버에 그룹이 없을 때 서버와 세션에서 유저의 groupId를 지운다

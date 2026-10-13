@@ -344,7 +344,7 @@ userFetcher(userId: userId)
 | 2-a. 서버 저장 성공 | 알림 꺼짐 | 그대로예요. |
 | 2-b. 서버 저장 실패 | 알림 켜짐 (되돌림) | 스위치가 다시 켜지고 에러로 끝나요. |
 
-실패했을 때 저장된 값이 바꾼 값 그대로면 원래 값으로 되돌려요. 그사이 다른 쓰기나 서버 값이 저장됐다면 그 변경까지 지우지 않도록 원래 값으로 덮어쓰지 않고, 서버 값을 다시 받아 저장해요. 이 비교 때문에 `update`는 `Equatable` 값에서만 쓸 수 있어요. 바꿀 캐시가 없으면 `FetchError.missingLocal`로 끝나고, 그사이 대상이 바뀌었으면(`isCurrent`가 `false`) 아무것도 바꾸지 않아요.
+실패했을 때 저장된 값이 바꾼 값 그대로면 원래 값으로 되돌려요. 그사이 다른 쓰기나 서버 값이 저장됐다면 그 변경까지 지우지 않도록 원래 값으로 덮어쓰지 않고, 서버 값을 다시 받아 저장해요. 이 비교 때문에 `update`는 `Equatable` 값에서만 쓸 수 있어요. `sharing(_:key:)`을 붙였다면 쓰는 동안이나 쓰기 전에 시작된 서버 응답은 예전 값일 수 있어 저장하지 않고 버려요. 그래서 피드가 그룹을 읽는 중에 게시물을 지워도, 뒤늦게 온 예전 응답이 지운 게시물을 되살리지 않아요. 바꿀 캐시가 없으면 `FetchError.missingLocal`로 끝나고, 그사이 대상이 바뀌었으면(`isCurrent`가 `false`) 아무것도 바꾸지 않아요.
 
 #### `fetchedValues()`: 상태를 떼고 값만 꺼내요
 
@@ -404,6 +404,7 @@ groupFetcher(groupId: groupId).fetch().fetchedValues()  // Observable<HCGroup>
 - 없는 데이터를 가리키는 서버 값이 있으면 `cleanUpNotFound`에서 정리해요. 그룹이 없을 때 세션의 `groupId`만 지우면, 다음 유저 조회가 서버의 예전 `groupId`를 다시 저장해요. 정리가 실패하면 `.failure`로 끝나고 세션의 `groupId`는 남아 다음 조회에서 다시 정리해요.
 - `FetchRequests`는 Usecase처럼 오래 사는 객체가 하나만 가져요. Fetcher를 만들 때마다 새로 만들면 요청을 합치지 못해요.
 - 서버에 쓴 뒤에는 `update(_:remote:)`로 저장된 값을 같이 바꾸거나 `refresh()`로 다시 받아요. 저장된 값을 바꾸지 않고 서버에만 쓰면, 10초 안의 `fetch()`가 예전 캐시를 보여 줄 수 있어요.
+- 바꿀 캐시가 없으면 `update`는 `FetchError.missingLocal`로 끝나요. `GroupUsecaseImpl.writeGroup`처럼 저장된 값이 없을 때는 서버에만 쓰도록 나눠요.
 - `observe()`는 끝나지 않아요. Reactor는 `transform(mutation:)`에서 한 번만 구독하고, `mutate`에서는 끝나는 `fetch()`·`refresh()`를 써요.
 
 ## RxCocoa 타입은 UI에 필요한 규칙을 보장해요
