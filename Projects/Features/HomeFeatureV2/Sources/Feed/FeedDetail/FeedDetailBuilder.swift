@@ -39,8 +39,8 @@ extension FeedDetailBuilder: FeedDetailBuildable {
             HomePresentationMode
     ) -> FeedDetailPresentable {
         @Dependency var groupUsecase: GroupUsecaseProtocol
-        let loadGroup =
-            HomeGroupLoaderFactory
+        let groupLoader =
+            HomeGroupLoader
                 .make(
                     mode: mode,
                     groupUsecase:
@@ -48,7 +48,7 @@ extension FeedDetailBuilder: FeedDetailBuildable {
                 )
         let vm =
             FeedDetailViewModel(
-                loadGroup: loadGroup,
+                groupLoader: groupLoader,
                 post: post
             )
         let vc =

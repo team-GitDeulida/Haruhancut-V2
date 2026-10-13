@@ -296,6 +296,16 @@ private final class DemoGroupUsecase:
         return .just(group)
     }
 
+    func observeGroup()
+        -> Observable<HCGroup>
+    {
+        groupSession
+            .asObservable()
+            .compactMap {
+                $0?.toEntity()
+            }
+    }
+
     func addComment(
         post: Post,
         text: String

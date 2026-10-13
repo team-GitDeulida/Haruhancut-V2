@@ -84,9 +84,8 @@ private extension HomeV2Coordinator {
         builder: HomeFeatureV2.FeedDetailBuilder,
         presentingViewController: UIViewController & RefreshableViewController
     ) {
-        let commentVC = builder.makeComment(post: post, onDismiss: {
-            presentingViewController.refresh()
-        })
+        // 상세 화면은 저장된 그룹을 구독하므로 댓글 시트를 닫을 때 따로 새로고침하지 않는다
+        let commentVC = builder.makeComment(post: post)
         commentVC.modalPresentationStyle = .pageSheet
         presentingViewController.present(commentVC, animated: true)
     }
@@ -134,9 +133,8 @@ private extension HomeV2Coordinator {
         builder: HomeFeatureV2.CalendarDetailBuilder,
         presentingViewController: UIViewController & RefreshableViewController
     ) {
-        let comment = builder.makeComment(post: post, onDismiss: {
-            presentingViewController.refresh()
-        })
+        // 상세 화면은 저장된 그룹을 구독하므로 댓글 시트를 닫을 때 따로 새로고침하지 않는다
+        let comment = builder.makeComment(post: post)
         comment.modalPresentationStyle = .pageSheet
         presentingViewController.present(comment, animated: true)
     }

@@ -5,6 +5,7 @@
 "home.navigation.back" = "ホームへ";
 "home.feed.bubble.add_photo" = "写真を追加";
 "home.feed.bubble.done_today" = "今日の写真を追加しました";
+"home.feed.load_failed" = "最新の情報を読み込めませんでした";
 "home.feed.delete.alert.title" = "削除の確認";
 "home.feed.delete.alert.message" = "この写真を削除しますか？";
 "home.feed.camera.action.camera" = "カメラで撮影";

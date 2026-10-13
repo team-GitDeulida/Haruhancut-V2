@@ -11,8 +11,7 @@ import Core
 import Domain
 
 final class CalendarReactor: Reactor {
-    private let loadGroup:
-        () -> Observable<HCGroup>
+    private let groupLoader: HomeGroupLoader
 
     enum Action {
         case viewDidAppear
@@ -28,12 +27,12 @@ final class CalendarReactor: Reactor {
 
     let initialState = State()
 
+    /// - Parameter groupLoader: 표시할 그룹을 조회하고 저장된 그룹의 변화를 구독하는 방법.
     init(
-        loadGroup:
-            @escaping () -> Observable<HCGroup>
+        groupLoader: HomeGroupLoader
     ) {
-        self.loadGroup =
-            loadGroup
+        self.groupLoader =
+            groupLoader
     }
 
     func mutate(action: Action) -> Observable<Mutation> {
@@ -51,11 +50,22 @@ final class CalendarReactor: Reactor {
         }
         return state
     }
+
+    /// 저장된 그룹이 바뀌면(피드에서 업로드·삭제 등) 다시 조회하지 않고 캘린더를 다시 그립니다.
+    func transform(mutation: Observable<Mutation>) -> Observable<Mutation> {
+        let storedGroupChanges = groupLoader.changes()
+            .map { Mutation.setPostsByDate($0.postsByDate) }
+            .catch { error in
+                Logger.e("CalendarReactor observeGroup failed: \(error)")
+                return .empty()
+            }
+        return .merge(mutation, storedGroupChanges)
+    }
 }
 
 private extension CalendarReactor {
     func loadCalendar() -> Observable<Mutation> {
-        loadGroup()
+        groupLoader.values()
             .map { Mutation.setPostsByDate($0.postsByDate) }
             .catch { error in
                 Logger.e("CalendarReactor loadAndFetchGroup failed: \(error)")

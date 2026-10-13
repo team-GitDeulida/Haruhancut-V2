@@ -18,8 +18,7 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
     public var onImagePreviewTapped: ((String) -> Void)?
 
     private let disposeBag = DisposeBag()
-    private let loadGroup:
-        () -> Observable<HCGroup>
+    private let groupLoader: HomeGroupLoader
     private let postsRelay: BehaviorRelay<[Post]>
 
     let selectedDate: Date
@@ -39,21 +38,20 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
     }
 
     public init(groupUsecase: GroupUsecaseProtocol, posts: [Post], selectedDate: Date) {
-        self.loadGroup = {
-            groupUsecase
-                .loadAndFetchGroup()
-        }
+        self.groupLoader = .make(
+            mode: .currentGroup,
+            groupUsecase: groupUsecase
+        )
         self.postsRelay = BehaviorRelay<[Post]>(value: posts)
         self.selectedDate = selectedDate
     }
 
     init(
-        loadGroup:
-            @escaping () -> Observable<HCGroup>,
+        groupLoader: HomeGroupLoader,
         posts: [Post],
         selectedDate: Date
     ) {
-        self.loadGroup = loadGroup
+        self.groupLoader = groupLoader
         self.postsRelay = BehaviorRelay<[Post]>(value: posts)
         self.selectedDate = selectedDate
     }
@@ -77,12 +75,16 @@ public final class CalendarDetailViewModel: CalendarDetailViewModelType {
             .distinctUntilChanged()
             .asDriver(onErrorJustReturn: 0)
 
-        input.reload
+        // 화면에 들어올 때 한 번 조회하고, 저장된 그룹이 바뀌면(댓글 작성·삭제 등) 바로 다시 그린다
+        let reloadedGroup = input.reload
             .withUnretained(self)
             .flatMap { owner, _ -> Observable<HCGroup> in
-                owner.loadGroup()
-                    .catch { _ in .empty() }
+                owner.groupLoader.values()
             }
+        let storedGroupChanges = groupLoader.changes()
+            .catch { _ in .empty() }
+
+        Observable.merge(reloadedGroup, storedGroupChanges)
             .withUnretained(self)
             .map { owner, group in
                 group.postsByDate[owner.selectedDate.toDateKey()] ?? []

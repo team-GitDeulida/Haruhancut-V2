@@ -19,8 +19,7 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
     public var onCommentTapped: ((Post) -> Void)?
     public var onImagePreviewTapped: ((String) -> Void)?
 
-    private let loadGroup:
-        () -> Observable<HCGroup>
+    private let groupLoader: HomeGroupLoader
     private let disposeBag = DisposeBag()
     private let postRelay: BehaviorRelay<Post>
 
@@ -36,19 +35,18 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
     }
 
     public init(groupUsecase: GroupUsecaseProtocol, post: Post) {
-        self.loadGroup = {
-            groupUsecase
-                .loadAndFetchGroup()
-        }
+        self.groupLoader = .make(
+            mode: .currentGroup,
+            groupUsecase: groupUsecase
+        )
         self.postRelay = BehaviorRelay(value: post)
     }
 
     init(
-        loadGroup:
-            @escaping () -> Observable<HCGroup>,
+        groupLoader: HomeGroupLoader,
         post: Post
     ) {
-        self.loadGroup = loadGroup
+        self.groupLoader = groupLoader
         self.postRelay = BehaviorRelay(value: post)
     }
 
@@ -74,12 +72,16 @@ public final class FeedDetailViewModel: FeedDetailViewModelType {
             .distinctUntilChanged()
             .asDriver(onErrorJustReturn: 0)
 
-        input.reload
+        // 화면에 들어올 때 한 번 조회하고, 저장된 그룹이 바뀌면(댓글 작성·삭제 등) 바로 다시 그린다
+        let reloadedGroup = input.reload
             .withUnretained(self)
             .flatMapLatest { owner, _ in
-                owner.loadGroup()
-                    .catch { _ in .empty() }
+                owner.groupLoader.values()
             }
+        let storedGroupChanges = groupLoader.changes()
+            .catch { _ in .empty() }
+
+        Observable.merge(reloadedGroup, storedGroupChanges)
             .withUnretained(self)
             .map { owner, group -> Post? in
                 group.postsByDate

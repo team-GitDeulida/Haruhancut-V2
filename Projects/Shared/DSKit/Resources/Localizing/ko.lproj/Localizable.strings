@@ -13,6 +13,7 @@
 "home.navigation.back" = "홈으로";
 "home.feed.bubble.add_photo" = "사진 추가하기";
 "home.feed.bubble.done_today" = "오늘 사진 추가 완료";
+"home.feed.load_failed" = "최신 정보를 불러오지 못했어요";
 "home.feed.delete.alert.title" = "삭제 확인";
 "home.feed.delete.alert.message" = "이 사진을 삭제하시겠습니까?";
 "home.feed.camera.action.camera" = "카메라로 찍기";

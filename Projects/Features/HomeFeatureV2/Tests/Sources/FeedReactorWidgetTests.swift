@@ -5,11 +5,12 @@ import RxSwift
 import UIKit
 import XCTest
 
-/// `FeedReactor`가 그룹 조회와 삭제 시점에 위젯 동기화를 요청하는지 확인합니다.
+/// `FeedReactor`가 저장된 그룹의 변화와 조회 단계로 피드·로딩·위젯을 맞추는지 확인합니다.
 ///
 /// `FeedReactor`는 세션과 `AuthUsecaseProtocol`을 `@Dependency`로 생성 시점에 꺼내므로,
 /// 테스트마다 메모리 저장소 기반 세션과 대역을 `DIContainer`에 등록합니다.
 final class FeedReactorWidgetTests: XCTestCase {
+    private let disposeBag = DisposeBag()
     private let user = User(
         uid: "user",
         registerDate: .now,
@@ -42,26 +43,98 @@ final class FeedReactorWidgetTests: XCTestCase {
         )
     }
 
-    func testLoadingFeedSynchronizesWidgetWithLoadedGroup() {
+    func testStoredGroupChangeRedrawsFeedAndSynchronizesWidget() {
         let post = makePost(id: "today-post")
+        let storedGroup = PublishSubject<HCGroup>()
         let widgetUsecase = SpyWidgetUsecase()
         let reactor = FeedReactor(
-            loadGroup: { .just(self.makeGroup(posts: [post])) },
+            groupLoader: makeLoader(changes: storedGroup),
             groupUsecase: nil,
             widgetUsecase: widgetUsecase
+        )
+        _ = reactor.state
+
+        storedGroup.onNext(makeGroup(posts: [post]))
+
+        XCTAssertEqual(reactor.currentState.components.map(\.post.postId), ["today-post"])
+        XCTAssertEqual(widgetUsecase.synchronizedPostIDs, [["today-post"]])
+    }
+
+    func testLoadingStaysVisibleUntilServerResponds() {
+        let fetch = PublishSubject<FetchResult<HCGroup>>()
+        let reactor = FeedReactor(
+            groupLoader: makeLoader(fetch: { _ in fetch }),
+            groupUsecase: nil
+        )
+
+        reactor.action.onNext(.viewDidLoad)
+        fetch.onNext(FetchResult(status: .loading, value: nil))
+        XCTAssertTrue(reactor.currentState.isLoading)
+
+        fetch.onNext(FetchResult(status: .success, value: makeGroup(posts: [makePost(id: "post")])))
+        XCTAssertFalse(reactor.currentState.isLoading)
+        XCTAssertEqual(reactor.currentState.components.map(\.post.postId), ["post"])
+    }
+
+    func testFetchFailureKeepsFeedAndNotifiesOnce() {
+        let cached = makeGroup(posts: [makePost(id: "cached-post")])
+        let reactor = FeedReactor(
+            groupLoader: makeLoader(fetch: { _ in
+                .of(
+                    FetchResult(status: .loading, value: cached),
+                    FetchResult(status: .failure(TestError()), value: cached)
+                )
+            }),
+            groupUsecase: nil
+        )
+        var failureCount = 0
+        reactor.pulse(\.$loadFailure)
+            .compactMap { $0 }
+            .subscribe(onNext: { failureCount += 1 })
+            .disposed(by: disposeBag)
+
+        reactor.action.onNext(.viewDidLoad)
+
+        XCTAssertEqual(failureCount, 1)
+        XCTAssertFalse(reactor.currentState.isLoading)
+        XCTAssertEqual(reactor.currentState.components.map(\.post.postId), ["cached-post"])
+    }
+
+    func testRefreshAsksServerEvenWithRecentGroup() {
+        var forceFlags: [Bool] = []
+        let reactor = FeedReactor(
+            groupLoader: makeLoader(fetch: { force in
+                forceFlags.append(force)
+                return .empty()
+            }),
+            groupUsecase: nil
+        )
+
+        reactor.action.onNext(.viewDidLoad)
+        reactor.action.onNext(.refresh)
+
+        XCTAssertEqual(forceFlags, [false, true])
+    }
+
+    func testAdminPreviewDrawsFeedFromFetchResultWithoutTouchingWidget() {
+        let reactor = FeedReactor(
+            groupLoader: makeLoader(fetch: { _ in
+                .just(FetchResult(status: .success, value: self.makeGroup(posts: [self.makePost(id: "other-group-post")])))
+            }),
+            groupUsecase: nil,
+            widgetUsecase: nil
         )
 
         reactor.action.onNext(.viewDidLoad)
 
-        XCTAssertEqual(widgetUsecase.synchronizedPostIDs, [["today-post"]])
-        XCTAssertTrue(widgetUsecase.removedPostIDs.isEmpty)
+        XCTAssertEqual(reactor.currentState.components.map(\.post.postId), ["other-group-post"])
     }
 
     func testDeletingPostRemovesWidgetPhotoAfterServerDeletion() {
         let post = makePost(id: "deleted-post")
         let widgetUsecase = SpyWidgetUsecase()
         let reactor = FeedReactor(
-            loadGroup: { .empty() },
+            groupLoader: makeLoader(),
             groupUsecase: StubGroupUsecase(deletion: .just(())),
             widgetUsecase: widgetUsecase
         )
@@ -69,14 +142,13 @@ final class FeedReactorWidgetTests: XCTestCase {
         reactor.action.onNext(.deleteConfirmed(post))
 
         XCTAssertEqual(widgetUsecase.removedPostIDs, ["deleted-post"])
-        // 남은 오늘 사진으로 위젯을 다시 맞춥니다.
-        XCTAssertEqual(widgetUsecase.synchronizedPostIDs.count, 1)
+        XCTAssertFalse(reactor.currentState.isLoading)
     }
 
     func testFailedDeletionKeepsWidgetPhoto() {
         let widgetUsecase = SpyWidgetUsecase()
         let reactor = FeedReactor(
-            loadGroup: { .empty() },
+            groupLoader: makeLoader(),
             groupUsecase: StubGroupUsecase(deletion: .error(TestError())),
             widgetUsecase: widgetUsecase
         )
@@ -84,7 +156,17 @@ final class FeedReactorWidgetTests: XCTestCase {
         reactor.action.onNext(.deleteConfirmed(makePost(id: "deleted-post")))
 
         XCTAssertTrue(widgetUsecase.removedPostIDs.isEmpty)
-        XCTAssertTrue(widgetUsecase.synchronizedPostIDs.isEmpty)
+        XCTAssertFalse(reactor.currentState.isLoading)
+    }
+
+    private func makeLoader(
+        fetch: @escaping (Bool) -> Observable<FetchResult<HCGroup>> = { _ in .empty() },
+        changes: Observable<HCGroup> = .empty()
+    ) -> HomeGroupLoader {
+        HomeGroupLoader(
+            fetch: fetch,
+            changes: { changes }
+        )
     }
 
     private func makeGroup(posts: [Post]) -> HCGroup {

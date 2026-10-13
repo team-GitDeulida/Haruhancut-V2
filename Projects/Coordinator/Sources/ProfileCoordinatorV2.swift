@@ -59,9 +59,8 @@ public final class ProfileCoordinatorV2: NSObject, Coordinator {
             feedDetail.vm.onCommentTapped = { [weak self] post in
                 guard let self = self else { return }
                 
-                let commentVC = builder.makeComment(post: post, onDismiss: { [weak feedDetailViewController] in
-                    feedDetailViewController?.refresh()
-                })
+                // 상세 화면은 저장된 그룹을 구독하므로 댓글 시트를 닫을 때 따로 새로고침하지 않는다
+                let commentVC = builder.makeComment(post: post)
                 commentVC.modalPresentationStyle = UIModalPresentationStyle.pageSheet
                 self.navigationController.present(commentVC, animated: true)
             }

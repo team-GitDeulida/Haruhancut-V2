@@ -12,10 +12,8 @@ import Domain
 
 final class FeedReactor: Reactor {
     @Dependency private var userSession: UserSession
-    @Dependency private var groupSession: GroupSession
     @Dependency private var authUsecase: AuthUsecaseProtocol
-    private let loadGroup:
-        () -> Observable<HCGroup>
+    private let groupLoader: HomeGroupLoader
     private let groupUsecase:
         GroupUsecaseProtocol?
     private let widgetUsecase:
@@ -35,6 +33,7 @@ final class FeedReactor: Reactor {
             components: [FeedComponent],
             didTodayUpload: Bool
         )
+        case notifyLoadFailure
     }
 
     struct State {
@@ -42,23 +41,24 @@ final class FeedReactor: Reactor {
         var isLoading: Bool = false
         var components: [FeedComponent] = []
         var didTodayUpload: Bool = false
+        /// 서버에서 최신 피드를 받지 못했을 때 한 번 알립니다.
+        @Pulse var loadFailure: Void?
     }
 
     let initialState = State()
 
     /// - Parameters:
-    ///   - loadGroup: 표시할 그룹을 불러오는 동작.
+    ///   - groupLoader: 표시할 그룹을 조회하고 저장된 그룹의 변화를 구독하는 방법.
     ///   - groupUsecase: 게시물 삭제에 쓰는 Usecase. 읽기 전용 화면에서는 `nil`입니다.
     ///   - widgetUsecase: 홈 화면 위젯 저장소를 맞추는 Usecase. 내 그룹을 표시할 때만 전달합니다.
     init(
-        loadGroup:
-            @escaping () -> Observable<HCGroup>,
+        groupLoader: HomeGroupLoader,
         groupUsecase:
             GroupUsecaseProtocol?,
         widgetUsecase:
             WidgetUsecaseProtocol? = nil
     ) {
-        self.loadGroup = loadGroup
+        self.groupLoader = groupLoader
         self.groupUsecase =
             groupUsecase
         self.widgetUsecase =
@@ -68,16 +68,12 @@ final class FeedReactor: Reactor {
     func mutate(action: Action) -> Observable<Mutation> {
         switch action {
         case .viewDidAppear:
-            return loadFeed()
+            return loadFeed(force: false)
         case .viewDidLoad:
-            return loadFeed()
+            return loadFeed(force: false)
         case .refresh:
-            return loadFeed()
-            /*
-            Observable.just(())
-                .delay(.seconds(1), scheduler: MainScheduler.instance)
-                .flatMap { self.loadFeed() }
-             */
+            // 당겨서 새로고침하면 최근에 받은 그룹이 있어도 서버에 묻는다
+            return loadFeed(force: true)
         case .deleteConfirmed(let post):
             return deletePost(post)
         }
@@ -93,77 +89,36 @@ final class FeedReactor: Reactor {
         case .setFeed(let components, let didTodayUpload):
             state.components = components
             state.didTodayUpload = didTodayUpload
+        case .notifyLoadFailure:
+            state.loadFailure = ()
         }
         return state
+    }
+
+    /// 저장된 그룹이 바뀌면(업로드·삭제·댓글, 다른 화면의 조회) 피드와 위젯을 다시 맞춥니다.
+    ///
+    /// 관리자 미리보기는 저장된 그룹이 없어 아무것도 보내지 않습니다.
+    func transform(mutation: Observable<Mutation>) -> Observable<Mutation> {
+        let storedGroupChanges = groupLoader.changes()
+            .do(onNext: { [weak self] group in
+                self?.widgetUsecase?.synchronize(
+                    postsByDate: group.postsByDate
+                )
+            })
+            .withUnretained(self)
+            .map { owner, group in
+                owner.makeFeedMutation(from: group.postsByDate)
+            }
+            .catch { error in
+                Logger.e("FeedReactor observeGroup failed: \(error)")
+                return .empty()
+            }
+        return .merge(mutation, storedGroupChanges)
     }
 }
 
 private extension FeedReactor {
-    func loadFeed() -> Observable<Mutation> {
-        Observable.concat([
-            .just(.setLoading(true)),
-            reloadFeed(),
-            .just(.setLoading(false))
-        ])
-    }
-
-    func deletePost(_ post: Post) -> Observable<Mutation> {
-        guard
-            let groupUsecase
-        else {
-            return .empty()
-        }
-        let previousComponents = currentState.components
-        let previousDidTodayUpload = currentState.didTodayUpload
-        let remainingComponents = previousComponents.filter {
-            $0.post.postId != post.postId
-        }
-        let remainingDidTodayUpload = Self.didTodayUpload(
-            in: remainingComponents,
-            currentUserID: userSession.userId
-        )
-
-        let synchronizeDeletion = groupUsecase
-            .deletePostAndReload(post: post)
-            .flatMap { [weak self] _ -> Observable<Mutation> in
-                guard let self = self else { return .empty() }
-                // 서버에서 삭제된 뒤에만 위젯 사진을 지우고, 남은 오늘 사진으로 다시 맞춥니다.
-                self.widgetUsecase?.removePhoto(of: post)
-                self.widgetUsecase?.synchronize(
-                    postsByDate: self.groupSession.postsByDate
-                )
-                return .just(
-                    self.makeFeedMutation(
-                        from: self.groupSession.postsByDate
-                    )
-                )
-            }
-            .catch { error in
-                Logger.e(
-                    "FeedReactor deletePostAndReload failed: \(error)"
-                )
-                return .just(
-                    .setFeed(
-                        components: previousComponents,
-                        didTodayUpload: previousDidTodayUpload
-                    )
-                )
-            }
-
-        return Observable.concat([
-            .just(.setLoading(true)),
-            .just(
-                .setFeed(
-                    components: remainingComponents,
-                    didTodayUpload: remainingDidTodayUpload
-                )
-            ),
-            synchronizeDeletion,
-            .just(.setLoading(false))
-        ])
-    }
-
-    func reloadFeed() -> Observable<Mutation> {
+    func loadFeed(force: Bool) -> Observable<Mutation> {
         let loadUser: Observable<Mutation> = authUsecase
             .loadAndFetchUser()
             .map(Mutation.setUser)
@@ -173,23 +128,77 @@ private extension FeedReactor {
             }
             .asObservable()
 
-        let loadGroup: Observable<Mutation> =
-            loadGroup()
-            .do(onNext: { [weak self] group in
-                self?.widgetUsecase?.synchronize(
-                    postsByDate: group.postsByDate
-                )
-            })
-            .map { group -> Mutation in
-                self.makeFeedMutation(from: group.postsByDate)
+        let loadGroup: Observable<Mutation> = groupLoader
+            .fetch(force)
+            .withUnretained(self)
+            .flatMap { owner, result in
+                Observable.from(owner.mutations(for: result))
             }
             .catch { error in
-                Logger.e("FeedReactor loadAndFetchGroup failed: \(error)")
-                return .empty()
+                Logger.e("FeedReactor fetchGroup failed: \(error)")
+                return .from([.setLoading(false), .notifyLoadFailure])
             }
-            .asObservable()
 
         return Observable.merge([loadUser, loadGroup])
+    }
+
+    /// 조회 단계를 피드 상태로 바꿉니다.
+    ///
+    /// - `.loading`: 로딩을 표시합니다. 캐시가 있으면 캐시로 먼저 그립니다.
+    /// - `.success`: 서버 그룹으로 그리고 로딩을 숨깁니다.
+    /// - `.failure`: 캐시는 그대로 두고 실패를 알립니다.
+    /// - `.notFound`: 로딩만 숨깁니다. 세션이 지워져 AppCoordinator가 화면을 바꿉니다.
+    func mutations(for result: FetchResult<HCGroup>) -> [Mutation] {
+        var mutations: [Mutation] = []
+        // 관리자 미리보기는 저장된 그룹 구독이 없으므로 조회 결과로 피드를 그린다
+        if let group = result.value {
+            mutations.append(makeFeedMutation(from: group.postsByDate))
+        }
+
+        switch result.status {
+        case .loading:
+            mutations.append(.setLoading(true))
+        case .success, .notFound:
+            mutations.append(.setLoading(false))
+        case .failure(let error):
+            Logger.e("FeedReactor fetchGroup failed: \(error)")
+            mutations.append(.setLoading(false))
+            mutations.append(.notifyLoadFailure)
+        }
+        return mutations
+    }
+
+    /// 게시물을 지웁니다.
+    ///
+    /// 저장된 그룹에서 먼저 빠지므로 피드는 그룹 구독으로 바로 바뀝니다.
+    /// 서버 삭제가 실패하면 저장된 그룹이 되돌아가고 피드도 따라 돌아옵니다.
+    func deletePost(_ post: Post) -> Observable<Mutation> {
+        guard
+            let groupUsecase
+        else {
+            return .empty()
+        }
+
+        let deletion = groupUsecase
+            .deletePostAndReload(post: post)
+            .take(1)
+            .do(onNext: { [weak self] _ in
+                // 서버에서 삭제된 뒤에만 위젯 사진을 지운다. 남은 사진은 그룹 구독이 다시 맞춘다
+                self?.widgetUsecase?.removePhoto(of: post)
+            })
+            .flatMap { _ in Observable<Mutation>.empty() }
+            .catch { error in
+                Logger.e(
+                    "FeedReactor deletePostAndReload failed: \(error)"
+                )
+                return .empty()
+            }
+
+        return Observable.concat([
+            .just(.setLoading(true)),
+            deletion,
+            .just(.setLoading(false))
+        ])
     }
 
     func makeFeedMutation(from postsByDate: [String: [Post]]) -> Mutation {
