@@ -155,47 +155,153 @@ final class GroupUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(repository.fetchGroupCount, 0)
     }
 
-    // MARK: - 쓰기 후 다시 읽기
+    // MARK: - 구독·단계·요청 합치기
 
-    func testDeletePostAndReloadSendsOnceAfterSavingServerGroup() {
-        repository.fetchGroupResponse = .just(makeGroup(name: "server"))
-        var count = 0
-        var isCompleted = false
-
-        sut.deletePostAndReload(post: makePost())
-            .subscribe(
-                onNext: { count += 1 },
-                onCompleted: { isCompleted = true }
-            )
+    func testObserveGroupSendsStoredGroupAndChangesWithoutServer() {
+        var names: [String] = []
+        sut.observeGroup()
+            .subscribe(onNext: { names.append($0.groupName) })
             .disposed(by: disposeBag)
 
-        XCTAssertEqual(count, 1)
-        XCTAssertTrue(isCompleted)
-        XCTAssertEqual(repository.fetchGroupCount, 1)
-        XCTAssertEqual(repository.deletedPaths.count, 1)
-        XCTAssertEqual(groupSession.groupName, "server")
+        groupSession.update(makeGroup(name: "changed").toSession())
+        // 같은 그룹을 다시 저장해도 다시 보내지 않습니다.
+        groupSession.update(makeGroup(name: "changed").toSession())
+
+        XCTAssertEqual(names, ["cached", "changed"])
+        XCTAssertEqual(repository.fetchGroupCount, 0)
     }
 
-    func testDeletePostAndReloadSendsOnceWhenReloadIsDropped() {
-        // 삭제 후 다시 읽는 동안 다른 그룹으로 바뀌었습니다.
-        repository.fetchGroupResponse = .deferred { [userSession] in
-            userSession?.update(\.groupId, "other")
-            return .just(self.makeGroup(name: "server"))
-        }
+    func testFetchGroupResultSendsLoadingThenSuccess() {
+        repository.fetchGroupResponse = .just(makeGroup(name: "server"))
+        var steps: [String] = []
+
+        sut.fetchGroupResult()
+            .subscribe(onNext: { result in
+                steps.append("\(result.status)-\(result.value?.groupName ?? "nil")")
+            })
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(steps, ["loading-cached", "success-server"])
+    }
+
+    func testLoadAndFetchGroupSharesOneRequestWhenCalledTogether() {
+        let response = PublishSubject<HCGroup?>()
+        repository.fetchGroupResponse = response.take(1).asSingle()
+        let first = record(sut.loadAndFetchGroup())
+        let second = record(sut.loadAndFetchGroup())
+
+        response.onNext(makeGroup(name: "server"))
+
+        XCTAssertEqual(repository.fetchGroupCount, 1)
+        XCTAssertEqual(first.values.map(\.groupName), ["cached", "server"])
+        XCTAssertEqual(second.values.map(\.groupName), ["cached", "server"])
+    }
+
+    func testLoadAndFetchGroupSkipsServerRightAfterReceivingGroup() {
+        repository.fetchGroupResponse = .just(makeGroup(name: "server"))
+        _ = record(sut.loadAndFetchGroup())
+
+        let recorder = record(sut.loadAndFetchGroup())
+
+        XCTAssertEqual(repository.fetchGroupCount, 1)
+        XCTAssertEqual(recorder.values.map(\.groupName), ["server"])
+        XCTAssertTrue(recorder.isCompleted)
+    }
+
+    func testRefreshGroupResultAsksServerEvenRightAfterReceivingGroup() {
+        repository.fetchGroupResponse = .just(makeGroup(name: "server"))
+        _ = record(sut.loadAndFetchGroup())
+
+        sut.refreshGroupResult()
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(repository.fetchGroupCount, 2)
+    }
+
+    // MARK: - 쓰기 (먼저 바꾸고, 실패하면 되돌리기)
+
+    func testDeletePostRemovesPostFromStoredGroupWithoutServerRead() {
+        let post = makePost()
+        groupSession.update(makeGroup(name: "cached", posts: [post]).toSession())
         var count = 0
         var isCompleted = false
 
-        sut.deletePostAndReload(post: makePost())
+        sut.deletePostAndReload(post: post)
             .subscribe(
                 onNext: { count += 1 },
                 onCompleted: { isCompleted = true }
             )
             .disposed(by: disposeBag)
 
-        // 삭제는 서버에서 성공했으므로 호출부가 위젯 정리를 이어 갈 수 있게 한 번 보냅니다.
         XCTAssertEqual(count, 1)
         XCTAssertTrue(isCompleted)
-        XCTAssertEqual(groupSession.groupName, "cached")
+        XCTAssertEqual(repository.fetchGroupCount, 0)
+        XCTAssertEqual(repository.deletedPaths.count, 1)
+        XCTAssertTrue(storedPosts().isEmpty)
+    }
+
+    func testDeletePostRestoresPostWhenServerDeletionFails() {
+        let post = makePost()
+        groupSession.update(makeGroup(name: "cached", posts: [post]).toSession())
+        repository.postDeletionResponse = .error(TestError.remote)
+        var error: Error?
+
+        sut.deletePostAndReload(post: post)
+            .subscribe(onError: { error = $0 })
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(error as? TestError, .remote)
+        XCTAssertEqual(storedPosts().map(\.postId), [post.postId])
+    }
+
+    func testAddCommentShowsCommentBeforeServerResponds() {
+        let post = makePost()
+        groupSession.update(makeGroup(name: "cached", posts: [post]).toSession())
+        let write = PublishSubject<Void>()
+        repository.addCommentResponse = write.take(1).asSingle()
+
+        sut.addComment(post: post, text: "hello")
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(storedPosts().first?.comments.values.map(\.text), ["hello"])
+        XCTAssertEqual(repository.addedCommentPaths.count, 1)
+    }
+
+    func testAddCommentRemovesCommentWhenServerFails() {
+        let post = makePost()
+        groupSession.update(makeGroup(name: "cached", posts: [post]).toSession())
+        repository.addCommentResponse = .error(TestError.remote)
+        var error: Error?
+
+        sut.addComment(post: post, text: "hello")
+            .subscribe(onFailure: { error = $0 })
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(error as? TestError, .remote)
+        XCTAssertEqual(storedPosts().first?.comments.isEmpty, true)
+    }
+
+    func testDeleteCommentRestoresCommentWhenServerFails() {
+        let comment = Comment(
+            commentId: "comment",
+            userId: "user",
+            nickname: "user",
+            profileImageURL: nil,
+            text: "hello",
+            createdAt: .now
+        )
+        var post = makePost()
+        post.comments = ["comment": comment]
+        groupSession.update(makeGroup(name: "cached", posts: [post]).toSession())
+        repository.deleteCommentResponse = .error(TestError.remote)
+
+        sut.deleteComment(post: post, commentId: "comment")
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(storedPosts().first?.comments["comment"], comment)
     }
 }
 
@@ -227,16 +333,20 @@ private extension GroupUsecaseFetchTests {
         )
     }
 
-    func makeGroup(name: String) -> HCGroup {
+    func makeGroup(name: String, posts: [Post] = []) -> HCGroup {
         HCGroup(
             groupId: "group",
             groupName: name,
-            createdAt: .now,
+            createdAt: Date(timeIntervalSince1970: 0),
             hostUserId: "user",
             inviteCode: "code",
             members: [:],
-            postsByDate: [:]
+            postsByDate: posts.isEmpty ? [:] : [Date.now.toDateKey(): posts]
         )
+    }
+
+    func storedPosts() -> [Post] {
+        groupSession.postsByDate.values.flatMap { $0 }
     }
 
     func makePost() -> Post {
@@ -264,8 +374,12 @@ private final class Recorder<Element> {
 private final class FakeGroupRepository: GroupRepositoryProtocol {
     var fetchGroupResponse: Single<HCGroup?> = .never()
     var groupIdDeletionResponse: Single<Void> = .just(())
+    var postDeletionResponse: Single<Void> = .just(())
+    var addCommentResponse: Single<Void> = .just(())
+    var deleteCommentResponse: Single<Void> = .just(())
     private(set) var fetchGroupCount = 0
     private(set) var deletedPaths: [String] = []
+    private(set) var addedCommentPaths: [String] = []
 
     func fetchGroup(groupId _: String) -> Single<HCGroup?> {
         fetchGroupCount += 1
@@ -282,8 +396,9 @@ private final class FakeGroupRepository: GroupRepositoryProtocol {
                 self?.deletedPaths.append(path)
             })
         }
-        deletedPaths.append(path)
-        return .just(())
+        return postDeletionResponse.do(onSuccess: { [weak self] in
+            self?.deletedPaths.append(path)
+        })
     }
 
     func createGroup(groupName _: String) -> Single<(groupId: String, inviteCode: String)> { .never() }
@@ -292,7 +407,13 @@ private final class FakeGroupRepository: GroupRepositoryProtocol {
     func updateBirthdaySettings(groupId _: String, settings _: GroupBirthdaySettings) -> Single<Void> { .never() }
     func updateUserGroupId(groupId _: String) -> Single<Void> { .never() }
     func uploadImage(image _: UIImage, path _: String) -> Single<URL> { .never() }
-    func addComment(path _: String, value _: Comment) -> Single<Void> { .never() }
-    func deleteComment(path _: String) -> Single<Void> { .never() }
+    func addComment(path: String, value _: Comment) -> Single<Void> {
+        addedCommentPaths.append(path)
+        return addCommentResponse
+    }
+
+    func deleteComment(path _: String) -> Single<Void> {
+        deleteCommentResponse
+    }
     func observeValueStream<T: Decodable>(path _: String, type _: T.Type) -> Observable<T> { .never() }
 }

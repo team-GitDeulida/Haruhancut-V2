@@ -144,6 +144,32 @@ final class AuthUsecaseFetchTests: XCTestCase {
         XCTAssertEqual(repository.fetchUserCount, 0)
     }
 
+    // MARK: - 푸시 설정 (먼저 바꾸고, 실패하면 되돌리기)
+
+    func testUpdatePushEnabledChangesSessionBeforeServerResponds() {
+        let write = PublishSubject<User>()
+        repository.updateUserResponse = write.take(1).asSingle()
+
+        sut.updatePushEnabled(false)
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(userSession.session?.isPushEnabled, false)
+        XCTAssertEqual(repository.updatedUsers.map(\.isPushEnabled), [false])
+    }
+
+    func testUpdatePushEnabledRestoresSessionWhenServerFails() {
+        repository.updateUserResponse = .error(TestError.remote)
+        var error: Error?
+
+        sut.updatePushEnabled(false)
+            .subscribe(onFailure: { error = $0 })
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(error as? TestError, .remote)
+        XCTAssertEqual(userSession.session?.isPushEnabled, true)
+    }
+
     // MARK: - 쓰기 후 다시 읽기
 
     func testUpdateNicknameReturnsServerUserOnly() {
@@ -222,6 +248,8 @@ private final class Recorder<Element> {
 /// 유저 조회와 저장만 흉내 내는 저장소입니다.
 private final class FakeAuthRepository: AuthRepositoryProtocol {
     var fetchUserResponse: Single<User?> = .never()
+    /// 정하지 않으면 받은 유저를 그대로 돌려줍니다.
+    var updateUserResponse: Single<User>?
     private(set) var fetchUserCount = 0
     private(set) var updatedUsers: [User] = []
 
@@ -232,7 +260,7 @@ private final class FakeAuthRepository: AuthRepositoryProtocol {
 
     func updateUser(user: User) -> Single<User> {
         updatedUsers.append(user)
-        return .just(user)
+        return updateUserResponse ?? .just(user)
     }
 
     func loginWithKakao() -> Single<String> { .never() }

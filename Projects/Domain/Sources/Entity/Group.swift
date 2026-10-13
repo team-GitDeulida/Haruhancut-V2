@@ -45,7 +45,7 @@ public struct GroupBirthdaySettings:
         )
 }
 
-public struct HCGroup: Encodable, Decodable, CustomStringConvertible {
+public struct HCGroup: Encodable, Decodable, Equatable, CustomStringConvertible {
     public let groupId: String
     public let groupName: String
     public let createdAt: Date

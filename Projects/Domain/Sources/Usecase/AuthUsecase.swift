@@ -33,6 +33,8 @@ public protocol AuthUsecaseProtocol {
     func uploadImage(user: User, image: UIImage) -> Single<URL>
     func updateNicknameAndReloadSession(nickname: String) -> Single<User>
     func updateProfileImageAndReloadSession(image: UIImage) -> Single<User>
+    /// 푸시 알림 설정을 세션에 먼저 반영하고 서버에 저장합니다. 저장에 실패하면 세션을 원래 값으로 되돌립니다.
+    func updatePushEnabled(_ isEnabled: Bool) -> Single<User>
     
     // MARK: - Sign
     func signIn(platform: User.LoginPlatform) -> Single<SignInResult>
@@ -51,12 +53,21 @@ public protocol AuthUsecaseProtocol {
     #endif
 }
 
+public extension AuthUsecaseProtocol {
+    /// 푸시 설정을 저장하지 않는 Demo·테스트 구현을 위한 기본 동작입니다.
+    func updatePushEnabled(_ isEnabled: Bool) -> Single<User> {
+        .error(DomainError.missingDomainSession)
+    }
+}
+
 public final class AuthUsecaseImpl: AuthUsecaseProtocol {
 
     private let repository: AuthRepositoryProtocol
     private let userSession: UserSession
     private let groupSession: GroupSession
     private let fcmTokenStore: FCMTokenStore
+    /// 같은 유저 요청을 합치고, 10초 안에 받은 유저면 `fetch`가 서버를 건너뛰게 한다
+    private let userRequests = FetchRequests<User>(maxAge: 10)
     
     public init(authRepository: AuthRepositoryProtocol,
                 userSession: UserSession,
@@ -109,6 +120,21 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
             }
     }
     
+    public func updatePushEnabled(_ isEnabled: Bool) -> Single<User> {
+        guard let userId = userSession.userId else {
+            return .error(DomainError.missingDomainSession)
+        }
+
+        let repository = repository
+        // 세션을 먼저 바꾸고 서버에 저장한다. 실패하면 Fetcher가 되돌린다
+        return userFetcher(userId: userId)
+            .update({ user in
+                user.isPushEnabled = isEnabled
+            }, remote: { user in
+                repository.updateUser(user: user).map { _ in () }
+            })
+    }
+
     public func updateProfileImageAndReloadSession(image: UIImage) -> Single<User> {
         guard let currentUser = userSession.session else {
             return .error(DomainError.missingDomainSession)
@@ -360,6 +386,7 @@ private extension AuthUsecaseImpl {
 
         return Fetcher(
             local: { userSession.session },
+            observeLocal: { userSession.asObservable() },
             remote: { repository.fetchUser(uid: userId) },
             updateLocal: { user in
                 userSession.update(user)
@@ -371,6 +398,8 @@ private extension AuthUsecaseImpl {
             // 이미 로그아웃했거나 다른 유저로 바뀐 뒤 늦게 온 응답은 버린다
             isCurrent: { userSession.userId == userId }
         )
+        .timeout(.seconds(15))
+        .sharing(userRequests, key: userId)
         .logging("User")
     }
 
