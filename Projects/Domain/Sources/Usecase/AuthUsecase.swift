@@ -371,6 +371,7 @@ private extension AuthUsecaseImpl {
             // 이미 로그아웃했거나 다른 유저로 바뀐 뒤 늦게 온 응답은 버린다
             isCurrent: { userSession.userId == userId }
         )
+        .logging("User")
     }
 
     /// 서버에 쓴 뒤 서버 유저만 다시 받아 세션에 저장한다

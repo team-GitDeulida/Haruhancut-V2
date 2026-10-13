@@ -25,6 +25,10 @@ import RxSwift
 
  // 기존 Observable<Value> 모양으로 사용
  fetcher.fetch().fetchedValues()
+
+ // 단계별 로그 (Debug 빌드)
+ fetcher.logging("Group").fetch()
+ // [Group] 캐시: 있음 → [Group] 서버 요청 → [Group] 서버 응답: 값 → [Group] 캐시 저장
  */
 
 /// Fetcher가 전달하는 조회 단계입니다.
@@ -105,10 +109,9 @@ public extension Fetcher {
     /// 요청한 대상이 바뀌어 응답을 버리면 `.loading`만 보내고 끝납니다.
     func fetch() -> Observable<FetchResult<Value>> {
         Observable.deferred {
-            requestRemote()
-                .startWith(
-                    FetchResult(status: .loading, value: local())
-                )
+            // 캐시를 먼저 읽은 뒤 서버에 요청한다
+            let cached = FetchResult(status: .loading, value: local())
+            return requestRemote().startWith(cached)
         }
     }
 
@@ -120,6 +123,74 @@ public extension Fetcher {
         Observable.deferred {
             requestRemote()
         }
+    }
+}
+
+public extension Fetcher {
+    /// 캐시 읽기, 서버 요청·응답, 캐시 저장·삭제, 응답 버림을 `Logger`로 남기는 Fetcher를 돌려줍니다.
+    ///
+    /// 결과와 캐시 처리는 바꾸지 않습니다. 개인정보가 남지 않도록 값의 내용 대신
+    /// 있음·없음만 남깁니다. Release 빌드에서는 로그 없이 원래 Fetcher를 돌려줍니다.
+    ///
+    /// ```swift
+    /// Fetcher(...).logging("Group").fetch()
+    /// // [Group] 캐시: 있음 → [Group] 서버 요청 → [Group] 서버 응답: 값 → [Group] 캐시 저장
+    /// ```
+    ///
+    /// - Parameter label: 로그 앞에 붙일 이름. 어느 Fetcher의 로그인지 구분합니다.
+    func logging(
+        _ label: String,
+        file: String = #file,
+        line: Int = #line
+    ) -> Fetcher<Value> {
+        #if DEBUG
+        let log: (String, Bool) -> Void = { message, isWarning in
+            let message = "[\(label)] \(message)"
+            if isWarning {
+                Logger.w(message, file: file, line: line, function: "Fetcher")
+            } else {
+                Logger.d(message, file: file, line: line, function: "Fetcher")
+            }
+        }
+
+        return Fetcher(
+            local: {
+                let value = local()
+                log("캐시: \(value == nil ? "없음" : "있음")", false)
+                return value
+            },
+            remote: {
+                remote().do(
+                    onSuccess: { value in
+                        log("서버 응답: \(value == nil ? "없음" : "값")", false)
+                    },
+                    onError: { error in
+                        log("서버 응답: 실패 (\(error))", true)
+                    },
+                    onSubscribe: {
+                        log("서버 요청", false)
+                    }
+                )
+            },
+            updateLocal: { value in
+                log("캐시 저장", false)
+                updateLocal(value)
+            },
+            removeLocal: {
+                log("캐시 삭제", false)
+                removeLocal()
+            },
+            isCurrent: {
+                let current = self.isCurrent()
+                if !current {
+                    log("요청 대상이 바뀌어 응답을 버림", true)
+                }
+                return current
+            }
+        )
+        #else
+        return self
+        #endif
     }
 }
 

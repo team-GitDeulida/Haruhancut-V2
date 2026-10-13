@@ -259,6 +259,7 @@ func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
         removeLocal: { groupSession.clear() },
         isCurrent: { userSession.groupId == groupId }  // 다른 그룹으로 바뀐 뒤 온 응답은 버림
     )
+    .logging("Group")  // Debug 빌드에서 단계별 로그
 }
 
 public func loadAndFetchGroup() -> Observable<HCGroup> {
@@ -274,6 +275,16 @@ public func loadAndFetchGroup() -> Observable<HCGroup> {
 | `fetch()` | `(.loading, 캐시)`를 먼저 보내고 서버 결과를 이어서 보내요. 캐시가 없으면 `(.loading, nil)`이에요. | 화면 진입 조회 (`loadAndFetchUser`, `loadAndFetchGroup`) |
 | `refresh()` | 서버 결과만 보내요. | 쓰기 후 다시 읽기 (`updateNicknameAndReloadSession`, `deletePostAndReload`) |
 | `fetchedValues()` | 값만 보내요. `.notFound`는 `FetchError.notFound`로, `.failure`는 그 에러로 끝나요. | 기존 `Observable<Value>` 반환 API |
+| `logging(_:)` | 결과와 캐시 처리는 그대로 두고, 단계마다 로그를 남겨요. 값의 내용 대신 있음·없음만 남기고, Release 빌드에서는 남기지 않아요. | 조회 흐름 확인 (`userFetcher`, `groupFetcher`) |
+
+`logging(_:)`을 붙이면 다음처럼 남아요. 응답이 버려지거나 서버 확인에 실패하면 경고(🟡)로 남아요.
+
+```
+[🟢] [GroupUsecase:335] Fetcher — [Group] 캐시: 있음
+[🟢] [GroupUsecase:335] Fetcher — [Group] 서버 요청
+[🟢] [GroupUsecase:335] Fetcher — [Group] 서버 응답: 값
+[🟢] [GroupUsecase:335] Fetcher — [Group] 캐시 저장
+```
 
 - Repository는 서버에 데이터가 없을 때만 `nil`을 돌려주고, 읽거나 변환하지 못하면 에러를 보내요. `nil`과 에러를 섞지 않아야 Fetcher가 캐시를 잘못 지우지 않아요.
 - `isCurrent`에 요청한 대상(유저 ID·그룹 ID)이 지금 세션과 같은지 확인하는 조건을 넘겨요. 응답이 왔을 때 `false`면 Fetcher가 응답을 버려요. 캐시를 덮어쓰거나 지우지 않고, 예전 대상의 값을 화면에 보내지도 않아요. `fetch()`는 `.loading`만 보내고, `refresh()`는 아무것도 보내지 않고 끝나요.

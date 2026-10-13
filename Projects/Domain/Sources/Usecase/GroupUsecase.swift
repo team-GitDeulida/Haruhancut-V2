@@ -332,6 +332,7 @@ private extension GroupUsecaseImpl {
             // 다른 그룹으로 바뀐 뒤 늦게 온 응답은 버린다
             isCurrent: { userSession.groupId == groupId }
         )
+        .logging("Group")
     }
 
     /// 서버에 그룹이 없으면 서버와 세션에서 유저의 groupId를 지운 뒤 결과를 그대로 보낸다

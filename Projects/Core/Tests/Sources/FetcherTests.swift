@@ -244,6 +244,41 @@ final class FetcherTests: XCTestCase {
         XCTAssertEqual(recorder.values, [10])
         XCTAssertEqual(recorder.error as? FetchError, .notFound)
     }
+
+    // MARK: - logging
+
+    func test_logging_keepsResultsAndCacheHandling() {
+        cache.value = 10
+        let recorder = record(makeSUT().logging("Test").fetch())
+
+        remote.succeed(20)
+
+        XCTAssertEqual(recorder.steps, [.loading(10), .success(20)])
+        XCTAssertEqual(cache.updatedValues, [20])
+        XCTAssertTrue(recorder.isCompleted)
+    }
+
+    func test_logging_keepsNotFoundHandling() {
+        cache.value = 10
+        let recorder = record(makeSUT().logging("Test").refresh())
+
+        remote.succeed(nil)
+
+        XCTAssertEqual(recorder.steps, [.notFound])
+        XCTAssertEqual(cache.removeCount, 1)
+    }
+
+    func test_logging_keepsDroppingResponse_whenTargetChanged() {
+        cache.value = 10
+        let recorder = record(makeSUT().logging("Test").fetch())
+
+        isCurrent = false
+        remote.succeed(20)
+
+        XCTAssertEqual(recorder.steps, [.loading(10)])
+        XCTAssertEqual(cache.value, 10)
+        XCTAssertTrue(recorder.isCompleted)
+    }
 }
 
 // MARK: - Helpers
