@@ -221,9 +221,22 @@ final class GroupUsecaseFetchTests: XCTestCase {
 
     // MARK: - 쓰기 (먼저 바꾸고, 실패하면 되돌리기)
 
-    func testDeletePostRemovesPostFromStoredGroupWithoutServerRead() {
+    func testDeletePostRemovesPostFirstThenSavesServerGroupAfterDeletion() {
         let post = makePost()
         groupSession.update(makeGroup(name: "cached", posts: [post]).toSession())
+        let deletion = PublishSubject<Void>()
+        repository.postDeletionResponse = deletion.take(1).asSingle()
+        let newPost = Post(
+            postId: "new-post",
+            userId: "family",
+            nickname: "family",
+            profileImageURL: nil,
+            imageURL: "https://example.com/new.jpg",
+            createdAt: .now,
+            likeCount: 0,
+            comments: [:]
+        )
+        repository.fetchGroupResponse = .just(makeGroup(name: "server", posts: [newPost]))
         var count = 0
         var isCompleted = false
 
@@ -234,10 +247,31 @@ final class GroupUsecaseFetchTests: XCTestCase {
             )
             .disposed(by: disposeBag)
 
+        // 서버 응답 전에 저장된 그룹에서 먼저 빠집니다.
+        XCTAssertTrue(storedPosts().isEmpty)
+        XCTAssertEqual(repository.fetchGroupCount, 0)
+
+        deletion.onNext(())
+
+        // 기존처럼 지운 뒤 서버 그룹을 다시 받아, 그사이 올라온 게시물도 저장합니다.
         XCTAssertEqual(count, 1)
         XCTAssertTrue(isCompleted)
-        XCTAssertEqual(repository.fetchGroupCount, 0)
-        XCTAssertEqual(repository.deletedPaths.count, 1)
+        XCTAssertEqual(repository.fetchGroupCount, 1)
+        XCTAssertEqual(storedPosts().map(\.postId), ["new-post"])
+    }
+
+    func testDeletePostSucceedsWhenReloadAfterDeletionFails() {
+        let post = makePost()
+        groupSession.update(makeGroup(name: "cached", posts: [post]).toSession())
+        repository.fetchGroupResponse = .error(TestError.remote)
+        var isCompleted = false
+
+        sut.deletePostAndReload(post: post)
+            .subscribe(onCompleted: { isCompleted = true })
+            .disposed(by: disposeBag)
+
+        // 서버에서는 지워졌으므로 다시 받기가 실패해도 성공이고, 지운 게시물은 돌아오지 않습니다.
+        XCTAssertTrue(isCompleted)
         XCTAssertTrue(storedPosts().isEmpty)
     }
 
@@ -348,6 +382,8 @@ final class GroupUsecaseFetchTests: XCTestCase {
 
         XCTAssertTrue(isCompleted)
         XCTAssertEqual(repository.deletedPaths.count, 1)
+        // 서버에 쓰고 다시 받는 경로라 한 번만 받습니다.
+        XCTAssertEqual(repository.fetchGroupCount, 1)
         XCTAssertEqual(groupSession.entity?.groupName, "server")
     }
 

@@ -313,8 +313,9 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let storagePath = "groups/\(groupId)/images/\(post.postId).jpg"
         let groupRepository = groupRepository
 
-        // 저장된 그룹에서 게시물을 먼저 빼고 서버에서 지운다. 실패하면 Fetcher가 되돌린다
-        return writeGroup(groupId: groupId, change: { group in
+        // 저장된 그룹에서 게시물을 먼저 빼고 서버에서 지운다. 실패하면 Fetcher가 되돌린다.
+        // 기존처럼 지운 뒤 서버 그룹을 다시 받아 그사이 올라온 게시물도 보여 준다
+        return writeGroup(groupId: groupId, reloadAfterWrite: true, change: { group in
             group.removePost(post)
         }, write: {
             groupRepository.deleteImage(path: storagePath)
@@ -414,8 +415,10 @@ private extension GroupUsecaseImpl {
     ///   바꿀 게시물이 저장된 그룹에 없으면 먼저 바꿀 수 없다.
     ///   서버에 쓰고 서버 그룹을 다시 받아 저장해, 그룹을 구독하는 화면에 보낸다
     /// - 다시 받기가 실패해도 서버 쓰기는 끝났으므로 성공으로 끝낸다
+    /// - `reloadAfterWrite`가 `true`면 먼저 바꾼 경우에도 쓴 뒤 서버 그룹을 다시 받는다 (게시물 삭제의 기존 동작)
     func writeGroup(
         groupId: String,
+        reloadAfterWrite: Bool = false,
         change: @escaping (inout HCGroup) -> Void,
         write: @escaping () -> Single<Void>
     ) -> Single<Void> {
@@ -431,9 +434,18 @@ private extension GroupUsecaseImpl {
                     .asCompletable()
                     .andThen(.just(()))
             }
-            return fetcher
+            let updating = fetcher
                 .update(change, remote: { _ in write() })
                 .map { _ in () }
+            guard reloadAfterWrite else {
+                return updating
+            }
+            return updating.flatMap { _ in
+                fetcher.refresh()
+                    .ignoreElements()
+                    .asCompletable()
+                    .andThen(.just(()))
+            }
         }
     }
 

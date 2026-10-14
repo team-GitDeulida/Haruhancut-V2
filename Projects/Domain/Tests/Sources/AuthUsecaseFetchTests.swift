@@ -211,15 +211,43 @@ final class AuthUsecaseFetchTests: XCTestCase {
 
     // MARK: - 닉네임 (먼저 바꾸고, 실패하면 되돌리기)
 
-    func testUpdateNicknameSavesToSessionAndServerWithoutReading() {
+    func testUpdateNicknameChangesSessionBeforeServerResponds() {
+        let write = PublishSubject<User>()
+        repository.updateUserResponse = write.take(1).asSingle()
+
+        sut.updateNicknameAndReloadSession(nickname: "new")
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        XCTAssertEqual(userSession.session?.nickname, "new")
+        XCTAssertEqual(repository.fetchUserCount, 0)
+    }
+
+    func testUpdateNicknameReloadsServerUserAfterSaving() {
+        repository.fetchUserResponse = .just(makeUser(nickname: "server"))
+
         let recorder = record(
             sut.updateNicknameAndReloadSession(nickname: "new").asObservable()
         )
 
-        XCTAssertEqual(recorder.values.map(\.nickname), ["new"])
+        // 기존처럼 저장한 뒤 서버 유저를 다시 받아 돌려줍니다.
+        XCTAssertEqual(recorder.values.map(\.nickname), ["server"])
         XCTAssertEqual(repository.updatedUsers.map(\.nickname), ["new"])
+        XCTAssertEqual(repository.fetchUserCount, 1)
+        XCTAssertEqual(userSession.session?.nickname, "server")
+    }
+
+    func testUpdateNicknameKeepsSavedNicknameWhenReloadFails() {
+        repository.fetchUserResponse = .error(TestError.remote)
+
+        let recorder = record(
+            sut.updateNicknameAndReloadSession(nickname: "new").asObservable()
+        )
+
+        // 예전에는 저장 전 유저("cached")로 성공했습니다. 이제 저장한 닉네임을 돌려줍니다.
+        XCTAssertEqual(recorder.values.map(\.nickname), ["new"])
+        XCTAssertNil(recorder.error)
         XCTAssertEqual(userSession.session?.nickname, "new")
-        XCTAssertEqual(repository.fetchUserCount, 0)
     }
 
     func testUpdateNicknameRestoresSessionWhenServerFails() {
@@ -240,12 +268,15 @@ final class AuthUsecaseFetchTests: XCTestCase {
             .subscribe()
             .disposed(by: disposeBag)
 
+        // 저장 뒤 다시 받는 요청은 새로 나가 새 닉네임을 받습니다.
+        repository.fetchUserResponse = .just(makeUser(nickname: "new"))
         sut.updateNicknameAndReloadSession(nickname: "new")
             .subscribe()
             .disposed(by: disposeBag)
         // 저장 전에 시작된 요청이 늦게 예전 유저를 받습니다.
         earlierResponse.onNext(makeUser(nickname: "cached"))
 
+        XCTAssertEqual(repository.fetchUserCount, 2)
         XCTAssertEqual(userSession.session?.nickname, "new")
     }
 
@@ -256,6 +287,8 @@ final class AuthUsecaseFetchTests: XCTestCase {
             .subscribe()
             .disposed(by: disposeBag)
         repository.updateUserResponse = nil
+        // 다시 받은 응답은 진행 중인 푸시 설정 저장과 겹쳐 버려집니다.
+        repository.fetchUserResponse = .just(makeUser(nickname: "server"))
 
         let recorder = record(
             sut.updateNicknameAndReloadSession(nickname: "new").asObservable()

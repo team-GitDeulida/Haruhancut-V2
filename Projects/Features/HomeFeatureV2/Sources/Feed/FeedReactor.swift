@@ -18,6 +18,12 @@ final class FeedReactor: Reactor {
         GroupUsecaseProtocol?
     private let widgetUsecase:
         WidgetUsecaseProtocol?
+    /// 서버 응답을 기다리는 게시물 삭제 수입니다. 0보다 크면 위젯을 맞추지 않습니다.
+    private var deletingPostCount = 0
+    /// 삭제 중이라 위젯 맞추기를 건너뛰었는지입니다. 모든 삭제가 끝나면 한 번에 맞춥니다.
+    private var hasSkippedWidgetSync = false
+    /// 마지막으로 받은 그룹의 게시물입니다. 삭제가 끝난 뒤 위젯을 맞출 때 씁니다.
+    private var latestPostsByDate: [String: [Post]]?
 
     enum Action {
         case viewDidLoad
@@ -101,9 +107,7 @@ final class FeedReactor: Reactor {
     func transform(mutation: Observable<Mutation>) -> Observable<Mutation> {
         let storedGroupChanges = groupLoader.changes()
             .do(onNext: { [weak self] group in
-                self?.widgetUsecase?.synchronize(
-                    postsByDate: group.postsByDate
-                )
+                self?.synchronizeWidget(postsByDate: group.postsByDate)
             })
             .withUnretained(self)
             .map { owner, group in
@@ -137,7 +141,7 @@ private extension FeedReactor {
                     // 날짜가 바뀌면 같은 그룹이어도 위젯에 보일 사진이 달라지므로 조회가 끝날 때마다 맞춘다.
                     // 그룹 구독은 같은 그룹을 다시 보내지 않는다
                     guard case .success = result.status, let group = result.value else { return }
-                    self?.widgetUsecase?.synchronize(postsByDate: group.postsByDate)
+                    self?.synchronizeWidget(postsByDate: group.postsByDate)
                 })
                 .withUnretained(self)
                 .flatMap { owner, result in
@@ -176,6 +180,8 @@ private extension FeedReactor {
     ///
     /// 저장된 그룹에서 먼저 빠지므로 피드는 그룹 구독으로 바로 바뀝니다.
     /// 서버 삭제가 실패하면 저장된 그룹이 되돌아가고 피드도 따라 돌아옵니다.
+    /// 위젯은 기존처럼 서버에서 지워진 뒤에 맞춥니다. 삭제가 겹치면 모두 끝난 뒤 마지막 그룹으로 한 번에 맞춰서,
+    /// 먼저 끝난 삭제가 아직 서버에서 지워지지 않은 게시물까지 위젯에서 빼지 않게 합니다.
     func deletePost(_ post: Post) -> Observable<Mutation> {
         guard
             let groupUsecase
@@ -183,13 +189,22 @@ private extension FeedReactor {
             return .empty()
         }
 
-        let deletion = groupUsecase
-            .deletePostAndReload(post: post)
-            .take(1)
-            .do(onNext: { [weak self] _ in
-                // 서버에서 삭제된 뒤에만 위젯 사진을 지운다. 남은 사진은 그룹 구독이 다시 맞춘다
-                self?.widgetUsecase?.removePhoto(of: post)
-            })
+        let deletion = Observable<Void>
+            .deferred { [weak self] in
+                self?.deletingPostCount += 1
+                return groupUsecase
+                    .deletePostAndReload(post: post)
+                    .take(1)
+            }
+            .do(
+                onNext: { [weak self] _ in
+                    // 서버에서 지워진 뒤에 내려받던 위젯 사진을 저장하지 않게 한다
+                    self?.widgetUsecase?.removePhoto(of: post)
+                },
+                onDispose: { [weak self] in
+                    self?.finishDeletingPost()
+                }
+            )
             .flatMap { _ in Observable<Mutation>.empty() }
             .catch { error in
                 Logger.e(
@@ -203,6 +218,30 @@ private extension FeedReactor {
             deletion,
             .just(.setLoading(false))
         ])
+    }
+
+    /// 위젯을 맞춥니다. 게시물을 지우는 중에는 건너뛰고, 모든 삭제가 끝난 뒤에 맞춥니다.
+    func synchronizeWidget(postsByDate: [String: [Post]]) {
+        latestPostsByDate = postsByDate
+        guard deletingPostCount == 0 else {
+            hasSkippedWidgetSync = true
+            return
+        }
+        widgetUsecase?.synchronize(postsByDate: postsByDate)
+    }
+
+    /// 삭제 하나가 끝났습니다(성공·실패). 모든 삭제가 끝났고 건너뛴 위젯 맞추기가 있으면 마지막 그룹으로 맞춥니다.
+    func finishDeletingPost() {
+        deletingPostCount -= 1
+        guard
+            deletingPostCount == 0,
+            hasSkippedWidgetSync,
+            let postsByDate = latestPostsByDate
+        else {
+            return
+        }
+        hasSkippedWidgetSync = false
+        widgetUsecase?.synchronize(postsByDate: postsByDate)
     }
 
     func makeFeedMutation(from postsByDate: [String: [Post]]) -> Mutation {

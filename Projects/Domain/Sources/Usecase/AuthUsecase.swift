@@ -129,7 +129,7 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
             return .error(DomainError.missingDomainSession)
         }
         
-        return updateSessionUser(userId: currentUser.uid) { user in
+        return updateSessionUser(userId: currentUser.uid, reloadAfterWrite: true) { user in
             user.nickname = nickname
         }
     }
@@ -162,7 +162,7 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
         // 이미지를 올린 뒤 세션의 이미지 주소를 먼저 바꾸고 서버에 저장한다
         return repository.uploadImage(user: currentUser, image: image)
             .flatMap { url -> Single<User> in
-                self.updateSessionUser(userId: currentUser.uid) { user in
+                self.updateSessionUser(userId: currentUser.uid, reloadAfterWrite: true) { user in
                     user.profileImageURL = url.absoluteString
                 }
             }
@@ -432,15 +432,31 @@ private extension AuthUsecaseImpl {
 
     /// 세션 유저를 먼저 바꾸고 서버에 저장한다. 서버 저장이 실패하면 Fetcher가 되돌린다
     /// - 저장 전에 시작된 유저 요청이 늦게 예전 유저를 받아도 세션에 저장하지 않는다
-    /// - 다른 쓰기(푸시 설정 등)가 진행 중이어도 다시 읽지 않으므로 서버 저장 결과대로 끝난다
+    /// - `reloadAfterWrite`가 `true`면 기존처럼 저장한 뒤 서버 유저를 다시 받아 돌려준다 (닉네임·프로필 사진).
+    ///   다시 받지 못하면(실패, 다른 쓰기와 겹침) 저장 전 유저로 돌아가지 않도록 저장한 유저를 돌려준다
     func updateSessionUser(
         userId: String,
+        reloadAfterWrite: Bool = false,
         _ change: @escaping (inout User) -> Void
     ) -> Single<User> {
         let repository = repository
-        return userFetcher(userId: userId)
+        let fetcher = userFetcher(userId: userId)
+        let updating = fetcher
             .update(change, remote: { user in
                 repository.updateUser(user: user).map { _ in () }
             })
+        guard reloadAfterWrite else {
+            return updating
+        }
+        return updating.flatMap { saved in
+            fetcher.refresh()
+                .compactMap { result -> User? in
+                    guard case .success = result.status else { return nil }
+                    return result.value
+                }
+                .take(1)
+                .ifEmpty(default: saved)
+                .asSingle()
+        }
     }
 }

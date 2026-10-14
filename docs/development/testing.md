@@ -69,13 +69,13 @@ xcodebuild test \
 
 | 스킴 | 로컬 확인 (2026-09-30, Xcode 26.4, iPhone 16 Pro Max / iOS 26.0) |
 | --- | --- |
-| `Core` | 75개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `Domain` | 52개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `Core` | 75개 테스트 통과 (2026-10-14, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `Domain` | 55개 테스트 통과 (2026-10-14, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `WidgetSupport` | 13개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `HomeFeatureV2` | 19개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `HomeFeatureV2` | 22개 테스트 통과 (2026-10-14, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `CollectionViewAdapter` | 63개 테스트 통과 (2026-10-11, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `MemberFeatureV2` | 9개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
-| `ProfileFeatureV2` | 5개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `MemberFeatureV2` | 9개 테스트 통과 (2026-10-14, Xcode 27.0, iPhone 17 / iOS 27.0) |
+| `ProfileFeatureV2` | 5개 테스트 통과 (2026-10-14, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `AdminFeature` | 5개 테스트 통과 (2026-10-13, Xcode 27.0, iPhone 17 / iOS 27.0) |
 | `Data` | 20개 테스트 통과 (2026-10-14, Xcode 27.0, iPhone 17 / iOS 27.0) |
 

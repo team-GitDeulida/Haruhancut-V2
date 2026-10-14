@@ -202,6 +202,92 @@ final class FeedReactorWidgetTests: XCTestCase {
         XCTAssertFalse(reactor.currentState.isLoading)
     }
 
+    func testWidgetChangesOnlyAfterServerDeletion() {
+        let post = makePost(id: "deleted-post")
+        let storedGroup = PublishSubject<HCGroup>()
+        let deletion = PublishSubject<Void>()
+        let widgetUsecase = SpyWidgetUsecase()
+        let reactor = FeedReactor(
+            groupLoader: makeLoader(changes: storedGroup),
+            groupUsecase: StubGroupUsecase(deletion: deletion),
+            widgetUsecase: widgetUsecase
+        )
+        _ = reactor.state
+        storedGroup.onNext(makeGroup(posts: [post]))
+
+        reactor.action.onNext(.deleteConfirmed(post))
+        // 저장된 그룹에서 먼저 빠져도 서버 응답 전에는 위젯을 맞추지 않습니다.
+        storedGroup.onNext(makeGroup(posts: []))
+
+        XCTAssertEqual(widgetUsecase.synchronizedPostIDs, [["deleted-post"]])
+        XCTAssertTrue(widgetUsecase.removedPostIDs.isEmpty)
+
+        deletion.onNext(())
+
+        XCTAssertEqual(widgetUsecase.removedPostIDs, ["deleted-post"])
+        XCTAssertEqual(widgetUsecase.synchronizedPostIDs, [["deleted-post"], []])
+    }
+
+    func testFailedDeletionKeepsPostInWidget() {
+        let post = makePost(id: "deleted-post")
+        let storedGroup = PublishSubject<HCGroup>()
+        let deletion = PublishSubject<Void>()
+        let widgetUsecase = SpyWidgetUsecase()
+        let reactor = FeedReactor(
+            groupLoader: makeLoader(changes: storedGroup),
+            groupUsecase: StubGroupUsecase(deletion: deletion),
+            widgetUsecase: widgetUsecase
+        )
+        _ = reactor.state
+        storedGroup.onNext(makeGroup(posts: [post]))
+
+        reactor.action.onNext(.deleteConfirmed(post))
+        // 먼저 빠졌다가 서버 삭제가 실패해 되돌아옵니다.
+        storedGroup.onNext(makeGroup(posts: []))
+        storedGroup.onNext(makeGroup(posts: [post]))
+        deletion.onError(TestError())
+
+        // 게시물이 빠진 그룹으로는 맞추지 않고, 되돌아온 그룹으로 맞춥니다.
+        XCTAssertEqual(widgetUsecase.synchronizedPostIDs, [["deleted-post"], ["deleted-post"]])
+        XCTAssertTrue(widgetUsecase.removedPostIDs.isEmpty)
+        XCTAssertFalse(reactor.currentState.isLoading)
+    }
+
+    func testOverlappingDeletionsSynchronizeWidgetAfterAllFinish() {
+        let first = makePost(id: "first")
+        let second = makePost(id: "second")
+        let storedGroup = PublishSubject<HCGroup>()
+        let firstDeletion = PublishSubject<Void>()
+        let secondDeletion = PublishSubject<Void>()
+        let widgetUsecase = SpyWidgetUsecase()
+        let reactor = FeedReactor(
+            groupLoader: makeLoader(changes: storedGroup),
+            groupUsecase: StubGroupUsecase(deletions: [
+                "first": firstDeletion,
+                "second": secondDeletion
+            ]),
+            widgetUsecase: widgetUsecase
+        )
+        _ = reactor.state
+        storedGroup.onNext(makeGroup(posts: [first, second]))
+
+        reactor.action.onNext(.deleteConfirmed(first))
+        reactor.action.onNext(.deleteConfirmed(second))
+        storedGroup.onNext(makeGroup(posts: [second]))
+        storedGroup.onNext(makeGroup(posts: []))
+
+        // 두 번째 삭제가 먼저 성공해도, 첫 번째가 끝나지 않았으므로 위젯을 맞추지 않습니다.
+        secondDeletion.onNext(())
+        XCTAssertEqual(widgetUsecase.synchronizedPostIDs, [["first", "second"]])
+
+        // 첫 번째 삭제가 실패해 그 게시물이 돌아온 뒤, 마지막 그룹으로 한 번에 맞춥니다.
+        storedGroup.onNext(makeGroup(posts: [first]))
+        firstDeletion.onError(TestError())
+
+        XCTAssertEqual(widgetUsecase.removedPostIDs, ["second"])
+        XCTAssertEqual(widgetUsecase.synchronizedPostIDs, [["first", "second"], ["first"]])
+    }
+
     func testFailedDeletionKeepsWidgetPhoto() {
         let widgetUsecase = SpyWidgetUsecase()
         let reactor = FeedReactor(
@@ -306,10 +392,15 @@ private final class StubAuthUsecase: AuthUsecaseProtocol {
 
 /// `FeedReactor`가 쓰는 `deletePostAndReload`만 지정한 결과를 내보냅니다.
 private final class StubGroupUsecase: GroupUsecaseProtocol {
-    private let deletion: Observable<Void>
+    private let deletion: (Post) -> Observable<Void>
 
     init(deletion: Observable<Void>) {
-        self.deletion = deletion
+        self.deletion = { _ in deletion }
+    }
+
+    /// 게시물마다 다른 삭제 결과를 냅니다.
+    init(deletions: [String: Observable<Void>]) {
+        self.deletion = { post in deletions[post.postId] ?? .never() }
     }
 
     func updateGroup(path _: String, post _: Post) -> Single<Void> { .never() }
@@ -321,5 +412,5 @@ private final class StubGroupUsecase: GroupUsecaseProtocol {
     func addComment(post _: Post, text _: String) -> Single<Void> { .never() }
     func deleteComment(post _: Post, commentId _: String) -> Single<Void> { .never() }
     func uploadImageAndUploadPost(image _: UIImage) -> Observable<Void> { .never() }
-    func deletePostAndReload(post _: Post) -> Observable<Void> { deletion }
+    func deletePostAndReload(post: Post) -> Observable<Void> { deletion(post) }
 }
