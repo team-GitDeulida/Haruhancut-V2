@@ -484,6 +484,28 @@ final class FetcherTests: XCTestCase {
         XCTAssertEqual(recorder.steps, [.success(30)])
     }
 
+    func test_writeThenRefresh_savesServerValue_evenWhenSubscriptionWasDisposedBeforeWriteFinished() {
+        cache.value = 10
+        let requests = FetchRequests<Int>()
+        let write = PublishSubject<Void>()
+        let subscription = makeSUT().sharing(requests, key: "group")
+            .writeThenRefresh { write.take(1).asSingle() }
+            .subscribe()
+
+        // 댓글을 보내자마자 시트를 닫아 구독이 먼저 해제됩니다. 서버 쓰기는 계속 진행 중입니다.
+        subscription.dispose()
+        // 쓰는 동안 시작된 읽기는 쓰기 전 값일 수 있어 저장하지 않습니다.
+        let reading = record(makeSUT().sharing(requests, key: "group").fetch())
+        remote.succeed(5)
+
+        write.onNext(())
+        remote.succeed(20)
+
+        XCTAssertEqual(reading.steps, [.loading(10)])
+        XCTAssertEqual(remote.requestCount, 2)
+        XCTAssertEqual(cache.value, 20)
+    }
+
     func test_writeThenRefresh_failsWithoutAskingServer_whenWriteFails() {
         let recorder = record(
             makeSUT().writeThenRefresh { .error(TestError.remote) }

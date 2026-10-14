@@ -197,6 +197,9 @@ public extension Fetcher {
     /// 쓰기 전이나 쓰는 동안 시작된 서버 요청에 합류하지 않으므로, 다시 받은 값에는 방금 쓴 내용이 들어 있습니다.
     /// 다른 쓰기가 진행 중이면 그 쓰기가 끝난 뒤에 다시 받습니다. 쓰는 동안 받은 응답은 버려지기 때문입니다.
     ///
+    /// 서버 쓰기는 보낸 뒤 취소되지 않으므로, 결과를 기다리던 구독이 먼저 해제돼도
+    /// (댓글을 보내자마자 시트를 닫음) 서버 응답까지 기다렸다가 다시 받기를 마칩니다.
+    ///
     /// - Parameter write: 서버에 쓰는 요청.
     /// - Returns: 다시 받은 결과. `refresh()`와 같습니다. 서버 쓰기가 실패하면 다시 받지 않고 그 에러로 끝납니다.
     func writeThenRefresh(
@@ -205,7 +208,7 @@ public extension Fetcher {
         Observable.deferred {
             // 쓰는 동안 도착하는 서버 응답이 쓰기 전 값을 저장하지 않게 한다
             let writeToken = beginWrite()
-            return write()
+            let writing = write()
                 .do(
                     onSuccess: { _ in
                         // 다시 받는 요청이 새로 나가도록 쓰기를 먼저 끝낸다
@@ -225,6 +228,11 @@ public extension Fetcher {
                     waitUntilWritesFinish()
                         .andThen(requestRemote())
                 }
+
+            // 호출부의 구독과 상관없이 쓰기와 다시 받기를 끝까지 진행한다. 끝나면 구독은 스스로 끝난다
+            let result = ReplaySubject<FetchResult<Value>>.create(bufferSize: 1)
+            _ = writing.subscribe(result)
+            return result.asObservable()
         }
     }
 }
