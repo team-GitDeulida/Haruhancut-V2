@@ -31,8 +31,14 @@ public protocol AuthUsecaseProtocol {
     func fetchUser(uid: String) -> Single<User?>
     func updateUser(user: User) -> Single<User>
     func uploadImage(user: User, image: UIImage) -> Single<URL>
+    /// 닉네임을 세션에 먼저 반영하고 서버에 저장합니다. 저장에 실패하면 세션을 원래 값으로 되돌립니다.
     func updateNicknameAndReloadSession(nickname: String) -> Single<User>
+    /// 이미지를 올린 뒤 이미지 주소를 세션에 먼저 반영하고 서버에 저장합니다. 저장에 실패하면 세션을 원래 값으로 되돌립니다.
     func updateProfileImageAndReloadSession(image: UIImage) -> Single<User>
+    /// 푸시 알림 설정을 세션에 먼저 반영하고 서버에 저장합니다. 저장에 실패하면 세션을 원래 값으로 되돌립니다.
+    func updatePushEnabled(_ isEnabled: Bool) -> Single<User>
+    /// 생일을 세션에 먼저 반영하고 서버에 저장합니다. 저장에 실패하면 세션을 원래 값으로 되돌립니다.
+    func updateBirthday(_ birthdayDate: Date) -> Single<User>
     
     // MARK: - Sign
     func signIn(platform: User.LoginPlatform) -> Single<SignInResult>
@@ -44,11 +50,30 @@ public protocol AuthUsecaseProtocol {
     func generateFcmToken() -> Single<String>
     func syncFcmIfNeeded() -> Single<Void>
     func loadAndFetchUser() -> Observable<User>
+    /// 저장된 유저를 먼저 보내고, 저장된 유저가 바뀔 때마다 보냅니다. 서버에는 묻지 않습니다.
+    func observeUser() -> Observable<User>
 
     // MARK: - Test
     #if DEBUG
     func bootstrapUserSession(uid: String) -> Single<User>
     #endif
+}
+
+public extension AuthUsecaseProtocol {
+    /// 푸시 설정을 저장하지 않는 Demo·테스트 구현을 위한 기본 동작입니다.
+    func updatePushEnabled(_ isEnabled: Bool) -> Single<User> {
+        .error(DomainError.missingDomainSession)
+    }
+
+    /// 생일을 저장하지 않는 Demo·테스트 구현을 위한 기본 동작입니다.
+    func updateBirthday(_ birthdayDate: Date) -> Single<User> {
+        .error(DomainError.missingDomainSession)
+    }
+
+    /// 구독을 지원하지 않는 Demo·테스트 구현을 위한 기본 동작입니다. 조회한 유저만 보냅니다.
+    func observeUser() -> Observable<User> {
+        loadAndFetchUser()
+    }
 }
 
 public final class AuthUsecaseImpl: AuthUsecaseProtocol {
@@ -57,6 +82,8 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     private let userSession: UserSession
     private let groupSession: GroupSession
     private let fcmTokenStore: FCMTokenStore
+    /// 같은 유저 요청을 합치고, 10초 안에 받은 유저면 `fetch`가 서버를 건너뛰게 한다
+    private let userRequests = FetchRequests<User>(maxAge: 10)
     
     public init(authRepository: AuthRepositoryProtocol,
                 userSession: UserSession,
@@ -98,34 +125,46 @@ public final class AuthUsecaseImpl: AuthUsecaseProtocol {
     /// - Parameter nickname: 새 닉네임
     /// - Returns: 변경된 유저
     public func updateNicknameAndReloadSession(nickname: String) -> Single<User> {
-        guard var currentUser = userSession.session else {
+        guard let currentUser = userSession.session else {
             return .error(DomainError.missingDomainSession)
         }
         
-        currentUser.nickname = nickname
-        return repository.updateUser(user: currentUser)
-            .flatMap { _ in
-                self.loadAndFetchUser()
-                    .takeLast(1)
-                    .asSingle()
-            }
+        return updateSessionUser(userId: currentUser.uid, reloadAfterWrite: true) { user in
+            user.nickname = nickname
+        }
     }
     
+    public func updatePushEnabled(_ isEnabled: Bool) -> Single<User> {
+        guard let userId = userSession.userId else {
+            return .error(DomainError.missingDomainSession)
+        }
+
+        return updateSessionUser(userId: userId) { user in
+            user.isPushEnabled = isEnabled
+        }
+    }
+
+    public func updateBirthday(_ birthdayDate: Date) -> Single<User> {
+        guard let userId = userSession.userId else {
+            return .error(DomainError.missingDomainSession)
+        }
+
+        return updateSessionUser(userId: userId) { user in
+            user.birthdayDate = birthdayDate
+        }
+    }
+
     public func updateProfileImageAndReloadSession(image: UIImage) -> Single<User> {
         guard let currentUser = userSession.session else {
             return .error(DomainError.missingDomainSession)
         }
         
+        // 이미지를 올린 뒤 세션의 이미지 주소를 먼저 바꾸고 서버에 저장한다
         return repository.uploadImage(user: currentUser, image: image)
             .flatMap { url -> Single<User> in
-                var updatedUser = currentUser
-                updatedUser.profileImageURL = url.absoluteString
-                return self.repository.updateUser(user: updatedUser)
-            }
-            .flatMap { _ in
-                self.loadAndFetchUser()
-                    .takeLast(1)
-                    .asSingle()
+                self.updateSessionUser(userId: currentUser.uid, reloadAfterWrite: true) { user in
+                    user.profileImageURL = url.absoluteString
+                }
             }
     }
 }
@@ -321,31 +360,27 @@ extension AuthUsecaseImpl {
 }
 
 extension AuthUsecaseImpl {
+    /// 캐시된 유저를 먼저 보내고 서버 유저로 갱신한다
+    /// - 서버에 유저가 없으면 세션을 지우고 `FetchError.notFound`로 끝낸다
+    /// - 서버에 확인하지 못하면 캐시를 유지하고 그 에러로 끝낸다
     public func loadAndFetchUser() -> Observable<User> {
         guard let userId = userSession.userId else {
             return .error(DomainError.missingDomainSession)
         }
-        
-        // 1. 캐시에서 유저 가져옴
-        let cached = userSession.session
-            .map { Observable.just($0) } ?? .empty()
-        
-        // 2. 서버에서 유저 가져옴
-        let remote = repository.fetchUser(uid: userId)
-            .compactMap { $0 } // nil 제거(PrimitiveSequence<MaybeTrait, User>)
-            .asObservable()
-            .do(onNext: { user in
-                self.userSession.update(user)
-            })
 
-        // 3. 캐시 -> 서버 순서로 방출
-        return Observable.concat(cached, remote)
-            .enumerated()
-            .do(onNext: { index, user in
-                // Logger.d("\n[\(index)]번째 방출: \(user.description)")
-                Logger.d("[\(index)]번째 방출")
-            })
-            .map { $0.element }
+        return userFetcher(userId: userId)
+            .fetch()
+            .fetchedValues()
+    }
+
+    public func observeUser() -> Observable<User> {
+        guard let userId = userSession.userId else {
+            return .error(DomainError.missingDomainSession)
+        }
+
+        return userFetcher(userId: userId)
+            .observe()
+            .compactMap { $0 }
     }
 }
 
@@ -366,3 +401,62 @@ extension AuthUsecaseImpl {
     }
 }
 #endif
+
+// MARK: - Fetcher
+private extension AuthUsecaseImpl {
+    /// 유저 세션과 서버 유저를 맞추는 Fetcher
+    /// - 서버에 유저가 없으면 유저·그룹 세션을 지운다. AppCoordinator가 로그인 화면으로 보낸다
+    func userFetcher(userId: String) -> Fetcher<User> {
+        let userSession = userSession
+        let groupSession = groupSession
+        let repository = repository
+
+        return Fetcher(
+            local: { userSession.session },
+            observeLocal: { userSession.asObservable() },
+            remote: { repository.fetchUser(uid: userId) },
+            updateLocal: { user in
+                userSession.update(user)
+            },
+            removeLocal: {
+                groupSession.clear()
+                userSession.clear()
+            },
+            // 이미 로그아웃했거나 다른 유저로 바뀐 뒤 늦게 온 응답은 버린다
+            isCurrent: { userSession.userId == userId }
+        )
+        .timeout(.seconds(15))
+        .sharing(userRequests, key: userId)
+        .logging("User")
+    }
+
+    /// 세션 유저를 먼저 바꾸고 서버에 저장한다. 서버 저장이 실패하면 Fetcher가 되돌린다
+    /// - 저장 전에 시작된 유저 요청이 늦게 예전 유저를 받아도 세션에 저장하지 않는다
+    /// - `reloadAfterWrite`가 `true`면 기존처럼 저장한 뒤 서버 유저를 다시 받아 돌려준다 (닉네임·프로필 사진).
+    ///   다시 받지 못하면(실패, 다른 쓰기와 겹침) 저장 전 유저로 돌아가지 않도록 저장한 유저를 돌려준다
+    func updateSessionUser(
+        userId: String,
+        reloadAfterWrite: Bool = false,
+        _ change: @escaping (inout User) -> Void
+    ) -> Single<User> {
+        let repository = repository
+        let fetcher = userFetcher(userId: userId)
+        let updating = fetcher
+            .update(change, remote: { user in
+                repository.updateUser(user: user).map { _ in () }
+            })
+        guard reloadAfterWrite else {
+            return updating
+        }
+        return updating.flatMap { saved in
+            fetcher.refresh()
+                .compactMap { result -> User? in
+                    guard case .success = result.status else { return nil }
+                    return result.value
+                }
+                .take(1)
+                .ifEmpty(default: saved)
+                .asSingle()
+        }
+    }
+}

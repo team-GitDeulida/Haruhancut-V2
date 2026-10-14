@@ -19,7 +19,8 @@ public protocol GroupRepositoryProtocol {
         settings: GroupBirthdaySettings
     ) -> Single<Void>
     func updateUserGroupId(groupId: String) -> Single<Void>
-    func fetchGroup(groupId: String) -> Single<HCGroup>
+    /// 그룹을 조회합니다. 서버에 그룹이 없으면 `nil`, 읽지 못하면 에러를 보냅니다.
+    func fetchGroup(groupId: String) -> Single<HCGroup?>
     
     // Image
     func uploadImage(image: UIImage, path: String) -> Single<URL>

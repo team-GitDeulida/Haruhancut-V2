@@ -93,8 +93,8 @@ public final class AppCoordinator: Coordinator {
     // 홈 플로우
     func startHomeFlowCoordinator() {
         
-        // 1. AuthCoordinator 제거
-        childCoordinators.removeAll { $0 is AuthCoordinator }
+        // 1. AuthCoordinator, GroupCoordinator 제거
+        childCoordinators.removeAll { $0 is AuthCoordinator || $0 is GroupCoordinator }
         
         // 2. HomeV2Coordinator 중복 방지
         if childCoordinators.contains(where: { $0 is HomeV2Coordinator }) {
@@ -126,10 +126,17 @@ public final class AppCoordinator: Coordinator {
     
     // 그룹 플로우
     func startGroupFlowCoordinator() {
+        // 서버에 그룹이 없어 홈에서 넘어온 경우 홈 플로우와 남은 그룹 플로우를 정리하고 새로 시작한다
+        // 홈을 남겨 두면 새 그룹을 만든 뒤 startHomeFlowCoordinator()가 중복으로 보고 홈을 열지 않는다
+        if childCoordinators.contains(where: { $0 is HomeV2Coordinator }) {
+            childCoordinators.removeAll { $0 is HomeV2Coordinator || $0 is GroupCoordinator }
+            navigationController.dismiss(animated: false)
+        }
+
         if childCoordinators.contains(where: { $0 is GroupCoordinator }) {
             return
         }
-        
+
         let coordinator = GroupCoordinator(navigationController: navigationController)
         coordinator.parentCoordinator = self
         childCoordinators.append(coordinator)

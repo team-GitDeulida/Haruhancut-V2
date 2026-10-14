@@ -64,6 +64,8 @@ public enum FirebaseError: Error {
     case decodingFailed
     
     // Firebase Realtime Database
+    /// 네트워크가 끊겨 쓰기를 시작하지 않았어요.
+    case offline
     case permissionDenied
     case pathNotFound
     case invalidData
@@ -111,7 +113,7 @@ public protocol FirebaseAuthManagerProtocol {
     // 내 정보 조회
     // func fetchMyInfo() -> Single<Domain.User?>
     
-    // 특정 유저 조회
+    // 특정 유저 조회 (유저가 없으면 nil)
     func fetchUser(uid: String) -> Single<Domain.User?>
     
     // 유저 업데이트
@@ -131,8 +133,8 @@ public protocol FirebaseAuthManagerProtocol {
     // 유저 groupId 업데이트
     func updateUserGroupId(groupId: String) -> Single<Void>
     
-    // 그룹 조회
-    func fetchGroup(groupId: String) -> Single<HCGroup>
+    // 그룹 조회 (그룹이 없으면 nil)
+    func fetchGroup(groupId: String) -> Single<HCGroup?>
 
     // 전체 그룹 조회 (관리자 전용 Usecase에서만 사용)
     func fetchGroups() -> Single<[HCGroup]>
@@ -168,6 +170,8 @@ public final class FirebaseAuthManager: FirebaseAuthManagerProtocol {
 
     private let apnsTokenProvider: () -> Data?
     private let fcmTokenProvider: (@escaping FCMTokenCompletion) -> Void
+    /// 쓰기 전에 네트워크 연결을 확인합니다. 처음 쓸 때 꺼내 감시를 시작합니다.
+    private let connection: () -> NetworkReachability
 
     public convenience init() {
         self.init(
@@ -182,14 +186,26 @@ public final class FirebaseAuthManager: FirebaseAuthManagerProtocol {
 
     init(
         apnsTokenProvider: @escaping () -> Data?,
-        fcmTokenProvider: @escaping (@escaping FCMTokenCompletion) -> Void
+        fcmTokenProvider: @escaping (@escaping FCMTokenCompletion) -> Void,
+        connection: @escaping () -> NetworkReachability = { .shared }
     ) {
         self.apnsTokenProvider = apnsTokenProvider
         self.fcmTokenProvider = fcmTokenProvider
+        self.connection = connection
     }
 
     private var databaseRef: DatabaseReference {
         Database.database(url: Constants.Firebase.realtimeURL).reference()
+    }
+
+    /// 네트워크에 연결돼 있을 때만 쓰기를 시작합니다. 끊겨 있으면 `FirebaseError.offline`으로 끝납니다.
+    ///
+    /// 끊긴 채 쓰면 Firebase가 대기열에 넣고 연결될 때까지 완료를 알리지 않아 저장 중 표시가 멈추고,
+    /// 그사이 앱이 종료되면 쓰기가 사라지기 때문입니다.
+    private func whenConnected<T>(_ write: Single<T>) -> Single<T> {
+        connection()
+            .requireConnection()
+            .andThen(write)
     }
 }
 
@@ -198,7 +214,7 @@ extension FirebaseAuthManager {
     
     
     public func setValue<T: Encodable>(path: String, value: T) -> Single<Void> {
-        return Single.create { single in
+        return whenConnected(Single.create { single in
             do {
                 let data = try JSONEncoder().encode(value)
                 let dict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
@@ -216,35 +232,53 @@ extension FirebaseAuthManager {
                 single(.failure(FirebaseError.encodingFailed))
             }
             return Disposables.create()
-        }
+        })
     }
     
     /// Read - 1회 요청
     /// - Parameters:
     ///   - path: 경로
     ///   - type: 값
-    /// - Returns: Observable<T>
+    /// - Returns: 경로에 값이 없으면 `pathNotFound`, 형식이 맞지 않으면 `decodingFailed`, 읽기가 취소되면 `unknown` 에러
     public func readValue<T: Decodable>(path: String, type: T.Type) -> Single<T> {
         return Single.create { single in
-            self.databaseRef.child(path).observeSingleEvent(of: .value) { snapshot in
-                guard let value = snapshot.value else {
-                    single(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "값이 존재하지 않음"])))
-                    return
-                }
-                
-                do {
-                    guard JSONSerialization.isValidJSONObject(value) else {
-                        throw NSError(domain: "", code: -2, userInfo: [NSLocalizedDescriptionKey: "유효하지 않은 JSON 객체"])
+            self.databaseRef.child(path).observeSingleEvent(
+                of: .value,
+                with: { snapshot in
+                    do {
+                        single(.success(try Self.decode(type, from: snapshot.value)))
+                    } catch {
+                        single(.failure(error))
                     }
-                    
-                    let data = try JSONSerialization.data(withJSONObject: value, options: [])
-                    let decoded = try JSONDecoder().decode(T.self, from: data)
-                    single(.success(decoded))
-                } catch {
-                    single(.failure(FirebaseError.decodingFailed))
+                },
+                withCancel: { error in
+                    // 권한 거부 등으로 읽기가 취소되면 응답 없이 멈추지 않도록 에러로 끝낸다
+                    single(.failure(FirebaseError.unknown(error)))
                 }
-            }
+            )
             return Disposables.create()
+        }
+    }
+
+    /// 스냅샷 값을 모델로 바꾼다
+    /// - Parameters:
+    ///   - type: 모델 타입
+    ///   - value: `DataSnapshot.value`. 경로에 값이 없으면 `NSNull`
+    /// - Returns: 값이 없으면 `pathNotFound`, 형식이 맞지 않으면 `decodingFailed` 에러
+    static func decode<T: Decodable>(_ type: T.Type, from value: Any?) throws -> T {
+        guard let value, !(value is NSNull) else {
+            throw FirebaseError.pathNotFound
+        }
+
+        guard JSONSerialization.isValidJSONObject(value) else {
+            throw FirebaseError.decodingFailed
+        }
+
+        do {
+            let data = try JSONSerialization.data(withJSONObject: value, options: [])
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            throw FirebaseError.decodingFailed
         }
     }
 
@@ -259,7 +293,7 @@ extension FirebaseAuthManager {
     ///   - value: 업데이트할 일부 필드를 가진 값 (Encodable → Dictionary로 변환됨)
     /// - Returns: 업데이트 성공 여부를 방출하는 Observable<Bool>
     public func updateValue<T: Encodable>(path: String, value: T) -> Single<Void> {
-        return Single.create { single in
+        return whenConnected(Single.create { single in
             guard let dict = value.toDictionary() else {
                 single(.failure(FirebaseError.encodingFailed))
                 return Disposables.create()
@@ -275,14 +309,14 @@ extension FirebaseAuthManager {
             }
             
             return Disposables.create()
-        }
+        })
     }
 
     /// Delete
     /// - Parameter path: 삭제할 Firebase realtime 데이터 경로
     /// - Returns: 삭제 성공 여부 방출하는 Observable<Bool>
     public func deleteValue(path: String) -> Single<Void> {
-        return Single.create { single in
+        return whenConnected(Single.create { single in
             self.databaseRef.child(path).removeValue { error, _ in
                 if let error = error {
                     print("❌ deleteValue 실패: \(error.localizedDescription)")
@@ -293,7 +327,7 @@ extension FirebaseAuthManager {
                 }
             }
             return Disposables.create()
-        }
+        })
     }
 }
 
@@ -415,18 +449,18 @@ extension FirebaseAuthManager {
     
     /// Uid기반 유저 정보 가져오기 - read
     /// - Parameter uid: uid
-    /// - Returns: Observable<User?>
+    /// - Returns: 유저. 서버에 유저가 없으면 `nil`, 읽거나 변환하지 못하면 에러
     public func fetchUser(uid: String) -> Single<Domain.User?> {
         let path = "users/\(uid)"
-            
-            return readValue(path: path, type: UserDTO.self)
-                .map { dto in
-                    return dto.toModel()
+
+        return readValue(path: path, type: UserDTO.self)
+            .flatMap { dto -> Single<Domain.User> in
+                guard let user = dto.toModel() else {
+                    return .error(FirebaseError.decodingFailed)
                 }
-                .catch { error in
-                    print("❌ 유저 정보 디코딩 실패: \(error.localizedDescription)")
-                    return Single.just(nil)
-                }
+                return .just(user)
+            }
+            .nilIfPathNotFound()
     }
     
     /// 유저 업데이트 - update
@@ -487,7 +521,7 @@ extension FirebaseAuthManager {
     /// - Returns: 업데이트 성공유무
     public func patchUser(uid: String, fields: [String: Any]) -> Single<Void> {
         let path = "users/\(uid)"
-        return Single.create { single in
+        return whenConnected(Single.create { single in
             self.databaseRef
                 .child(path)
                 .updateChildValues(fields) { error, _ in
@@ -498,7 +532,7 @@ extension FirebaseAuthManager {
                     }
                 }
             return Disposables.create()
-        }
+        })
     }
     
     public func signOut() -> Single<Void> {
@@ -574,8 +608,8 @@ extension FirebaseAuthManager {
     
     /// 그룹 Read
     /// - Parameter groupId: 그룹 ID
-    /// - Returns: Observable<Result<HCGroup, GroupError>>
-    public func fetchGroup(groupId: String) -> Single<HCGroup> {
+    /// - Returns: 그룹. 서버에 그룹이 없으면 `nil`, 읽거나 변환하지 못하면 에러
+    public func fetchGroup(groupId: String) -> Single<HCGroup?> {
         return readValue(path: "groups/\(groupId)", type: HCGroupDTO.self)
             .flatMap { dto -> Single<HCGroup> in
                 if let model = dto.toModel() {
@@ -584,6 +618,7 @@ extension FirebaseAuthManager {
                     return .error(FirebaseError.decodingFailed)
                 }
             }
+            .nilIfPathNotFound()
     }
 
     /// 전체 그룹을 조회합니다.
@@ -744,5 +779,18 @@ extension FirebaseAuthManager {
             }
             return Disposables.create()
         }
+    }
+}
+
+extension PrimitiveSequence where Trait == SingleTrait {
+    /// 경로에 값이 없다는 에러(`pathNotFound`)만 `nil`로 바꾸고, 나머지 에러는 그대로 보낸다
+    func nilIfPathNotFound() -> Single<Element?> {
+        map { Optional($0) }
+            .catch { error in
+                if case FirebaseError.pathNotFound = error {
+                    return .just(nil)
+                }
+                return .error(error)
+            }
     }
 }

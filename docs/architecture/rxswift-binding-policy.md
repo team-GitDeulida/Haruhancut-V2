@@ -94,14 +94,14 @@ reactor.pulse(\.$deleteFailed)
     .disposed(by: disposeBag)
 ```
 
-알림·토스트·이동처럼 다시 구독할 때 반복되면 안 되는 값은 일반 State 대신 `@Pulse`를 사용해요. `FeedReactor`는 삭제 실패 시 이전 목록으로 되돌리기만 하고 알림은 띄우지 않아요.
+알림·토스트·이동처럼 다시 구독할 때 반복되면 안 되는 값은 일반 State 대신 `@Pulse`를 사용해요. `FeedReactor`는 최신 피드를 받지 못하면 `@Pulse var loadFailure`로 안내를 한 번 띄워요. 게시물 삭제가 실패하면 저장된 그룹이 되돌아가 피드도 따라 돌아오고, 알림은 띄우지 않아요.
 
 ### Reactor 안의 비동기 작업
 
 - 로딩 표시는 `Observable.concat([.just(.setLoading(true)), 작업, .just(.setLoading(false))])`로 감싸요.
 - 오류는 작업 스트림 안에서 `.catch`로 처리해요. `mutate` 스트림에서 오류가 나면 해당 Action의 처리가 끝나요.
-- 캐시 후 서버 순서로 여러 번 방출하는 `loadAndFetchGroup()` 같은 API에서 최종 값만 필요하면 `takeLast(1)`을 붙여요.
-- 연산자 체인에서 Reactor를 참조하면 `withUnretained(self)`를 사용해요. `withUnretained`를 쓸 수 없으면 `[weak self]`로 잡고 `guard let self = self else { return .empty() }`로 풀어요. (`FeedReactor.deletePost`의 `guard let self else`는 수정할 때 바꿔요.)
+- 캐시 후 서버 순서로 여러 번 방출하는 `loadAndFetchGroup()` 같은 API에서 서버 값만 필요하면 `takeLast(1)`을 붙이지 말고, Usecase에서 `Fetcher.refresh()`로 서버 값만 받는 API를 써요. (예: 당겨서 새로고침할 때 `FeedReactor`가 쓰는 `refreshGroupResult()`) 쓰기는 `Fetcher.update(_:remote:)`로 저장된 값을 먼저 바꾸고(예: `updateNicknameAndReloadSession`), 화면은 `observeGroup()` 같은 구독으로 따라가요.
+- 연산자 체인에서 Reactor를 참조하면 `withUnretained(self)`를 사용해요. `withUnretained`를 쓸 수 없으면 `[weak self]`로 잡고 `guard let self = self else { return .empty() }`로 풀어요.
 
 ## 메모리 참조
 

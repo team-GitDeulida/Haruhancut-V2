@@ -43,8 +43,8 @@ extension CalendarDetailBuilder: CalendarDetailBuildable {
             HomePresentationMode
     ) -> CalendarDetailPresentable {
         @Dependency var groupUsecase: GroupUsecaseProtocol
-        let loadGroup =
-            HomeGroupLoaderFactory
+        let groupLoader =
+            HomeGroupLoader
                 .make(
                     mode: mode,
                     groupUsecase:
@@ -52,7 +52,7 @@ extension CalendarDetailBuilder: CalendarDetailBuildable {
                 )
         let vm =
             CalendarDetailViewModel(
-                loadGroup: loadGroup,
+                groupLoader: groupLoader,
                 posts: posts,
                 selectedDate:
                     selectedDate

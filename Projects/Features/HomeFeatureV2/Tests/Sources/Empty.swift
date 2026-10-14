@@ -38,11 +38,7 @@ final class DetailReloadTests:
             )
         let viewModel =
             FeedDetailViewModel(
-                loadGroup: {
-                    .just(
-                        previewGroup
-                    )
-                },
+                groupLoader: .fixed(previewGroup),
                 post: initialPost
             )
         let reload =
@@ -114,17 +110,15 @@ final class DetailReloadTests:
             )
         let viewModel =
             FeedDetailViewModel(
-                loadGroup: {
-                    .just(
-                        self.makeGroup(
-                            postsByDate: [
-                                "2026-07-27": [
-                                    refreshedPost,
-                                ],
-                            ]
-                        )
+                groupLoader: .fixed(
+                    makeGroup(
+                        postsByDate: [
+                            "2026-07-27": [
+                                refreshedPost,
+                            ],
+                        ]
                     )
-                },
+                ),
                 post: initialPost
             )
         let reload =
@@ -219,11 +213,7 @@ final class DetailReloadTests:
             )
         let viewModel =
             CalendarDetailViewModel(
-                loadGroup: {
-                    .just(
-                        previewGroup
-                    )
-                },
+                groupLoader: .fixed(previewGroup),
                 posts: [
                     initialPost,
                 ],
@@ -311,18 +301,16 @@ final class DetailReloadTests:
             )
         let viewModel =
             CalendarDetailViewModel(
-                loadGroup: {
-                    .just(
-                        self.makeGroup(
-                            postsByDate: [
-                                selectedDate
-                                    .toDateKey(): [
-                                    refreshedPost,
-                                ],
-                            ]
-                        )
+                groupLoader: .fixed(
+                    makeGroup(
+                        postsByDate: [
+                            selectedDate
+                                .toDateKey(): [
+                                refreshedPost,
+                            ],
+                        ]
                     )
-                },
+                ),
                 posts: [
                     initialPost,
                 ],
@@ -444,6 +432,20 @@ final class DetailReloadTests:
                 "댓글",
             createdAt:
                 .now
+        )
+    }
+}
+
+private extension HomeGroupLoader {
+    /// 항상 같은 그룹을 조회 결과로 보내고, 저장된 그룹 변화는 없는 로더입니다.
+    static func fixed(_ group: HCGroup) -> HomeGroupLoader {
+        HomeGroupLoader(
+            fetch: { _ in
+                .just(FetchResult(status: .success, value: group))
+            },
+            changes: {
+                .empty()
+            }
         )
     }
 }

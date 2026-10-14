@@ -48,8 +48,6 @@ final class ProfileViewModel:
 
     private let disposeBag =
         DisposeBag()
-    private let reloadUserRelay =
-        PublishRelay<Void>()
     private let isLoadingRelay =
         BehaviorRelay<Bool>(
             value: false
@@ -76,39 +74,45 @@ final class ProfileViewModel:
     func transform(
         input: Input
     ) -> Output {
-        let user = Observable.merge(
-            input.viewWillAppear,
-            reloadUserRelay.asObservable()
+        // 저장된 유저를 그린다. 닉네임·프로필 사진·생일을 바꾸면 세션이 바뀌어 바로 다시 그린다
+        let user = authUsecase
+            .observeUser()
+            .catch { _ in .empty() }
+            .share(replay: 1)
+
+        // 화면에 들어올 때마다 서버 유저로 갱신한다. 받은 유저는 세션에 저장돼 위 구독으로 온다
+        input.viewWillAppear
+            .withUnretained(self)
+            .flatMapLatest { owner, _ in
+                owner.authUsecase
+                    .loadAndFetchUser()
+                    .ignoreElements()
+                    .catch { _ in .empty() }
+            }
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        // 저장된 그룹에서 내 게시물을 그린다. 다른 화면에서 올리거나 지워도 바로 바뀐다
+        let group = groupUsecase
+            .observeGroup()
+            .catch { _ in .empty() }
+            .share(replay: 1)
+
+        // 처음에는 최근에 받은 그룹이 없을 때만, 새로고침하면 항상 서버 그룹을 받아 저장한다
+        Observable.merge(
+            .just(false),
+            input.reload.map { true }
         )
         .withUnretained(self)
-        .flatMapLatest { owner, _ in
-            owner.authUsecase
-                .loadAndFetchUser()
+        .flatMapLatest { owner, force in
+            (force
+                ? owner.groupUsecase.refreshGroupResult()
+                : owner.groupUsecase.fetchGroupResult())
+                .ignoreElements()
                 .catch { _ in .empty() }
         }
-        .share(replay: 1)
-
-        let initialGroup =
-            groupUsecase
-                .loadAndFetchGroup()
-
-        let reloadedGroup =
-            input.reload
-                .withUnretained(self)
-                .flatMapLatest {
-                    owner, _ in
-                    owner.groupUsecase
-                        .loadAndFetchGroup()
-                        .catch {
-                            _ in .empty()
-                        }
-                }
-
-        let group = Observable.merge(
-            initialGroup,
-            reloadedGroup
-        )
-        .share(replay: 1)
+        .subscribe()
+        .disposed(by: disposeBag)
 
         let userID =
             userSession.userId
@@ -157,8 +161,7 @@ final class ProfileViewModel:
                         .subscribe(
                             onSuccess: {
                                 _ in
-                                owner.reloadUserRelay
-                                    .accept(())
+                                // 세션이 바뀌어 유저 구독으로 새 사진이 온다
                                 owner.isLoadingRelay
                                     .accept(false)
                             },

@@ -14,7 +14,7 @@
 | Swift 코드 작성 규칙 | [Swift 스타일](docs/development/swiftstyle.md) | 기존 파일은 그 파일의 스타일(A·B)을 유지해요. |
 | 테스트 타깃과 실행 명령 | [테스트](docs/development/testing.md) | App 테스트와 UI 테스트는 실제 Firebase를 사용하니 사용자 확인 없이 로컬에서 실행하지 않아요. |
 | 한국어 문서 윤문 | [한국어 윤문 원칙](docs/development/korean-editing.md) · [문서 윤문 예시](docs/development/examples/korean-editing-examples.md) | 독자의 목적과 작업 범위를 정하고 원문의 의미·사실·보호 구간을 유지한다. |
-| PR 제목·본문 작성 | [한국어 윤문 원칙](docs/development/korean-editing.md) · [PR 작성 예시](docs/development/examples/pr-writing-examples.md) | PR 템플릿 섹션을 유지하고 본문은 합쇼체(`-습니다`)로 쓴다. 변경 규모에 맞는 이유·결과·검증만 적는다. |
+| PR 제목·본문 작성 | [한국어 윤문 원칙](docs/development/korean-editing.md) · [PR 작성 예시](docs/development/examples/pr-writing-examples.md) | PR 템플릿 섹션을 유지하고 본문은 해요체(`-요`)로 쓴다. 변경 규모에 맞는 이유·결과·검증만 적는다. |
 | 이슈·브랜치·커밋·PR 규칙 | [Git 작업 흐름](docs/development/gitflow.md) | 브랜치 `<유형>/#<이슈>`, 커밋 `<type>: 요약`, PR `[#<이슈>] 요약`, squash merge를 따라요. |
 | 커밋·PR의 AI 작성 표기 | [AI 작성 표기 규칙](docs/development/ai-attribution.md) | AI 공동 작성자 트레일러와 생성 문구·세션 링크를 넣지 않아요. |
 | RxSwift·RxCocoa·ReactorKit 사용 기준 | [RxSwift](docs/architecture/rxswift.md) · [바인딩 정책](docs/architecture/rxswift-binding-policy.md) · [Input/Output](docs/architecture/rxswift-input-output.md) | ReactorKit State는 조각별로 `Driver`로 표시하고, 일회성 이벤트는 `@Pulse`로 보내요. |

@@ -15,12 +15,22 @@ public protocol FirebaseStorageManagerProtocol {
 }
 
 public final class FirebaseStorageManager: FirebaseStorageManagerProtocol {
-    public init() {}
+    /// 올리거나 지우기 전에 네트워크 연결을 확인합니다. 처음 쓸 때 꺼내 감시를 시작합니다.
+    private let connection: () -> NetworkReachability
+
+    public convenience init() {
+        self.init(connection: { .shared })
+    }
+
+    init(connection: @escaping () -> NetworkReachability) {
+        self.connection = connection
+    }
 }
 
 extension FirebaseStorageManager {
+    /// 네트워크가 끊겨 있으면 올리지 않고 `FirebaseError.offline`으로 끝납니다.
     public func uploadImage(image: UIImage, path: String) -> Single<URL> {
-        return Single.create { single in
+        let upload = Single<URL>.create { single in
             guard let data = image.jpegData(compressionQuality: 0.8) else {
                 print("❌ JPEG 변환 실패")
                 single(.failure(FirebaseError.encodingFailed))
@@ -53,10 +63,14 @@ extension FirebaseStorageManager {
             }
             return Disposables.create()
         }
+        return connection()
+            .requireConnection()
+            .andThen(upload)
     }
     
+    /// 네트워크가 끊겨 있으면 지우지 않고 `FirebaseError.offline`으로 끝납니다.
     public func deleteImage(path: String) -> Single<Void> {
-        return Single.create { single in
+        let deletion = Single<Void>.create { single in
             let ref = Storage.storage().reference().child(path)
             ref.delete { error in
                 if let error = error {
@@ -68,5 +82,8 @@ extension FirebaseStorageManager {
             }
             return Disposables.create()
         }
+        return connection()
+            .requireConnection()
+            .andThen(deletion)
     }
 }

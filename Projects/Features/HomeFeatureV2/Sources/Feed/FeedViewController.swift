@@ -101,6 +101,24 @@ final class FeedViewController: UIViewController, View {
                 owner.renderUploadState(didTodayUpload: didTodayUpload)
             }
             .disposed(by: disposeBag)
+
+        // 저장된 피드가 없을 때 첫 조회 중이면 가운데에 로딩을 보여 준다
+        reactor.state
+            .map { $0.isLoading && $0.components.isEmpty }
+            .distinctUntilChanged()
+            .asDriver(onErrorDriveWith: .empty())
+            .drive(with: self) { owner, isInitialLoading in
+                owner.renderInitialLoading(isInitialLoading)
+            }
+            .disposed(by: disposeBag)
+
+        reactor.pulse(\.$loadFailure)
+            .compactMap { $0 }
+            .asSignal(onErrorSignalWith: .empty())
+            .emit(with: self) { owner, _ in
+                owner.showLoadFailureNotice()
+            }
+            .disposed(by: disposeBag)
     }
 
     private func renderFeed(components: [FeedComponent]) {
@@ -131,7 +149,31 @@ final class FeedViewController: UIViewController, View {
         customView.emptyLabel.text = isReadOnly
             ? LocalizationKey.adminPreviewEmpty.localized
             : LocalizationKey.homeDescription.localized
-        customView.emptyLabel.isHidden = hasContent
+        // 첫 조회 로딩 중에는 안내 문구 대신 로딩을 보여 준다
+        customView.emptyLabel.isHidden = hasContent || customView.loadingIndicator.isAnimating
+    }
+
+    private func renderInitialLoading(_ isInitialLoading: Bool) {
+        if isInitialLoading, !refreshControl.isRefreshing {
+            customView.loadingIndicator.startAnimating()
+            customView.emptyLabel.isHidden = true
+        } else {
+            customView.loadingIndicator.stopAnimating()
+            customView.emptyLabel.isHidden = reactor?.currentState.components.isEmpty == false
+        }
+    }
+
+    /// 최신 피드를 받지 못했다는 안내를 잠깐 보여 준다. 저장된 피드는 그대로 둔다
+    private func showLoadFailureNotice() {
+        let noticeLabel = customView.noticeLabel
+        noticeLabel.layer.removeAllAnimations()
+        UIView.animate(withDuration: 0.2) {
+            noticeLabel.alpha = 1
+        } completion: { _ in
+            UIView.animate(withDuration: 0.3, delay: 2) {
+                noticeLabel.alpha = 0
+            }
+        }
     }
 
     private func renderUploadState(didTodayUpload: Bool) {

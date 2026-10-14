@@ -19,6 +19,7 @@ public protocol AuthRepositoryProtocol {
     
     // MARK: - User
     func registerUserToRealtimeDatabase(user: User) -> Single<User>
+    /// 유저를 조회합니다. 서버에 유저가 없으면 `nil`, 읽지 못하면 에러를 보냅니다.
     func fetchUser(uid: String) -> Single<User?>
     
     func updateUser(user: User) -> Single<User>

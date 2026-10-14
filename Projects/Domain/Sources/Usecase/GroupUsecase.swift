@@ -13,6 +13,7 @@ public enum DomainError: Error {
     case missingGroupId
     case missingDomainSession
     case userNotFound
+    case groupNotFound
     case groupMemberPermissionRequired
     case adminPermissionRequired
 }
@@ -32,6 +33,12 @@ public protocol GroupUsecaseProtocol {
     func joinAndUpdateGroup(inviteCode: String) -> Single<Void>
     func createAndUpdateGroup(groupName: String) -> Single<Void>
     func loadAndFetchGroup() -> Observable<HCGroup>
+    /// 저장된 그룹을 먼저 보내고, 저장된 그룹이 바뀔 때마다 보냅니다. 서버에는 묻지 않습니다.
+    func observeGroup() -> Observable<HCGroup>
+    /// 저장된 그룹을 먼저 보내고 서버 그룹으로 갱신하며 조회 단계를 보냅니다. 최근에 받은 그룹이면 서버를 건너뜁니다.
+    func fetchGroupResult() -> Observable<FetchResult<HCGroup>>
+    /// 서버 그룹만 다시 받아 저장하며 조회 단계를 보냅니다. 당겨서 새로고침할 때 씁니다.
+    func refreshGroupResult() -> Observable<FetchResult<HCGroup>>
     func addComment(post: Post, text: String) -> Single<Void>
     func deleteComment(post: Post, commentId: String) -> Single<Void>
     func uploadImageAndUploadPost(image: UIImage) -> Observable<Void>
@@ -54,6 +61,27 @@ public extension GroupUsecaseProtocol {
     }
 }
 
+public extension GroupUsecaseProtocol {
+    /// 구독을 지원하지 않는 Demo·테스트 구현을 위한 기본 동작입니다. 조회한 그룹만 보냅니다.
+    func observeGroup() -> Observable<HCGroup> {
+        loadAndFetchGroup()
+    }
+
+    /// 조회 단계를 지원하지 않는 Demo·테스트 구현을 위한 기본 동작입니다. 조회한 그룹을 성공으로 보냅니다.
+    func fetchGroupResult() -> Observable<FetchResult<HCGroup>> {
+        loadAndFetchGroup()
+            .map { FetchResult(status: .success, value: $0) }
+            .catch { error in
+                .just(FetchResult(status: .failure(error), value: nil))
+            }
+    }
+
+    /// 조회 단계를 지원하지 않는 Demo·테스트 구현을 위한 기본 동작입니다. `fetchGroupResult()`와 같습니다.
+    func refreshGroupResult() -> Observable<FetchResult<HCGroup>> {
+        fetchGroupResult()
+    }
+}
+
 #if DEBUG
 public extension GroupUsecaseProtocol {
     /// 실제 저장소를 사용하지 않는 Demo 구현을 위한 기본 동작입니다.
@@ -67,6 +95,8 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
     private let groupRepository: GroupRepositoryProtocol
     private let userSession: UserSession
     private let groupSession: GroupSession
+    /// 같은 그룹 요청을 합치고, 10초 안에 받은 그룹이면 `fetch`가 서버를 건너뛰게 한다
+    private let groupRequests = FetchRequests<HCGroup>(maxAge: 10)
     
     public init(groupRepository: GroupRepositoryProtocol,
                 userSession: UserSession,
@@ -89,7 +119,9 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             let group =
                 groupSession.session,
             let userId =
-                userSession.userId
+                userSession.userId,
+            let groupId =
+                userSession.groupId
         else {
             return .error(
                 DomainError
@@ -105,27 +137,16 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             )
         }
 
-        return groupRepository
-            .updateBirthdaySettings(
-                groupId: group.groupId,
+        let groupRepository = groupRepository
+        // 저장된 그룹의 생일 설정을 먼저 바꾸고 서버에 쓴다. 실패하면 Fetcher가 되돌린다
+        return writeGroup(groupId: groupId, change: { group in
+            group.birthdaySettings = settings
+        }, write: {
+            groupRepository.updateBirthdaySettings(
+                groupId: groupId,
                 settings: settings
             )
-            .do(onSuccess: {
-                [weak self] in
-                self?.groupSession.update(
-                    \.birthdaySettings,
-                    settings
-                )
-            })
-    }
-    
-    /// Fetches the group associated with the current user's session.
-    /// - Returns: An `HCGroup` if a groupId exists for the current user; otherwise emits `DomainError.missingGroupId`.
-    private func fetchGroup() -> Single<HCGroup> {
-        guard let groupId = userSession.groupId else {
-            return .error(DomainError.missingGroupId)
-        }
-        return groupRepository.fetchGroup(groupId: groupId)
+        })
     }
     
     // Comment
@@ -161,31 +182,40 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             }
     }
     
+    /// 캐시된 그룹을 먼저 보내고 서버 그룹으로 갱신한다
+    /// - 서버에 그룹이 없으면 그룹 캐시와 유저의 groupId(서버·세션)를 지우고 `FetchError.notFound`로 끝낸다
+    /// - 서버에 확인하지 못하면 캐시를 유지하고 그 에러로 끝낸다
     public func loadAndFetchGroup() -> Observable<HCGroup> {
+        fetchGroupResult()
+            .fetchedValues()
+    }
+
+    public func observeGroup() -> Observable<HCGroup> {
         guard let groupId = userSession.groupId else {
             return .error(DomainError.missingGroupId)
         }
-        
-        // 1. 캐시 먼저 방출
-        let cached = groupSession.entity
-            .map { Observable.just($0) } ?? .empty()
-        
-        // 2. 서버
-        let remote = groupRepository.fetchGroup(groupId: groupId)
-            .do(onSuccess: { [weak self] group in
-                // 서버 결과 세션에 캐시
-                self?.groupSession.update(group.toSession())
-            })
-            .asObservable()
 
-        // 3. 캐시 -> 서버 순서로 방출
-        return Observable.concat(cached, remote)
-            .enumerated()
-            .do(onNext: { index, group in
-                // Logger.d("\n[\(index)]번째 방출: \(group.description)")
-                Logger.d("[\(index)]번째 방출")
-            })
-            .map { $0.element }
+        return groupFetcher(groupId: groupId)
+            .observe()
+            .compactMap { $0 }
+    }
+
+    public func fetchGroupResult() -> Observable<FetchResult<HCGroup>> {
+        guard let groupId = userSession.groupId else {
+            return .error(DomainError.missingGroupId)
+        }
+
+        return groupFetcher(groupId: groupId)
+            .fetch()
+    }
+
+    public func refreshGroupResult() -> Observable<FetchResult<HCGroup>> {
+        guard let groupId = userSession.groupId else {
+            return .error(DomainError.missingGroupId)
+        }
+
+        return groupFetcher(groupId: groupId)
+            .refresh()
     }
     
     
@@ -208,7 +238,14 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
                                  createdAt: Date())
         let dateKey = post.createdAt.toDateKey()
         let path = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)/comments/\(commentId)"
-        return self.groupRepository.addComment(path: path, value: newComment)
+        let groupRepository = groupRepository
+
+        // 저장된 그룹에 댓글을 먼저 넣고 서버에 쓴다. 실패하면 Fetcher가 되돌린다
+        return writeGroup(groupId: groupId, change: { group in
+            group.updatePost(post) { $0.comments[commentId] = newComment }
+        }, write: {
+            groupRepository.addComment(path: path, value: newComment)
+        })
     }
 
     public func deleteComment(post: Post, commentId: String) -> Single<Void> {
@@ -218,7 +255,14 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         
         let dateKey = post.createdAt.toDateKey()
         let path = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)/comments/\(commentId)"
-        return self.groupRepository.deleteComment(path: path)
+        let groupRepository = groupRepository
+
+        // 저장된 그룹에서 댓글을 먼저 빼고 서버에서 지운다. 실패하면 Fetcher가 되돌린다
+        return writeGroup(groupId: groupId, change: { group in
+            group.updatePost(post) { $0.comments[commentId] = nil }
+        }, write: {
+            groupRepository.deleteComment(path: path)
+        })
     }
     
     public func uploadImageAndUploadPost(image: UIImage) -> Observable<Void> {
@@ -249,9 +293,13 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
                                 likeCount: 0, // 추후 사용 예정
                                 comments: [:])
                 
-                return self.groupRepository
-                    .updateGroup(path: dbPath, post: post)
-                    .asObservable()
+                // 저장된 그룹에 게시물을 먼저 넣고 서버에 쓴다. 실패하면 Fetcher가 되돌린다
+                return self.writeGroup(groupId: groupId, change: { group in
+                    group.appendPost(post)
+                }, write: {
+                    self.groupRepository.updateGroup(path: dbPath, post: post)
+                })
+                .asObservable()
             }
     }
     
@@ -263,16 +311,18 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         let dateKey = post.createdAt.toDateKey()
         let dbPath = "groups/\(groupId)/postsByDate/\(dateKey)/\(post.postId)"
         let storagePath = "groups/\(groupId)/images/\(post.postId).jpg"
-        
-        return groupRepository.deleteImage(path: storagePath)
-            .catch { _ in .just(()) }   // 스토리지 삭제 실패는 무시하고 계속 진행
-            .flatMap {
-                self.groupRepository.deleteValue(path: dbPath)
-            }.asObservable()
-            .flatMap { _ in
-                self.loadAndFetchGroup()
-            }
-            .mapToVoid()
+        let groupRepository = groupRepository
+
+        // 저장된 그룹에서 게시물을 먼저 빼고 서버에서 지운다. 실패하면 Fetcher가 되돌린다.
+        // 기존처럼 지운 뒤 서버 그룹을 다시 받아 그사이 올라온 게시물도 보여 준다
+        return writeGroup(groupId: groupId, reloadAfterWrite: true, change: { group in
+            group.removePost(post)
+        }, write: {
+            groupRepository.deleteImage(path: storagePath)
+                .catch { _ in .just(()) }   // 스토리지 삭제 실패는 무시하고 계속 진행
+                .flatMap { groupRepository.deleteValue(path: dbPath) }
+        })
+        .asObservable()
     }
 
     #if DEBUG
@@ -286,6 +336,10 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
         return repository
             .fetchGroup(groupId: groupId)
             .flatMap { [weak self] group -> Single<Int> in
+                guard let group else {
+                    return .error(DomainError.groupNotFound)
+                }
+
                 let posts = group.postsByDate.values.flatMap { $0 }
                 let postsPath = "groups/\(groupId)/postsByDate"
 
@@ -320,4 +374,133 @@ public final class GroupUsecaseImpl: GroupUsecaseProtocol {
             }
     }
     #endif
+}
+
+// MARK: - Fetcher
+private extension GroupUsecaseImpl {
+    /// 그룹 세션과 서버 그룹을 맞추는 Fetcher
+    /// - 서버에 그룹이 없으면 그룹 캐시를 지우고, 서버와 세션의 groupId도 지운다 (`leaveMissingGroup`)
+    /// - 15초 안에 응답이 없으면 실패로 보고, 같은 그룹 요청은 하나로 합친다
+    func groupFetcher(groupId: String) -> Fetcher<HCGroup> {
+        let userSession = userSession
+        let groupSession = groupSession
+        let groupRepository = groupRepository
+
+        return Fetcher(
+            local: { groupSession.entity },
+            observeLocal: {
+                groupSession.asObservable()
+                    .map { $0?.toEntity() }
+            },
+            remote: { groupRepository.fetchGroup(groupId: groupId) },
+            updateLocal: { group in
+                groupSession.update(group.toSession())
+            },
+            removeLocal: {
+                groupSession.clear()
+            },
+            cleanUpNotFound: {
+                self.leaveMissingGroup(groupId: groupId)
+            },
+            // 다른 그룹으로 바뀐 뒤 늦게 온 응답은 버린다
+            isCurrent: { userSession.groupId == groupId }
+        )
+        .timeout(.seconds(15))
+        .sharing(groupRequests, key: groupId)
+        .logging("Group")
+    }
+
+    /// 저장된 그룹을 먼저 바꾸고 서버에 쓴다. 서버 쓰기가 실패하면 Fetcher가 되돌린다
+    /// - 저장된 그룹이 없거나(첫 실행, 저장 실패 등), 다른 그룹이거나(그룹 참여 직후 등),
+    ///   바꿀 게시물이 저장된 그룹에 없으면 먼저 바꿀 수 없다.
+    ///   서버에 쓰고 서버 그룹을 다시 받아 저장해, 그룹을 구독하는 화면에 보낸다
+    /// - 다시 받기가 실패해도 서버 쓰기는 끝났으므로 성공으로 끝낸다
+    /// - `reloadAfterWrite`가 `true`면 먼저 바꾼 경우에도 쓴 뒤 서버 그룹을 다시 받는다 (게시물 삭제의 기존 동작)
+    func writeGroup(
+        groupId: String,
+        reloadAfterWrite: Bool = false,
+        change: @escaping (inout HCGroup) -> Void,
+        write: @escaping () -> Single<Void>
+    ) -> Single<Void> {
+        Single.deferred {
+            let fetcher = self.groupFetcher(groupId: groupId)
+            guard
+                let group = self.groupSession.entity,
+                group.groupId == groupId,
+                group.isChanged(by: change)
+            else {
+                return fetcher.writeThenRefresh(write)
+                    .ignoreElements()
+                    .asCompletable()
+                    .andThen(.just(()))
+            }
+            let updating = fetcher
+                .update(change, remote: { _ in write() })
+                .map { _ in () }
+            guard reloadAfterWrite else {
+                return updating
+            }
+            return updating.flatMap { _ in
+                fetcher.refresh()
+                    .ignoreElements()
+                    .asCompletable()
+                    .andThen(.just(()))
+            }
+        }
+    }
+
+    /// 서버에 그룹이 없을 때 서버와 세션에서 유저의 groupId를 지운다
+    /// - 서버의 groupId도 지워야 다음 유저 조회가 없는 그룹의 id를 세션에 되살리지 않는다
+    /// - 세션의 groupId가 지워지면 AppCoordinator가 그룹 화면으로 보낸다
+    func leaveMissingGroup(groupId: String) -> Completable {
+        guard
+            let userId = userSession.userId,
+            userSession.groupId == groupId
+        else {
+            return .empty()
+        }
+
+        let userSession = userSession
+        return groupRepository
+            .deleteValue(path: "users/\(userId)/groupId")
+            .do(onSuccess: {
+                // 지우는 동안 다른 그룹으로 바뀌었으면 세션을 바꾸지 않는다
+                guard userSession.groupId == groupId else { return }
+                userSession.update(\.groupId, nil)
+            })
+            .asCompletable()
+    }
+}
+
+// MARK: - 저장된 그룹 고치기
+private extension HCGroup {
+    /// 바꾸는 방법을 적용하면 값이 달라지는지 돌려준다
+    func isChanged(by change: (inout HCGroup) -> Void) -> Bool {
+        var changed = self
+        change(&changed)
+        return changed != self
+    }
+
+    /// 게시물 하나를 바꾼다. 저장된 그룹에 그 게시물이 없으면 아무것도 하지 않는다
+    mutating func updatePost(_ post: Post, _ change: (inout Post) -> Void) {
+        let dateKey = post.createdAt.toDateKey()
+        guard let index = postsByDate[dateKey]?.firstIndex(where: { $0.postId == post.postId }) else {
+            return
+        }
+        change(&postsByDate[dateKey]![index])
+    }
+
+    /// 게시물을 넣는다
+    mutating func appendPost(_ post: Post) {
+        postsByDate[post.createdAt.toDateKey(), default: []].append(post)
+    }
+
+    /// 게시물을 뺀다. 날짜 폴더가 비면 서버처럼 폴더도 지운다
+    mutating func removePost(_ post: Post) {
+        let dateKey = post.createdAt.toDateKey()
+        postsByDate[dateKey]?.removeAll { $0.postId == post.postId }
+        if postsByDate[dateKey]?.isEmpty == true {
+            postsByDate[dateKey] = nil
+        }
+    }
 }

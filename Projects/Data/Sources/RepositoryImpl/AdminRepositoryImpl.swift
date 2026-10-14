@@ -37,5 +37,16 @@ public final class AdminRepositoryImpl:
         firebaseAuthManager.fetchGroup(
             groupId: groupId
         )
+        .flatMap {
+            group -> Single<HCGroup> in
+            guard let group
+            else {
+                return .error(
+                    DomainError
+                        .groupNotFound
+                )
+            }
+            return .just(group)
+        }
     }
 }

@@ -8,6 +8,7 @@ public enum LocalizationKey: String {
     case homeNavigationBack = "home.navigation.back"
     case homeFeedBubbleAddPhoto = "home.feed.bubble.add_photo"
     case homeFeedBubbleDoneToday = "home.feed.bubble.done_today"
+    case homeFeedLoadFailed = "home.feed.load_failed"
     case homeFeedDeleteAlertTitle = "home.feed.delete.alert.title"
     case homeFeedDeleteAlertMessage = "home.feed.delete.alert.message"
     case homeFeedCameraActionCamera = "home.feed.camera.action.camera"

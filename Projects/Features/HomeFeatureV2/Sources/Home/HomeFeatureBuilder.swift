@@ -42,8 +42,8 @@ extension HomeFeatureBuilder: HomeFeatureBuildable {
         var widgetUsecase:
             WidgetUsecaseProtocol
 
-        let loadGroup =
-            HomeGroupLoaderFactory
+        let groupLoader =
+            HomeGroupLoader
                 .make(
                     mode: mode,
                     groupUsecase:
@@ -52,7 +52,7 @@ extension HomeFeatureBuilder: HomeFeatureBuildable {
 
         let feedReactor =
             FeedReactor(
-                loadGroup: loadGroup,
+                groupLoader: groupLoader,
                 groupUsecase:
                     mode.isReadOnly
                     ? nil
@@ -65,7 +65,7 @@ extension HomeFeatureBuilder: HomeFeatureBuildable {
             )
         let calendarReactor =
             CalendarReactor(
-                loadGroup: loadGroup
+                groupLoader: groupLoader
             )
         let vc =
             HomeViewController(

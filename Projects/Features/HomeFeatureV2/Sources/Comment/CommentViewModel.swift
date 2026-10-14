@@ -14,6 +14,7 @@ public final class CommentViewModel {
 
     private let groupUsecase: GroupUsecaseProtocol
     private let postRelay: BehaviorRelay<Post>
+    private let disposeBag = DisposeBag()
     public var currentPost: Post {
         postRelay.value
     }
@@ -43,60 +44,39 @@ public final class CommentViewModel {
             }
             .asDriver(onErrorJustReturn: [])
 
+        // 저장된 그룹이 바뀌면 이 게시물의 댓글을 다시 그린다.
+        // 댓글 작성·삭제는 저장된 그룹을 먼저 바꾸고, 실패하면 되돌리므로 여기서 따로 되돌리지 않는다
+        let postId = postRelay.value.postId
+        groupUsecase.observeGroup()
+            .compactMap { group in
+                group.postsByDate
+                    .values
+                    .flatMap { $0 }
+                    .first { $0.postId == postId }
+            }
+            .catch { _ in .empty() }
+            .bind(to: postRelay)
+            .disposed(by: disposeBag)
+
         let sendResult = input.sendTap
             .withUnretained(self)
             .concatMap { owner, text -> Observable<Bool> in
                 owner.groupUsecase
                     .addComment(post: owner.postRelay.value, text: text)
+                    .map { true }
                     .asObservable()
-                    .withUnretained(self)
-                    .flatMapLatest { owner, _ in
-                        owner.groupUsecase.loadAndFetchGroup()
-                    }
-                    .withUnretained(self)
-                    .map { owner, group in
-                        if let updatedPost = group.postsByDate
-                            .values
-                            .flatMap({ $0 })
-                            .first(where: { $0.postId == owner.postRelay.value.postId }) {
-                            owner.postRelay.accept(updatedPost)
-                        }
-                        return true
-                    }
+                    .catchAndReturn(false)
             }
             .asDriver(onErrorJustReturn: false)
 
         let deleteResult = input.deleteTap
             .withUnretained(self)
             .concatMap { owner, commentId -> Observable<Bool> in
-                let originalPost = owner.postRelay.value
-
-                var updatedPost = originalPost
-                updatedPost.comments.removeValue(forKey: commentId)
-                owner.postRelay.accept(updatedPost)
-
-                return owner.groupUsecase
-                    .deleteComment(post: originalPost, commentId: commentId)
+                owner.groupUsecase
+                    .deleteComment(post: owner.postRelay.value, commentId: commentId)
+                    .map { true }
                     .asObservable()
-                    .withUnretained(self)
-                    .flatMapLatest { owner, _ in
-                        owner.groupUsecase.loadAndFetchGroup()
-                            .takeLast(1)
-                    }
-                    .withUnretained(self)
-                    .map { owner, group in
-                        if let refreshedPost = group.postsByDate
-                            .values
-                            .flatMap({ $0 })
-                            .first(where: { $0.postId == originalPost.postId }) {
-                            owner.postRelay.accept(refreshedPost)
-                        }
-                        return true
-                    }
-                    .catch { _ in
-                        owner.postRelay.accept(originalPost)
-                        return .just(false)
-                    }
+                    .catchAndReturn(false)
             }
             .asDriver(onErrorJustReturn: false)
 

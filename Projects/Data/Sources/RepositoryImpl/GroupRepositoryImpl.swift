@@ -59,7 +59,7 @@ public final class GroupRepositoryImpl: GroupRepositoryProtocol {
             })
     }
     
-    public func fetchGroup(groupId: String) -> Single<HCGroup> {
+    public func fetchGroup(groupId: String) -> Single<HCGroup?> {
         return firebaseAuthManager.fetchGroup(groupId: groupId)
     }
     

@@ -113,6 +113,48 @@ private final class DemoAuthUsecase:
         return .just(user)
     }
 
+    func updatePushEnabled(
+        _ isEnabled: Bool
+    ) -> Single<User> {
+        guard
+            var user =
+                userSession.session
+        else {
+            return .error(
+                DomainError
+                    .missingDomainSession
+            )
+        }
+        user.isPushEnabled =
+            isEnabled
+        userSession.update(user)
+        return .just(user)
+    }
+
+    func updateBirthday(
+        _ birthdayDate: Date
+    ) -> Single<User> {
+        guard
+            var user =
+                userSession.session
+        else {
+            return .error(
+                DomainError
+                    .missingDomainSession
+            )
+        }
+        user.birthdayDate =
+            birthdayDate
+        userSession.update(user)
+        return .just(user)
+    }
+
+    func observeUser() -> Observable<User> {
+        userSession
+            .asObservable()
+            .compactMap { $0 }
+    }
+
     func uploadImage(
         user: User,
         image: UIImage
@@ -302,6 +344,16 @@ private final class DemoGroupUsecase:
             )
         }
         return .just(group)
+    }
+
+    func observeGroup()
+        -> Observable<HCGroup>
+    {
+        groupSession
+            .asObservable()
+            .compactMap {
+                $0?.toEntity()
+            }
     }
 
     func addComment(
